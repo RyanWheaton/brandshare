@@ -4,7 +4,11 @@ import { storage } from "./storage";
 
 const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY!;
 const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET!;
-const REDIRECT_URI = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/dropbox/callback`;
+
+// Get the full Replit URL for the callback
+const REDIRECT_URI = process.env.REPL_SLUG && process.env.REPL_OWNER
+  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/dropbox/callback`
+  : 'http://localhost:5000/api/dropbox/callback';
 
 export function setupDropbox(app: Express) {
   app.get("/api/dropbox/auth", async (req, res) => {
@@ -17,6 +21,7 @@ export function setupDropbox(app: Express) {
       });
 
       const authUrl = await dbx.auth.getAuthenticationUrl(REDIRECT_URI);
+      console.log("Constructed Redirect URI:", REDIRECT_URI);
       console.log("Generated auth URL:", authUrl.toString());
       res.json({ url: authUrl.toString() });
     } catch (error) {
