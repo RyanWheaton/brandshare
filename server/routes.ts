@@ -29,6 +29,15 @@ export function registerRoutes(app: Express): Server {
     res.json(pages);
   });
 
+  // Add endpoint to get a single page by ID
+  app.get("/api/pages/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const page = await storage.getSharePage(parseInt(req.params.id));
+    if (!page || page.userId !== req.user.id) return res.sendStatus(404);
+    res.json(page);
+  });
+
   app.get("/api/p/:slug", async (req, res) => {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
