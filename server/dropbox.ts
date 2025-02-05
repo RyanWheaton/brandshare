@@ -7,16 +7,22 @@ const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET!;
 const REDIRECT_URI = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/dropbox/callback`;
 
 export function setupDropbox(app: Express) {
-  app.get("/api/dropbox/auth", (req, res) => {
+  app.get("/api/dropbox/auth", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const dbx = new Dropbox({
-      clientId: DROPBOX_APP_KEY,
-      clientSecret: DROPBOX_APP_SECRET,
-    });
+    try {
+      const dbx = new Dropbox({
+        clientId: DROPBOX_APP_KEY,
+        clientSecret: DROPBOX_APP_SECRET,
+      });
 
-    const authUrl = dbx.auth.getAuthenticationUrl(REDIRECT_URI, null, 'code', 'offline', null, 'none', false);
-    res.json({ url: authUrl });
+      const authUrl = await dbx.auth.getAuthenticationUrl(REDIRECT_URI);
+      console.log("Generated auth URL:", authUrl.toString());
+      res.json({ url: authUrl.toString() });
+    } catch (error) {
+      console.error("Error generating auth URL:", error);
+      res.status(500).json({ error: "Failed to generate auth URL" });
+    }
   });
 
   app.get("/api/dropbox/callback", async (req, res) => {
