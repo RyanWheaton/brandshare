@@ -31,12 +31,19 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
   const form = useForm<InsertSharePage>({
     resolver: zodResolver(insertSharePageSchema),
     defaultValues: {
-      title: page?.title ?? "",
-      description: page?.description ?? "",
-      backgroundColor: page?.backgroundColor ?? "#ffffff",
-      textColor: page?.textColor ?? "#000000",
-      files: page?.files ?? [],
+      title: "",
+      description: "",
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      files: [],
     },
+    values: page ? {
+      title: page.title,
+      description: page.description || "",
+      backgroundColor: page.backgroundColor || "#ffffff",
+      textColor: page.textColor || "#000000",
+      files: page.files,
+    } : undefined,
   });
 
   const updateMutation = useMutation({
