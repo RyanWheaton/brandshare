@@ -22,6 +22,13 @@ import { useLocation } from "wouter";
 export default function CustomizePage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Safely parse the ID parameter, return to dashboard if invalid
+  if (!params?.id || isNaN(parseInt(params.id))) {
+    setLocation("/");
+    return null;
+  }
+
   const id = parseInt(params.id);
 
   const { data: page, isLoading } = useQuery<SharePage>({

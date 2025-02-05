@@ -39,7 +39,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const { data: pages, isLoading } = useQuery<SharePage[]>({
+  const { data: pages = [], isLoading } = useQuery<SharePage[]>({
     queryKey: ["/api/pages"],
   });
 
@@ -56,38 +56,48 @@ export default function Dashboard() {
     },
   });
 
-  const handleCreatePage = async () => {
-    try {
+  const createMutation = useMutation({
+    mutationFn: async () => {
       const response = await apiRequest("POST", "/api/pages", {
         title: "My Test Share Page",
         description: "A sample share page with different types of files",
         files: DUMMY_FILES,
       });
-
-      const newPage = await response.json();
+      return await response.json();
+    },
+    onSuccess: (newPage) => {
       queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
-
       toast({
         title: "Page created",
         description: "Your share page has been created successfully.",
       });
-
-      setLocation(`/customize/${newPage.id}`);
-    } catch (error) {
+      if (newPage?.id) {
+        setLocation(`/customize/${newPage.id}`);
+      }
+    },
+    onError: (error: Error) => {
       toast({
         title: "Creation failed",
-        description: "Failed to create share page. Please try again.",
+        description: error.message || "Failed to create share page. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const copyToClipboard = async (slug: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${slug}`);
+      toast({
+        title: "Link copied",
+        description: "Share page link copied to clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy link. Please try again.",
         variant: "destructive",
       });
     }
-  };
-
-  const copyToClipboard = async (slug: string) => {
-    await navigator.clipboard.writeText(`${window.location.origin}/p/${slug}`);
-    toast({
-      title: "Link copied",
-      description: "Share page link copied to clipboard.",
-    });
   };
 
   if (isLoading) {
@@ -102,14 +112,21 @@ export default function Dashboard() {
     <div className="container max-w-4xl mx-auto p-4">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
-        <Button onClick={handleCreatePage}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button 
+          onClick={() => createMutation.mutate()} 
+          disabled={createMutation.isPending}
+        >
+          {createMutation.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="mr-2 h-4 w-4" />
+          )}
           Create Test Share Page
         </Button>
       </div>
 
       <div className="grid gap-4">
-        {pages?.map((page) => (
+        {pages.map((page) => (
           <Card key={page.id}>
             <CardHeader>
               <CardTitle>{page.title}</CardTitle>
@@ -118,7 +135,7 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground mb-4">
                 {page.description || "No description"}
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -149,7 +166,11 @@ export default function Dashboard() {
                   onClick={() => deleteMutation.mutate(page.id)}
                   disabled={deleteMutation.isPending}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
                   Delete
                 </Button>
               </div>
@@ -157,7 +178,7 @@ export default function Dashboard() {
           </Card>
         ))}
 
-        {pages?.length === 0 && (
+        {pages.length === 0 && (
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">
               <p>You haven't created any share pages yet.</p>
