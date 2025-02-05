@@ -17,13 +17,13 @@ export function setupDropbox(app: Express) {
     try {
       const dbx = new Dropbox({
         clientId: DROPBOX_APP_KEY,
-        clientSecret: DROPBOX_APP_SECRET,
       });
 
-      const authUrl = await dbx.auth.getAuthenticationUrl(REDIRECT_URI);
+      // Changed to use the simpler OAuth flow
+      const authUrl = `https://dropbox.com/oauth2/authorize?response_type=token&client_id=${DROPBOX_APP_KEY}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
       console.log("Constructed Redirect URI:", REDIRECT_URI);
-      console.log("Generated auth URL:", authUrl.toString());
-      res.json({ url: authUrl.toString() });
+      console.log("Generated auth URL:", authUrl);
+      res.json({ url: authUrl });
     } catch (error) {
       console.error("Error generating auth URL:", error);
       res.status(500).json({ error: "Failed to generate auth URL" });
