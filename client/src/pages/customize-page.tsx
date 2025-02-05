@@ -18,6 +18,7 @@ import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { FilePreview } from "@/pages/share-page";
 
 export default function CustomizePage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -52,6 +53,8 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
       files: page.files,
     } : undefined,
   });
+
+  const formValues = form.watch();
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<InsertSharePage>) => {
@@ -91,97 +94,142 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Customize Share Page</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="backgroundColor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Background Color</FormLabel>
-                      <FormControl>
-                        <div className="flex gap-2">
-                          <Input type="color" {...field} className="w-12 h-10 p-1" />
+    <div className="container mx-auto p-4">
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Edit Form */}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Customize Share Page</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
                           <Input {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="textColor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Text Color</FormLabel>
-                      <FormControl>
-                        <div className="flex gap-2">
-                          <Input type="color" {...field} className="w-12 h-10 p-1" />
-                          <Input {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={updateMutation.isPending}
-              >
-                {updateMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                Save Changes
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="backgroundColor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Background Color</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input type="color" {...field} className="w-12 h-10 p-1" />
+                              <Input {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="textColor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Text Color</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input type="color" {...field} className="w-12 h-10 p-1" />
+                              <Input {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={updateMutation.isPending}
+                  >
+                    {updateMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Save Changes
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Live Preview */}
+        <div className="relative">
+          <div className="sticky top-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div 
+                  style={{ 
+                    backgroundColor: formValues.backgroundColor || "#ffffff",
+                    color: formValues.textColor || "#000000",
+                    minHeight: "500px",
+                    padding: "2rem",
+                    borderRadius: "0.5rem",
+                  }}
+                  className="overflow-auto"
+                >
+                  <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold mb-4">{formValues.title}</h1>
+                    {formValues.description && (
+                      <p className="text-lg opacity-90">{formValues.description}</p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-8">
+                    {(page.files as any[]).map((file, index) => (
+                      <FilePreview
+                        key={index}
+                        file={file}
+                        textColor={formValues.textColor || "#000000"}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

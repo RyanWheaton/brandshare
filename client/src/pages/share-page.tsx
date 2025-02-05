@@ -11,7 +11,7 @@ type FilePreviewProps = {
   textColor: string;
 };
 
-function FilePreview({ file, textColor }: FilePreviewProps) {
+export function FilePreview({ file, textColor }: FilePreviewProps) {
   const fileType = file.name.split('.').pop()?.toLowerCase();
   const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType);
   const isVideo = ['mp4', 'mov'].includes(fileType);
