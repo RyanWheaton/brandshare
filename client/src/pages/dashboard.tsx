@@ -11,7 +11,6 @@ import {
   Loader2,
   Plus,
 } from "lucide-react";
-import { SiDropbox } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -40,7 +39,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [isConnecting, setIsConnecting] = useState(false);
 
   const { data: pages, isLoading } = useQuery<SharePage[]>({
     queryKey: ["/api/pages"],
@@ -105,20 +103,10 @@ export default function Dashboard() {
     <div className="container max-w-4xl mx-auto p-4">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
-        <div className="flex gap-4">
-          <Button
-            onClick={handleDropboxConnect}
-            variant="outline"
-            disabled={isConnecting}
-          >
-            <SiDropbox className="mr-2 h-4 w-4" />
-            {isConnecting ? "Connecting..." : "Connect Dropbox"}
-          </Button>
-          <Button onClick={handleCreatePage}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Test Share Page
-          </Button>
-        </div>
+        <Button onClick={handleCreatePage}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Test Share Page
+        </Button>
       </div>
 
       <div className="grid gap-4">
