@@ -58,7 +58,9 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
       await apiRequest("PATCH", `/api/pages/${id}`, data);
     },
     onSuccess: () => {
+      // Invalidate both the individual page and the pages list
       queryClient.invalidateQueries({ queryKey: [`/api/pages/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
       toast({
         title: "Changes saved",
         description: "Your share page has been updated successfully.",
