@@ -3,6 +3,7 @@ import { SharePage, insertSharePageSchema, InsertSharePage } from "@shared/schem
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -13,25 +14,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { FilePreview } from "@/pages/share-page";
 import { SortableFiles } from "@/components/ui/sortable-files";
-import { useEffect, useCallback } from "react";
-
-// Simple debounce function
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-}
+import { Separator } from "@/components/ui/separator";
 
 export default function CustomizePage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -79,26 +68,11 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
       queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
       toast({
         title: "Changes saved",
-        description: "Your share page has been updated.",
+        description: "Your share page has been updated successfully.",
       });
+      setLocation("/");
     },
   });
-
-  // Debounced save function
-  const debouncedSave = useCallback(
-    debounce((data: Partial<InsertSharePage>) => {
-      updateMutation.mutate(data);
-    }, 500),
-    [updateMutation]
-  );
-
-  // Watch for form changes and save automatically
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      debouncedSave(value as Partial<InsertSharePage>);
-    });
-    return () => subscription.unsubscribe();
-  }, [form.watch, debouncedSave]);
 
   if (isLoading) {
     return (
@@ -131,15 +105,15 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
         {/* Edit Form */}
         <div className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader>
               <CardTitle>Customize Share Page</CardTitle>
-              {updateMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              )}
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <div className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
+                  className="space-y-4"
+                >
                   <FormField
                     control={form.control}
                     name="title"
@@ -203,7 +177,20 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
                       )}
                     />
                   </div>
-                </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={updateMutation.isPending}
+                  >
+                    {updateMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Save Changes
+                  </Button>
+                </form>
               </Form>
             </CardContent>
           </Card>
