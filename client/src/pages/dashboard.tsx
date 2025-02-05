@@ -17,6 +17,25 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { useState } from 'react';
 
+// Dummy files for testing
+const DUMMY_FILES = [
+  {
+    name: "sample-image.jpg",
+    preview_url: "https://picsum.photos/800/600",
+    url: "https://picsum.photos/800/600",
+  },
+  {
+    name: "sample-pdf.pdf",
+    preview_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  },
+  {
+    name: "sample-video.mp4",
+    preview_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
+    url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
+  }
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -25,12 +44,6 @@ export default function Dashboard() {
 
   const { data: pages, isLoading } = useQuery<SharePage[]>({
     queryKey: ["/api/pages"],
-  });
-
-  // Query for Dropbox files when needed
-  const { data: dropboxFiles, refetch: refetchDropboxFiles } = useQuery({
-    queryKey: ["/api/dropbox/files"],
-    enabled: false, // Only fetch when needed
   });
 
   const deleteMutation = useMutation({
@@ -46,63 +59,23 @@ export default function Dashboard() {
     },
   });
 
-  const handleDropboxConnect = async () => {
-    try {
-      setIsConnecting(true);
-      const res = await fetch("/api/dropbox/auth");
-      if (!res.ok) {
-        throw new Error(`Failed to start OAuth flow: ${res.status}`);
-      }
-      const data = await res.json();
-      console.log("Redirecting to Dropbox auth URL:", data.url);
-      window.location.href = data.url;
-    } catch (error) {
-      console.error("Dropbox connection error:", error);
-      toast({
-        title: "Connection failed",
-        description: "Failed to connect to Dropbox. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
   const handleCreatePage = async () => {
-    if (!user?.dropboxToken) {
-      toast({
-        title: "Dropbox not connected",
-        description: "Please connect your Dropbox account first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      const files = await refetchDropboxFiles();
-
-      if (!files?.data?.length) {
-        toast({
-          title: "No files found",
-          description: "No supported files found in your Dropbox. Please add some files and try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // TODO: Show file picker dialog
-      // For now, let's create a page with the first file
-      const page = await apiRequest("POST", "/api/pages", {
-        title: "My Share Page",
-        description: "Created from Dropbox files",
-        files: [files.data[0]],
+      const response = await apiRequest("POST", "/api/pages", {
+        title: "My Test Share Page",
+        description: "A sample share page with different types of files",
+        files: DUMMY_FILES,
       });
 
+      const newPage = await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
+
       toast({
         title: "Page created",
         description: "Your share page has been created successfully.",
       });
+
+      setLocation(`/customize/${newPage.id}`);
     } catch (error) {
       toast({
         title: "Creation failed",
@@ -143,7 +116,7 @@ export default function Dashboard() {
           </Button>
           <Button onClick={handleCreatePage}>
             <Plus className="mr-2 h-4 w-4" />
-            Create Share Page
+            Create Test Share Page
           </Button>
         </div>
       </div>
@@ -202,8 +175,7 @@ export default function Dashboard() {
             <CardContent className="p-8 text-center text-muted-foreground">
               <p>You haven't created any share pages yet.</p>
               <p className="text-sm mt-1">
-                Connect your Dropbox account and click "Create Share Page" to get
-                started.
+                Click "Create Test Share Page" to create a page with sample files.
               </p>
             </CardContent>
           </Card>
