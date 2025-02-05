@@ -15,10 +15,6 @@ export function setupDropbox(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      const dbx = new Dropbox({
-        clientId: DROPBOX_APP_KEY,
-      });
-
       // Changed to use the authorization code flow
       const authUrl = `https://www.dropbox.com/oauth2/authorize?response_type=code&client_id=${DROPBOX_APP_KEY}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
       console.log("Constructed Redirect URI:", REDIRECT_URI);
@@ -34,15 +30,33 @@ export function setupDropbox(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const code = req.query.code as string;
 
+    if (!code) {
+      console.error("No authorization code received");
+      return res.redirect("/?dropbox=error");
+    }
+
     try {
-      const dbx = new Dropbox({
-        clientId: DROPBOX_APP_KEY,
-        clientSecret: DROPBOX_APP_SECRET,
+      const params = new URLSearchParams({
+        code,
+        grant_type: 'authorization_code',
+        client_id: DROPBOX_APP_KEY,
+        client_secret: DROPBOX_APP_SECRET,
+        redirect_uri: REDIRECT_URI,
       });
 
-      const response = await dbx.auth.getAccessTokenFromCode(REDIRECT_URI, code);
-      const { result } = response;
+      const tokenResponse = await fetch('https://api.dropboxapi.com/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
 
+      if (!tokenResponse.ok) {
+        throw new Error(`Token exchange failed: ${tokenResponse.statusText}`);
+      }
+
+      const result = await tokenResponse.json();
       const user = await storage.updateUserDropboxToken(req.user.id, result.access_token);
       res.redirect("/?dropbox=connected");
     } catch (error) {
