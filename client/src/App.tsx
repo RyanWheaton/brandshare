@@ -13,8 +13,16 @@ import { ProtectedRoute } from "./lib/protected-route";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={Dashboard} />
-      <ProtectedRoute path="/customize/:id" component={CustomizePage} />
+      <Route path="/" component={() => <ProtectedRoute component={Dashboard} path="/" />} />
+      <Route 
+        path="/customize/:id" 
+        component={({ params }) => (
+          <ProtectedRoute 
+            component={() => <CustomizePage params={params} />} 
+            path="/customize/:id" 
+          />
+        )} 
+      />
       <Route path="/p/:slug" component={SharePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
