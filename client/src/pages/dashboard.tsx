@@ -15,11 +15,13 @@ import { SiDropbox } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { useState } from 'react';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const { data: pages, isLoading } = useQuery<SharePage[]>({
     queryKey: ["/api/pages"],
@@ -46,15 +48,23 @@ export default function Dashboard() {
 
   const handleDropboxConnect = async () => {
     try {
+      setIsConnecting(true);
       const res = await fetch("/api/dropbox/auth");
+      if (!res.ok) {
+        throw new Error(`Failed to start OAuth flow: ${res.status}`);
+      }
       const data = await res.json();
+      console.log("Redirecting to Dropbox auth URL:", data.url);
       window.location.href = data.url;
     } catch (error) {
+      console.error("Dropbox connection error:", error);
       toast({
         title: "Connection failed",
         description: "Failed to connect to Dropbox. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -123,9 +133,13 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
         <div className="flex gap-4">
-          <Button onClick={handleDropboxConnect} variant="outline">
+          <Button
+            onClick={handleDropboxConnect}
+            variant="outline"
+            disabled={isConnecting}
+          >
             <SiDropbox className="mr-2 h-4 w-4" />
-            Connect Dropbox
+            {isConnecting ? "Connecting..." : "Connect Dropbox"}
           </Button>
           <Button onClick={handleCreatePage}>
             <Plus className="mr-2 h-4 w-4" />

@@ -15,8 +15,7 @@ export function setupDropbox(app: Express) {
       clientSecret: DROPBOX_APP_SECRET,
     });
 
-    // Use the correct method for OAuth2 flow
-    const authUrl = dbx.getAuthenticationUrl(REDIRECT_URI);
+    const authUrl = dbx.auth.getAuthenticationUrl(REDIRECT_URI, null, 'code', 'offline', null, 'none', false);
     res.json({ url: authUrl });
   });
 
@@ -30,11 +29,10 @@ export function setupDropbox(app: Express) {
         clientSecret: DROPBOX_APP_SECRET,
       });
 
-      // Use the correct method to get access token
-      const response = await dbx.getAccessTokenFromCode(REDIRECT_URI, code);
-      const { accessToken } = response.result;
+      const response = await dbx.auth.getAccessTokenFromCode(REDIRECT_URI, code);
+      const { result } = response;
 
-      const user = await storage.updateUserDropboxToken(req.user.id, accessToken);
+      const user = await storage.updateUserDropboxToken(req.user.id, result.access_token);
       res.redirect("/?dropbox=connected");
     } catch (error) {
       console.error("Dropbox OAuth error:", error);
