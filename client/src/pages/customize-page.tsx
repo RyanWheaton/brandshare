@@ -95,7 +95,7 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-[30%_70%] gap-8">
         {/* Edit Form */}
         <div>
           <Card>
