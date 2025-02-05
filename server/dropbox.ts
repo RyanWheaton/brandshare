@@ -6,8 +6,8 @@ const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY!;
 const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET!;
 
 // Get the full Replit URL for the callback
-const REDIRECT_URI = process.env.REPL_SLUG && process.env.REPL_OWNER
-  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/dropbox/callback`
+const REDIRECT_URI = process.env.REPLIT_DEV_DOMAIN 
+  ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/dropbox/callback`
   : 'http://localhost:5000/api/dropbox/callback';
 
 export function setupDropbox(app: Express) {
