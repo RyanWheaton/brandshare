@@ -1,0 +1,39 @@
+Project: Dropbox Share Pages App
+Description: 
+I want to build a web application where users can sign up, connect to their Dropbox account, and create public “Share Pages” that display selected Dropbox files. Here are the requirements:
+
+1. TECHNOLOGY STACK
+- Integrate Dropbox OAuth2 flow to allow users to connect their personal Dropbox.
+- Store authentication tokens securely and enable easy retrieval of Dropbox files.
+
+2. CORE FEATURES
+- **User Registration & Login**: 
+  - Users can register via email and password.
+  - Provide a login route and session/JWT handling.
+
+- **Dashboard**:
+  - After logging in, users see a dashboard.
+  - They can connect their Dropbox account here.
+  - Once connected, they can click “Create Share Page” to open a file picker of their Dropbox files (images, PDFs, videos).
+  - After selecting files, a new Share Page is created and saved in the database.
+  - Dashboard lists all of the user’s Share Pages with the following buttons:
+    - “Customize” (to set background color, text color, page title, description),
+    - “View Page” (opens the public link in a new tab),
+    - “Copy Link” (to copy the URL to clipboard),
+    - “Delete” (to remove the share page).
+
+- **Share Page Customization**:
+  - User can change background color, text color, page title, page description.
+  - User can rearrange file order by drag-and-drop.
+  - These settings get saved to the database for that Share Page.
+
+- **Public Share Page**:
+  - Each Share Page should have a unique public URL (like /p/:slug or /p/:id).
+  - The public page shows the custom colors, title, description, and displays the selected Dropbox files in a vertical list.
+
+3. DESIGN NOTES
+- Keep the UI simple and user-friendly.
+- The Share Page layout should be clean: a single column of files, each displayed full width.
+- Provide minimal styling or use a simple component library (Bootstrap, Tailwind, Material UI, etc.).
+
+Please generate the initial boilerplate code for this project with the above requirements in mind. Feel free to add any best practice libraries or steps you think are necessary (e.g., dotenv, cors, etc.).
