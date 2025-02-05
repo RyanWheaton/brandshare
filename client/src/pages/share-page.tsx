@@ -1,80 +1,85 @@
 import { useQuery } from "@tanstack/react-query";
-import { type SharePage } from "@shared/schema";
+import { type SharePage, type FileObject } from "@shared/schema";
 import { Loader2, FileText, Image as ImageIcon, Film } from "lucide-react";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 type FilePreviewProps = {
-  file: any;
+  file: FileObject;
   textColor: string;
+  containerClassName?: string;
 };
 
-export function FilePreview({ file, textColor }: FilePreviewProps) {
-  const fileType = file.name.split('.').pop()?.toLowerCase();
-  const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType);
-  const isVideo = ['mp4', 'mov'].includes(fileType);
+export function FilePreview({ file, textColor, containerClassName = "" }: FilePreviewProps) {
+  const fileType = file.name.split('.').pop();
+  const isImage = fileType ? ['jpg', 'jpeg', 'png', 'gif'].includes(fileType) : false;
+  const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
   const isPDF = fileType === 'pdf';
 
+  // Apply full-width styling if specified
+  const wrapperClass = file.isFullWidth 
+    ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]" 
+    : containerClassName;
+
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        {isImage && (
-          <div className="aspect-video relative bg-muted">
-            <img
-              src={file.preview_url || file.url}
-              alt={file.name}
-              className="w-full h-full object-contain"
-            />
-          </div>
-        )}
+    <div className={wrapperClass}>
+      <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none' : ''}`}>
+        <CardContent className="p-0">
+          {isImage && (
+            <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
+              <img
+                src={file.preview_url || file.url}
+                alt={file.name}
+                className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
+              />
+            </div>
+          )}
 
-        {isVideo && (
-          <div className="aspect-video relative bg-muted">
-            <video
-              controls
-              className="w-full h-full object-contain"
-              src={file.preview_url || file.url}
-            >
-              Your browser does not support video playback.
-            </video>
-          </div>
-        )}
+          {isVideo && (
+            <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
+              <video
+                controls
+                className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
+                src={file.preview_url || file.url}
+              >
+                Your browser does not support video playback.
+              </video>
+            </div>
+          )}
 
-        {isPDF && (
-          <div className="aspect-[3/4] relative bg-muted">
-            <iframe
-              src={file.preview_url || file.url}
-              className="w-full h-full border-0"
-              title={file.name}
-            />
-          </div>
-        )}
+          {isPDF && (
+            <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
+              <iframe
+                src={file.preview_url || file.url}
+                className="w-full h-full border-0"
+                title={file.name}
+              />
+            </div>
+          )}
 
-        {!isImage && !isVideo && !isPDF && (
-          <div className="aspect-video flex items-center justify-center bg-muted">
-            <div className="text-center p-4">
-              <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
-              <p className="text-sm font-medium" style={{ color: textColor }}>
+          {!isImage && !isVideo && !isPDF && (
+            <div className="aspect-video flex items-center justify-center bg-muted">
+              <div className="text-center p-4">
+                <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
+                <p className="text-sm font-medium" style={{ color: textColor }}>
+                  {file.name}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 border-t">
+            <div className="flex items-center gap-2">
+              {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
+              {isVideo && <Film className="w-4 h-4" style={{ color: textColor }} />}
+              {!isImage && !isVideo && <FileText className="w-4 h-4" style={{ color: textColor }} />}
+              <span className="text-sm font-medium" style={{ color: textColor }}>
                 {file.name}
-              </p>
+              </span>
             </div>
           </div>
-        )}
-
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-2">
-            {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
-            {isVideo && <Film className="w-4 h-4" style={{ color: textColor }} />}
-            {!isImage && !isVideo && <FileText className="w-4 h-4" style={{ color: textColor }} />}
-            <span className="text-sm font-medium" style={{ color: textColor }}>
-              {file.name}
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -123,7 +128,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         </header>
 
         <div className="grid gap-8">
-          {(page.files as any[]).map((file, index) => (
+          {(page.files as FileObject[]).map((file, index) => (
             <FilePreview
               key={index}
               file={file}

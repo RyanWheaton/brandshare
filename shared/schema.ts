@@ -9,6 +9,14 @@ export const users = pgTable("users", {
   dropboxToken: text("dropbox_token"),
 });
 
+// Define the file schema
+export const fileSchema = z.object({
+  name: z.string(),
+  preview_url: z.string(),
+  url: z.string(),
+  isFullWidth: z.boolean().default(false),
+});
+
 export const sharePages = pgTable("share_pages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -34,9 +42,12 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   backgroundColor: true,
   textColor: true,
   files: true,
+}).extend({
+  files: z.array(fileSchema),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type SharePage = typeof sharePages.$inferSelect;
 export type InsertSharePage = z.infer<typeof insertSharePageSchema>;
+export type FileObject = z.infer<typeof fileSchema>;

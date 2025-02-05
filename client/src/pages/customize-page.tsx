@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SharePage, insertSharePageSchema, InsertSharePage } from "@shared/schema";
+import { SharePage, insertSharePageSchema, InsertSharePage, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,8 +19,59 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { FilePreview } from "@/pages/share-page";
-import { SortableFiles } from "@/components/ui/sortable-files";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { ImageIcon, Film, FileText } from "lucide-react";
+
+
+function FileItem({ file, onToggleFullWidth, textColor }: { 
+  file: FileObject; 
+  onToggleFullWidth: (isFullWidth: boolean) => void;
+  textColor: string;
+}) {
+  const fileType = file.name.split('.').pop();
+  const isImage = fileType ? /\.(jpg|jpeg|png|gif)$/i.test(file.name) : false;
+  const isVideo = fileType ? /\.(mp4|mov)$/i.test(file.name) : false;
+
+  return (
+    <div className="flex items-center justify-between gap-4 p-2 bg-background border rounded-lg">
+      <div className="flex items-center gap-2">
+        {isImage && <ImageIcon className="w-4 h-4" />}
+        {isVideo && <Film className="w-4 h-4" />}
+        {!isImage && !isVideo && <FileText className="w-4 h-4" />}
+        <span className="text-sm font-medium">{file.name}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Full Width</span>
+        <Switch
+          checked={file.isFullWidth}
+          onCheckedChange={onToggleFullWidth}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FileList({ 
+  files, 
+  onUpdateFile 
+}: { 
+  files: FileObject[];
+  onUpdateFile: (index: number, updates: Partial<FileObject>) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {files.map((file, index) => (
+        <FileItem
+          key={index}
+          file={file}
+          onToggleFullWidth={(isFullWidth) => onUpdateFile(index, { isFullWidth })}
+          textColor={"#000000"}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function CustomizePage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -52,7 +103,7 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
       description: page.description || "",
       backgroundColor: page.backgroundColor || "#ffffff",
       textColor: page.textColor || "#000000",
-      files: page.files,
+      files: page.files as FileObject[],
     } : undefined,
   });
 
@@ -95,8 +146,10 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
     );
   }
 
-  const handleFilesReorder = (reorderedFiles: any[]) => {
-    form.setValue('files', reorderedFiles);
+  const handleFileUpdate = (index: number, updates: Partial<FileObject>) => {
+    const newFiles = [...formValues.files];
+    newFiles[index] = { ...newFiles[index], ...updates };
+    form.setValue('files', newFiles, { shouldDirty: true });
   };
 
   return (
@@ -135,7 +188,7 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Textarea {...field} />
+                          <Textarea {...field} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -151,8 +204,13 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
                           <FormLabel>Background Color</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input type="color" {...field} className="w-12 h-10 p-1" />
-                              <Input {...field} />
+                              <Input 
+                                type="color" 
+                                {...field} 
+                                value={field.value || '#ffffff'}
+                                className="w-12 h-10 p-1" 
+                              />
+                              <Input {...field} value={field.value || '#ffffff'} />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -168,8 +226,13 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
                           <FormLabel>Text Color</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input type="color" {...field} className="w-12 h-10 p-1" />
-                              <Input {...field} />
+                              <Input 
+                                type="color" 
+                                {...field} 
+                                value={field.value || '#000000'}
+                                className="w-12 h-10 p-1" 
+                              />
+                              <Input {...field} value={field.value || '#000000'} />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -201,11 +264,11 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop to reorder files
+                Toggle full-width display for each file
               </p>
-              <SortableFiles 
+              <FileList 
                 files={formValues.files} 
-                onReorder={handleFilesReorder}
+                onUpdateFile={handleFileUpdate}
               />
             </CardContent>
           </Card>
@@ -227,7 +290,7 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
                     padding: "2rem",
                     borderRadius: "0.5rem",
                   }}
-                  className="overflow-auto"
+                  className="overflow-hidden"
                 >
                   <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold mb-4">{formValues.title}</h1>
@@ -237,7 +300,7 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
                   </div>
 
                   <div className="grid gap-8">
-                    {(formValues.files as any[]).map((file, index) => (
+                    {formValues.files.map((file, index) => (
                       <FilePreview
                         key={index}
                         file={file}
