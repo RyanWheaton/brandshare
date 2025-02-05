@@ -19,8 +19,8 @@ export function setupDropbox(app: Express) {
         clientId: DROPBOX_APP_KEY,
       });
 
-      // Changed to use the simpler OAuth flow
-      const authUrl = `https://dropbox.com/oauth2/authorize?response_type=token&client_id=${DROPBOX_APP_KEY}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+      // Changed to use the authorization code flow
+      const authUrl = `https://dropbox.com/oauth2/authorize?response_type=code&client_id=${DROPBOX_APP_KEY}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
       console.log("Constructed Redirect URI:", REDIRECT_URI);
       console.log("Generated auth URL:", authUrl);
       res.json({ url: authUrl });
