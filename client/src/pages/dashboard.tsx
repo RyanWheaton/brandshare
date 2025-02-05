@@ -10,6 +10,7 @@ import {
   Palette,
   Loader2,
   Plus,
+  LogOut,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -35,7 +36,7 @@ const DUMMY_FILES = [
 ];
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -111,7 +112,22 @@ export default function Dashboard() {
   return (
     <div className="container max-w-4xl mx-auto p-4">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+          >
+            {logoutMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="mr-2 h-4 w-4" />
+            )}
+            Logout
+          </Button>
+        </div>
         <Button 
           onClick={() => createMutation.mutate()} 
           disabled={createMutation.isPending}
