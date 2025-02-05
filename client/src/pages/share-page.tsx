@@ -1,6 +1,82 @@
 import { useQuery } from "@tanstack/react-query";
 import { type SharePage } from "@shared/schema";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText, Image as ImageIcon, Film } from "lucide-react";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+
+type FilePreviewProps = {
+  file: any;
+  textColor: string;
+};
+
+function FilePreview({ file, textColor }: FilePreviewProps) {
+  const fileType = file.name.split('.').pop()?.toLowerCase();
+  const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType);
+  const isVideo = ['mp4', 'mov'].includes(fileType);
+  const isPDF = fileType === 'pdf';
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        {isImage && (
+          <div className="aspect-video relative bg-muted">
+            <img
+              src={file.preview_url || file.url}
+              alt={file.name}
+              className="w-full h-full object-contain"
+            />
+          </div>
+        )}
+
+        {isVideo && (
+          <div className="aspect-video relative bg-muted">
+            <video
+              controls
+              className="w-full h-full object-contain"
+              src={file.preview_url || file.url}
+            >
+              Your browser does not support video playback.
+            </video>
+          </div>
+        )}
+
+        {isPDF && (
+          <div className="aspect-[3/4] relative bg-muted">
+            <iframe
+              src={file.preview_url || file.url}
+              className="w-full h-full border-0"
+              title={file.name}
+            />
+          </div>
+        )}
+
+        {!isImage && !isVideo && !isPDF && (
+          <div className="aspect-video flex items-center justify-center bg-muted">
+            <div className="text-center p-4">
+              <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
+              <p className="text-sm font-medium" style={{ color: textColor }}>
+                {file.name}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="p-4 border-t">
+          <div className="flex items-center gap-2">
+            {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
+            {isVideo && <Film className="w-4 h-4" style={{ color: textColor }} />}
+            {!isImage && !isVideo && <FileText className="w-4 h-4" style={{ color: textColor }} />}
+            <span className="text-sm font-medium" style={{ color: textColor }}>
+              {file.name}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SharePageView({ params }: { params: { slug: string } }) {
   const { data: page, isLoading } = useQuery<SharePage>({
@@ -36,22 +112,23 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         minHeight: "100vh",
         padding: "2rem",
       }}
+      className="min-h-screen"
     >
-      <div className="container max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold mb-4">{page.title}</h1>
-        {page.description && (
-          <p className="text-lg mb-8 opacity-90">{page.description}</p>
-        )}
+      <div className="container max-w-4xl mx-auto">
+        <header className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">{page.title}</h1>
+          {page.description && (
+            <p className="text-lg opacity-90 max-w-2xl mx-auto">{page.description}</p>
+          )}
+        </header>
 
-        <div className="space-y-4">
+        <div className="grid gap-8">
           {(page.files as any[]).map((file, index) => (
-            <div
+            <FilePreview
               key={index}
-              className="bg-white/5 backdrop-blur-sm rounded-lg p-4"
-            >
-              {/* TODO: Implement file display based on type */}
-              <p>{file.name}</p>
-            </div>
+              file={file}
+              textColor={page.textColor || "#000000"}
+            />
           ))}
         </div>
       </div>
