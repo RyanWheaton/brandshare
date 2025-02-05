@@ -25,6 +25,12 @@ export default function Dashboard() {
     queryKey: ["/api/pages"],
   });
 
+  // Query for Dropbox files when needed
+  const { data: dropboxFiles, refetch: refetchDropboxFiles } = useQuery({
+    queryKey: ["/api/dropbox/files"],
+    enabled: false, // Only fetch when needed
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/pages/${id}`);
@@ -38,20 +44,62 @@ export default function Dashboard() {
     },
   });
 
-  const handleDropboxConnect = () => {
-    // TODO: Implement Dropbox OAuth flow
-    toast({
-      title: "Coming soon",
-      description: "Dropbox integration will be available soon.",
-    });
+  const handleDropboxConnect = async () => {
+    try {
+      const res = await fetch("/api/dropbox/auth");
+      const data = await res.json();
+      window.location.href = data.url;
+    } catch (error) {
+      toast({
+        title: "Connection failed",
+        description: "Failed to connect to Dropbox. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleCreatePage = () => {
-    // TODO: Implement Dropbox file picker and page creation
-    toast({
-      title: "Coming soon",
-      description: "Page creation will be available soon.",
-    });
+  const handleCreatePage = async () => {
+    if (!user?.dropboxToken) {
+      toast({
+        title: "Dropbox not connected",
+        description: "Please connect your Dropbox account first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const files = await refetchDropboxFiles();
+
+      if (!files?.data?.length) {
+        toast({
+          title: "No files found",
+          description: "No supported files found in your Dropbox. Please add some files and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // TODO: Show file picker dialog
+      // For now, let's create a page with the first file
+      const page = await apiRequest("POST", "/api/pages", {
+        title: "My Share Page",
+        description: "Created from Dropbox files",
+        files: [files.data[0]],
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
+      toast({
+        title: "Page created",
+        description: "Your share page has been created successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Creation failed",
+        description: "Failed to create share page. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const copyToClipboard = async (slug: string) => {

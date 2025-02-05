@@ -3,23 +3,16 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertSharePageSchema } from "@shared/schema";
+import { setupDropbox } from "./dropbox";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
-
-  // Dropbox token
-  app.post("/api/dropbox/token", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    const { token } = req.body;
-    
-    const user = await storage.updateUserDropboxToken(req.user.id, token);
-    res.json(user);
-  });
+  setupDropbox(app);
 
   // Share Pages CRUD
   app.post("/api/pages", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const parsed = insertSharePageSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
@@ -31,7 +24,7 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/pages", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const pages = await storage.getUserSharePages(req.user.id);
     res.json(pages);
   });
@@ -44,7 +37,7 @@ export function registerRoutes(app: Express): Server {
 
   app.patch("/api/pages/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const parsed = insertSharePageSchema.partial().safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
@@ -59,7 +52,7 @@ export function registerRoutes(app: Express): Server {
 
   app.delete("/api/pages/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const page = await storage.getSharePage(parseInt(req.params.id));
     if (!page || page.userId !== req.user.id) return res.sendStatus(404);
 
