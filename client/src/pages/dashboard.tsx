@@ -14,7 +14,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { useState } from 'react';
 
 // Dummy files for testing
 const DUMMY_FILES = [
