@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { FilePreview } from "@/pages/share-page";
+import { SortableFiles } from "@/components/ui/sortable-files";
+import { Separator } from "@/components/ui/separator";
 
 export default function CustomizePage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -93,11 +95,15 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
     );
   }
 
+  const handleFilesReorder = (reorderedFiles: any[]) => {
+    form.setValue('files', reorderedFiles);
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="grid lg:grid-cols-[30%_70%] gap-8">
         {/* Edit Form */}
-        <div>
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Customize Share Page</CardTitle>
@@ -188,6 +194,21 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
               </Form>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Files</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Drag and drop to reorder files
+              </p>
+              <SortableFiles 
+                files={formValues.files} 
+                onReorder={handleFilesReorder}
+              />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Live Preview */}
@@ -216,7 +237,7 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
                   </div>
 
                   <div className="grid gap-8">
-                    {(page.files as any[]).map((file, index) => (
+                    {(formValues.files as any[]).map((file, index) => (
                       <FilePreview
                         key={index}
                         file={file}
