@@ -4,7 +4,7 @@ import { storage } from "./storage";
 
 const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY!;
 const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET!;
-const REDIRECT_URI = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/dropbox/callback`;
+const REDIRECT_URI = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/dropbox/callback`;
 
 export function setupDropbox(app: Express) {
   app.get("/api/dropbox/auth", (req, res) => {
@@ -15,7 +15,8 @@ export function setupDropbox(app: Express) {
       clientSecret: DROPBOX_APP_SECRET,
     });
 
-    const authUrl = dbx.auth.getAuthenticationUrl(REDIRECT_URI, null, "code", "offline", null, "none", false);
+    // Use the correct method for OAuth2 flow
+    const authUrl = dbx.getAuthenticationUrl(REDIRECT_URI);
     res.json({ url: authUrl });
   });
 
@@ -29,10 +30,11 @@ export function setupDropbox(app: Express) {
         clientSecret: DROPBOX_APP_SECRET,
       });
 
-      const response = await dbx.auth.getAccessTokenFromCode(REDIRECT_URI, code);
-      const { result } = response;
+      // Use the correct method to get access token
+      const response = await dbx.getAccessTokenFromCode(REDIRECT_URI, code);
+      const { accessToken } = response.result;
 
-      const user = await storage.updateUserDropboxToken(req.user.id, result.access_token);
+      const user = await storage.updateUserDropboxToken(req.user.id, accessToken);
       res.redirect("/?dropbox=connected");
     } catch (error) {
       console.error("Dropbox OAuth error:", error);
@@ -48,7 +50,7 @@ export function setupDropbox(app: Express) {
     try {
       const dbx = new Dropbox({ accessToken: user.dropboxToken });
       const response = await dbx.filesListFolder({ path: "" });
-      
+
       // Filter for supported file types (images, PDFs, videos)
       const supportedFiles = response.result.entries.filter(entry => {
         if (entry[".tag"] !== "file") return false;
