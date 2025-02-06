@@ -17,13 +17,19 @@ import { insertUserSchema } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import type { InsertUser } from "@shared/schema";
+import { useEffect } from "react";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
 
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+
   if (user) {
-    setLocation("/");
     return null;
   }
 
@@ -35,7 +41,7 @@ export default function AuthPage() {
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="login">
             <AuthForm
               mode="login"
@@ -43,7 +49,7 @@ export default function AuthPage() {
               isPending={loginMutation.isPending}
             />
           </TabsContent>
-          
+
           <TabsContent value="register">
             <AuthForm
               mode="register"
@@ -53,7 +59,7 @@ export default function AuthPage() {
           </TabsContent>
         </Tabs>
       </div>
-      
+
       <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-8">
         <div className="max-w-md text-primary-foreground">
           <h1 className="text-4xl font-bold mb-4">
