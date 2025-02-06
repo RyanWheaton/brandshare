@@ -2,10 +2,11 @@ import { users, sharePages, type User, type InsertUser, type SharePage, type Ins
 import session from "express-session";
 import { nanoid } from "nanoid";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { annotations } from "@shared/schema";
+import { randomBytes } from "crypto";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -29,6 +30,11 @@ export interface IStorage {
   getPageStats(sharePageId: number): Promise<PageStats | undefined>;
   recordPageView(sharePageId: number): Promise<void>;
   updateCommentCount(sharePageId: number, increment: boolean): Promise<void>;
+
+  // New methods for password reset
+  createPasswordResetToken(username: string): Promise<string | null>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  updatePassword(userId: number, newPassword: string): Promise<User>;
 
   sessionStore: session.Store;
 }
@@ -234,6 +240,57 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(pageStats.sharePageId, sharePageId));
     }
+  }
+
+  async createPasswordResetToken(username: string): Promise<string | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+
+    if (!user) return null;
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        resetToken: token,
+        resetTokenExpiresAt: expiresAt,
+      })
+      .where(eq(users.id, user.id))
+      .returning();
+
+    return updatedUser ? token : null;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.resetToken, token),
+          gt(users.resetTokenExpiresAt!, new Date())
+        )
+      );
+
+    return user;
+  }
+
+  async updatePassword(userId: number, newPassword: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        password: newPassword,
+        resetToken: null,
+        resetTokenExpiresAt: null,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return user;
   }
 }
 

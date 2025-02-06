@@ -7,6 +7,8 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   dropboxToken: text("dropbox_token"),
+  resetToken: text("reset_token"),
+  resetTokenExpiresAt: timestamp("reset_token_expires_at"),
 });
 
 export const fileSchema = z.object({
@@ -73,6 +75,15 @@ export const insertAnnotationSchema = createInsertSchema(annotations).pick({
   positionX: true,
   positionY: true,
   guestName: true,
+});
+
+export const requestPasswordResetSchema = z.object({
+  username: z.string().email("Must be a valid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

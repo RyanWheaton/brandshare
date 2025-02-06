@@ -13,14 +13,19 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import type { InsertUser } from "@shared/schema";
 import { useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const [searchParams] = useLocation();
+  const resetToken = new URLSearchParams(searchParams).get("token");
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -33,13 +38,18 @@ export default function AuthPage() {
     return null;
   }
 
+  if (resetToken) {
+    return <ResetPasswordForm token={resetToken} />;
+  }
+
   return (
     <div className="min-h-screen flex">
       <div className="flex-1 flex items-center justify-center p-4">
         <Tabs defaultValue="login" className="w-full max-w-md">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="reset">Reset</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login">
@@ -56,6 +66,10 @@ export default function AuthPage() {
               onSubmit={(data) => registerMutation.mutate(data)}
               isPending={registerMutation.isPending}
             />
+          </TabsContent>
+
+          <TabsContent value="reset">
+            <RequestResetForm />
           </TabsContent>
         </Tabs>
       </div>
@@ -75,11 +89,11 @@ export default function AuthPage() {
   );
 }
 
-function AuthForm({ 
-  mode, 
-  onSubmit, 
-  isPending 
-}: { 
+function AuthForm({
+  mode,
+  onSubmit,
+  isPending,
+}: {
   mode: "login" | "register";
   onSubmit: (data: InsertUser) => void;
   isPending: boolean;
@@ -136,5 +150,133 @@ function AuthForm({
         </Form>
       </CardContent>
     </Card>
+  );
+}
+
+function RequestResetForm() {
+  const { toast } = useToast();
+  const form = useForm({
+    resolver: zodResolver(requestPasswordResetSchema),
+    defaultValues: {
+      username: "",
+    },
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: async (data: { username: string }) => {
+      const res = await apiRequest("POST", "/api/request-reset", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reset email sent",
+        description: "Check your email for password reset instructions.",
+      });
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Reset Password</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit((data) => resetMutation.mutate(data))} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full" disabled={resetMutation.isPending}>
+              {resetMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Reset Link
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ResetPasswordForm({ token }: { token: string }) {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const form = useForm({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      token,
+      newPassword: "",
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { token: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/reset-password", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "Your password has been reset successfully. Please log in with your new password.",
+      });
+      setLocation("/auth");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Set New Password</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => resetPasswordMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="password" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={resetPasswordMutation.isPending}>
+                {resetPasswordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Reset Password
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

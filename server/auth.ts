@@ -6,6 +6,8 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { sendPasswordResetEmail } from "./email";
+import { requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -92,5 +94,43 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+
+  app.post("/api/request-reset", async (req, res) => {
+    try {
+      const { username } = requestPasswordResetSchema.parse(req.body);
+      const token = await storage.createPasswordResetToken(username);
+
+      if (!token) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const emailSent = await sendPasswordResetEmail(username, token);
+      if (!emailSent) {
+        return res.status(500).json({ message: "Failed to send reset email" });
+      }
+
+      res.json({ message: "Password reset email sent" });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = resetPasswordSchema.parse(req.body);
+      const user = await storage.getUserByResetToken(token);
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updatePassword(user.id, hashedPassword);
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid request" });
+    }
   });
 }
