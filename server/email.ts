@@ -7,7 +7,8 @@ if (!process.env.SENDGRID_API_KEY) {
 const mailService = new MailService();
 mailService.setApiKey(process.env.SENDGRID_API_KEY);
 
-const FROM_EMAIL = 'noreply@yourdomain.com'; // Replace with your verified sender
+// Verified sender email from SendGrid
+const FROM_EMAIL = 'app@wheatoncreative.com';
 
 export async function sendPasswordResetEmail(
   to: string,
@@ -20,6 +21,7 @@ export async function sendPasswordResetEmail(
       to,
       from: FROM_EMAIL,
       subject: 'Reset Your Password',
+      text: `Click the link below to reset your password:\n${resetLink}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, you can safely ignore this email.`,
       html: `
         <p>You requested to reset your password.</p>
         <p>Click the link below to set a new password:</p>
