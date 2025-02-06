@@ -65,7 +65,19 @@ The Dropbox Share Portal Team`,
         clickTracking: { enable: true },
         openTracking: { enable: true }
       },
-      categories: ['password-reset']
+      categories: ['password-reset'],
+      asm: {
+        groupId: 0, // Disable unsubscribe group for transactional emails
+      },
+      mailSettings: {
+        bypassListManagement: { enable: true }, // This is a transactional email
+        sandboxMode: { enable: false }
+      },
+      ipPoolName: "transactional",
+      headers: {
+        "X-Entity-Ref-ID": resetToken,
+        "Priority": "High"
+      }
     };
 
     console.log('Attempting to send password reset email to:', to);
