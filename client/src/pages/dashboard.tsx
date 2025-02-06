@@ -11,10 +11,14 @@ import {
   Loader2,
   Plus,
   LogOut,
+  Eye,
+  MessageCircle,
+  Calendar,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { format } from "date-fns";
 
 // Dummy files for testing
 const DUMMY_FILES = [
@@ -35,12 +39,57 @@ const DUMMY_FILES = [
   }
 ];
 
+function StatsCard({ stats }: { stats: any }) {
+  if (!stats) return null;
+
+  const today = new Date().toISOString().split('T')[0];
+  const dailyViews = (stats.dailyViews as Record<string, number>)[today] || 0;
+
+  return (
+    <div className="grid grid-cols-3 gap-4 mb-4">
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Today's Views</p>
+              <p className="text-2xl font-bold">{dailyViews}</p>
+            </div>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Views</p>
+              <p className="text-2xl font-bold">{stats.totalViews}</p>
+            </div>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Comments</p>
+              <p className="text-2xl font-bold">{stats.totalComments}</p>
+            </div>
+            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const { data: pages = [], isLoading } = useQuery<SharePage[]>({
+  const { data: pages = [], isLoading } = useQuery<(SharePage & { stats: any })[]>({
     queryKey: ["/api/pages"],
   });
 
@@ -148,6 +197,7 @@ export default function Dashboard() {
               <CardTitle>{page.title}</CardTitle>
             </CardHeader>
             <CardContent>
+              <StatsCard stats={page.stats} />
               <p className="text-sm text-muted-foreground mb-4">
                 {page.description || "No description"}
               </p>

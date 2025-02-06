@@ -1,4 +1,4 @@
-import { users, sharePages, type User, type InsertUser, type SharePage, type InsertSharePage, type Annotation, type InsertAnnotation } from "@shared/schema";
+import { users, sharePages, type User, type InsertUser, type SharePage, type InsertSharePage, type Annotation, type InsertAnnotation, pageStats, type PageStats } from "@shared/schema";
 import session from "express-session";
 import { nanoid } from "nanoid";
 import { db } from "./db";
@@ -6,7 +6,6 @@ import { eq, and } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { annotations } from "@shared/schema";
-
 
 const PgSession = ConnectPgSimple(session);
 
@@ -25,6 +24,12 @@ export interface IStorage {
   createAnnotation(sharePageId: number, userId: number | null, annotation: InsertAnnotation): Promise<Annotation>;
   getAnnotations(sharePageId: number, fileIndex: number): Promise<Annotation[]>;
   deleteAnnotation(id: number, userId?: number): Promise<void>;
+
+  // New methods for stats
+  getPageStats(sharePageId: number): Promise<PageStats | undefined>;
+  recordPageView(sharePageId: number): Promise<void>;
+  updateCommentCount(sharePageId: number, increment: boolean): Promise<void>;
+
   sessionStore: session.Store;
 }
 
@@ -76,6 +81,15 @@ export class DatabaseStorage implements IStorage {
         textColor: page.textColor ?? "#000000",
       })
       .returning();
+
+    // Initialize stats for the new page
+    await db.insert(pageStats).values({
+      sharePageId: sharePage.id,
+      dailyViews: {},
+      totalViews: 0,
+      totalComments: 0,
+    });
+
     return sharePage;
   }
 
@@ -120,6 +134,10 @@ export class DatabaseStorage implements IStorage {
         userId: userId || undefined,
       })
       .returning();
+
+    // Increment comment count
+    await this.updateCommentCount(sharePageId, true);
+
     return result;
   }
 
@@ -136,13 +154,84 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAnnotation(id: number, userId?: number): Promise<void> {
-    const query = db.delete(annotations).where(eq(annotations.id, id));
+    const [annotation] = await db
+      .select()
+      .from(annotations)
+      .where(eq(annotations.id, id));
 
-    if (userId) {
-      query.where(eq(annotations.userId, userId));
+    if (annotation) {
+      const query = db.delete(annotations).where(eq(annotations.id, id));
+      if (userId) {
+        query.where(eq(annotations.userId, userId));
+      }
+      await query;
+
+      // Decrement comment count
+      await this.updateCommentCount(annotation.sharePageId, false);
     }
+  }
 
-    await query;
+  async getPageStats(sharePageId: number): Promise<PageStats | undefined> {
+    const [stats] = await db
+      .select()
+      .from(pageStats)
+      .where(eq(pageStats.sharePageId, sharePageId));
+    return stats;
+  }
+
+  async recordPageView(sharePageId: number): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    const [currentStats] = await db
+      .select()
+      .from(pageStats)
+      .where(eq(pageStats.sharePageId, sharePageId));
+
+    if (!currentStats) {
+      // Initialize stats if they don't exist
+      await db.insert(pageStats).values({
+        sharePageId,
+        dailyViews: { [today]: 1 },
+        totalViews: 1,
+        totalComments: 0,
+      });
+    } else {
+      const dailyViews = currentStats.dailyViews as Record<string, number>;
+      dailyViews[today] = (dailyViews[today] || 0) + 1;
+
+      await db
+        .update(pageStats)
+        .set({
+          dailyViews,
+          totalViews: currentStats.totalViews + 1,
+          lastUpdated: new Date(),
+        })
+        .where(eq(pageStats.sharePageId, sharePageId));
+    }
+  }
+
+  async updateCommentCount(sharePageId: number, increment: boolean): Promise<void> {
+    const [currentStats] = await db
+      .select()
+      .from(pageStats)
+      .where(eq(pageStats.sharePageId, sharePageId));
+
+    if (!currentStats) {
+      // Initialize stats if they don't exist
+      await db.insert(pageStats).values({
+        sharePageId,
+        dailyViews: {},
+        totalViews: 0,
+        totalComments: increment ? 1 : 0,
+      });
+    } else {
+      await db
+        .update(pageStats)
+        .set({
+          totalComments: currentStats.totalComments + (increment ? 1 : -1),
+          lastUpdated: new Date(),
+        })
+        .where(eq(pageStats.sharePageId, sharePageId));
+    }
   }
 }
 

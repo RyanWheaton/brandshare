@@ -26,7 +26,16 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const pages = await storage.getUserSharePages(req.user.id);
-    res.json(pages);
+
+    // Get stats for each page
+    const pagesWithStats = await Promise.all(
+      pages.map(async (page) => {
+        const stats = await storage.getPageStats(page.id);
+        return { ...page, stats };
+      })
+    );
+
+    res.json(pagesWithStats);
   });
 
   app.get("/api/pages/:id", async (req, res) => {
@@ -34,13 +43,20 @@ export function registerRoutes(app: Express): Server {
 
     const page = await storage.getSharePage(parseInt(req.params.id));
     if (!page || page.userId !== req.user.id) return res.sendStatus(404);
-    res.json(page);
+
+    const stats = await storage.getPageStats(page.id);
+    res.json({ ...page, stats });
   });
 
   app.get("/api/p/:slug", async (req, res) => {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
-    res.json(page);
+
+    // Record page view
+    await storage.recordPageView(page.id);
+
+    const stats = await storage.getPageStats(page.id);
+    res.json({ ...page, stats });
   });
 
   app.patch("/api/pages/:id", async (req, res) => {
@@ -55,7 +71,8 @@ export function registerRoutes(app: Express): Server {
     if (!page || page.userId !== req.user.id) return res.sendStatus(404);
 
     const updatedPage = await storage.updateSharePage(page.id, parsed.data);
-    res.json(updatedPage);
+    const stats = await storage.getPageStats(updatedPage.id);
+    res.json({ ...updatedPage, stats });
   });
 
   app.delete("/api/pages/:id", async (req, res) => {
@@ -66,6 +83,20 @@ export function registerRoutes(app: Express): Server {
 
     await storage.deleteSharePage(page.id);
     res.sendStatus(204);
+  });
+
+  // Page Stats endpoints
+  app.get("/api/pages/:id/stats", async (req, res) => {
+    const page = await storage.getSharePage(parseInt(req.params.id));
+    if (!page) return res.sendStatus(404);
+
+    // Only allow page owner to see detailed stats
+    if (req.isAuthenticated() && page.userId === req.user.id) {
+      const stats = await storage.getPageStats(page.id);
+      res.json(stats);
+    } else {
+      res.sendStatus(403);
+    }
   });
 
   // Annotation endpoints

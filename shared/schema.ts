@@ -9,7 +9,6 @@ export const users = pgTable("users", {
   dropboxToken: text("dropbox_token"),
 });
 
-// Define the file schema
 export const fileSchema = z.object({
   name: z.string(),
   preview_url: z.string(),
@@ -26,6 +25,8 @@ export const sharePages = pgTable("share_pages", {
   backgroundColor: text("background_color").default("#ffffff"),
   textColor: text("text_color").default("#000000"),
   files: jsonb("files").notNull(),
+  viewCount: integer("view_count").default(0),
+  lastViewedAt: timestamp("last_viewed_at"),
 });
 
 export const annotations = pgTable("annotations", {
@@ -38,6 +39,15 @@ export const annotations = pgTable("annotations", {
   positionX: integer("position_x").notNull(),
   positionY: integer("position_y").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const pageStats = pgTable("page_stats", {
+  id: serial("id").primaryKey(),
+  sharePageId: integer("share_page_id").notNull().unique(),
+  dailyViews: jsonb("daily_views").default({}).notNull(),
+  totalViews: integer("total_views").default(0).notNull(),
+  totalComments: integer("total_comments").default(0).notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -73,3 +83,4 @@ export type InsertSharePage = z.infer<typeof insertSharePageSchema>;
 export type FileObject = z.infer<typeof fileSchema>;
 export type Annotation = typeof annotations.$inferSelect;
 export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
+export type PageStats = typeof pageStats.$inferSelect;
