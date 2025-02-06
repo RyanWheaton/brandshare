@@ -1,50 +1,46 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
-import { Loader2, FileText, Image as ImageIcon, Film, Plus, X } from "lucide-react";
+import { Loader2, FileText, Image as ImageIcon, Film, MessageCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import React from 'react';
 
-
-type AnnotationProps = {
+type CommentProps = {
   annotation: Annotation;
   onDelete?: () => void;
   currentUserId?: number;
 };
 
-function AnnotationMarker({ annotation, onDelete, currentUserId }: AnnotationProps) {
+function Comment({ annotation, onDelete, currentUserId }: CommentProps) {
   const displayName = annotation.userId ? "User" : (annotation.guestName || "Anonymous");
+  const formattedDate = format(new Date(annotation.createdAt), 'MMM d, yyyy h:mm a');
 
   return (
-    <div 
-      className="absolute group"
-      style={{ 
-        left: `${annotation.positionX}px`, 
-        top: `${annotation.positionY}px` 
-      }}
-    >
-      <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer">
-        <Plus className="w-4 h-4" />
+    <div className="flex gap-3 py-3 border-t">
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium">{displayName}</div>
+          <div className="text-xs text-muted-foreground">{formattedDate}</div>
+        </div>
+        <p className="mt-1 text-sm">{annotation.content}</p>
       </div>
-      <div className="absolute left-full ml-2 bg-background border rounded-lg p-3 shadow-lg min-w-[200px] hidden group-hover:block">
-        <div className="text-sm mb-1 text-muted-foreground">{displayName}</div>
-        <div className="text-sm">{annotation.content}</div>
-        {currentUserId === annotation.userId && onDelete && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="absolute top-1 right-1 h-6 w-6 p-0"
-            onClick={onDelete}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      {currentUserId === annotation.userId && onDelete && (
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={onDelete}
+        >
+          <FileText className="h-4 w-4" />
+          <span className="sr-only">Delete comment</span>
+        </Button>
+      )}
     </div>
   );
 }
@@ -60,20 +56,19 @@ type FilePreviewProps = {
 export function FilePreview({ file, textColor, containerClassName = "", pageId, fileIndex }: FilePreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isAnnotating, setIsAnnotating] = useState(false);
-  const [annotationInput, setAnnotationInput] = useState("");
+  const [commentInput, setCommentInput] = useState("");
   const [guestName, setGuestName] = useState("");
-  const [annotationPosition, setAnnotationPosition] = useState<{ x: number, y: number } | null>(null);
+  const [isCommenting, setIsCommenting] = useState(false);
 
-  // Query annotations
-  const { data: annotations = [] } = useQuery<Annotation[]>({
+  // Query annotations (comments)
+  const { data: comments = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
     enabled: pageId !== undefined && fileIndex !== undefined,
   });
 
-  // Create annotation mutation
-  const createAnnotationMutation = useMutation({
-    mutationFn: async (data: { content: string; positionX: number; positionY: number; guestName?: string }) => {
+  // Create comment mutation
+  const createCommentMutation = useMutation({
+    mutationFn: async (data: { content: string; guestName?: string }) => {
       if (!pageId || fileIndex === undefined) return;
       const response = await apiRequest(
         "POST",
@@ -81,6 +76,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
         {
           ...data,
           fileIndex,
+          positionX: 0, // We don't need positions anymore
+          positionY: 0,
         }
       );
       return response.json();
@@ -89,19 +86,18 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
       queryClient.invalidateQueries({ 
         queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`] 
       });
-      setIsAnnotating(false);
-      setAnnotationInput("");
+      setCommentInput("");
       setGuestName("");
-      setAnnotationPosition(null);
+      setIsCommenting(false);
       toast({
-        title: "Annotation added",
-        description: "Your annotation has been added successfully.",
+        title: "Comment added",
+        description: "Your comment has been added successfully.",
       });
     },
   });
 
-  // Delete annotation mutation
-  const deleteAnnotationMutation = useMutation({
+  // Delete comment mutation
+  const deleteCommentMutation = useMutation({
     mutationFn: async (annotationId: number) => {
       await apiRequest("DELETE", `/api/annotations/${annotationId}`);
     },
@@ -110,35 +106,20 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
         queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`] 
       });
       toast({
-        title: "Annotation deleted",
-        description: "Your annotation has been deleted successfully.",
+        title: "Comment deleted",
+        description: "Your comment has been deleted successfully.",
       });
     },
   });
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!user || !pageId || fileIndex === undefined) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    setAnnotationPosition({ x, y });
-    setIsAnnotating(true);
-  };
-
-  const handleAnnotationSubmit = (e: React.FormEvent) => {
+  const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!annotationPosition || !annotationInput.trim()) return;
+    if (!commentInput.trim()) return;
 
-    const data = {
-      content: annotationInput,
-      positionX: Math.round(annotationPosition.x),
-      positionY: Math.round(annotationPosition.y),
+    createCommentMutation.mutate({
+      content: commentInput,
       guestName: user ? undefined : guestName || "Anonymous",
-    };
-
-    createAnnotationMutation.mutate(data);
+    });
   };
 
   const fileType = file.name.split('.').pop();
@@ -154,7 +135,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     <div className={wrapperClass}>
       <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none' : ''}`}>
         <CardContent className="p-0">
-          <div className="relative" onClick={user ? handleClick : undefined}>
+          <div className="relative">
             {isImage && (
               <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
                 <img
@@ -197,85 +178,85 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                 </div>
               </div>
             )}
-
-            {isAnnotating && annotationPosition && (
-              <form
-                onSubmit={handleAnnotationSubmit}
-                className="absolute bg-background border rounded-lg p-2 shadow-lg"
-                style={{ 
-                  left: annotationPosition.x, 
-                  top: annotationPosition.y 
-                }}
-              >
-                {!user && (
-                  <Input
-                    type="text"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Your name (optional)"
-                    className="mb-2"
-                  />
-                )}
-                <Input
-                  type="text"
-                  value={annotationInput}
-                  onChange={(e) => setAnnotationInput(e.target.value)}
-                  placeholder="Add your annotation..."
-                  className="mb-2"
-                  autoFocus
-                />
-                <div className="flex gap-2">
-                  <Button 
-                    type="submit" 
-                    size="sm"
-                    disabled={createAnnotationMutation.isPending}
-                  >
-                    {createAnnotationMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Add"
-                    )}
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setIsAnnotating(false);
-                      setAnnotationInput("");
-                      setGuestName("");
-                      setAnnotationPosition(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {annotations.map((annotation) => (
-              <AnnotationMarker
-                key={annotation.id}
-                annotation={annotation}
-                currentUserId={user?.id}
-                onDelete={
-                  user?.id === annotation.userId
-                    ? () => deleteAnnotationMutation.mutate(annotation.id)
-                    : undefined
-                }
-              />
-            ))}
           </div>
 
-          <div className="p-4 border-t">
-            <div className="flex items-center gap-2">
-              {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
-              {isVideo && <Film className="w-4 h-4" style={{ color: textColor }} />}
-              {!isImage && !isVideo && <FileText className="w-4 h-4" style={{ color: textColor }} />}
-              <span className="text-sm font-medium" style={{ color: textColor }}>
-                {file.name}
-              </span>
+          <div className="border-t">
+            {/* File info and comment button */}
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
+                {isVideo && <Film className="w-4 h-4" style={{ color: textColor }} />}
+                {!isImage && !isVideo && <FileText className="w-4 h-4" style={{ color: textColor }} />}
+                <span className="text-sm font-medium" style={{ color: textColor }}>
+                  {file.name}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2"
+                onClick={() => setIsCommenting(!isCommenting)}
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>{comments.length}</span>
+              </Button>
             </div>
+
+            {/* Comments section */}
+            {isCommenting && (
+              <div className="px-4 pb-4">
+                {/* Comment form */}
+                <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
+                  {!user && (
+                    <Input
+                      type="text"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      placeholder="Your name (optional)"
+                    />
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={commentInput}
+                      onChange={(e) => setCommentInput(e.target.value)}
+                      placeholder="Add a comment..."
+                    />
+                    <Button 
+                      type="submit"
+                      disabled={createCommentMutation.isPending}
+                    >
+                      {createCommentMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Post"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+
+                {/* Comments list */}
+                <div className="space-y-1">
+                  {comments.map((comment) => (
+                    <Comment
+                      key={comment.id}
+                      annotation={comment}
+                      currentUserId={user?.id}
+                      onDelete={
+                        user?.id === comment.userId
+                          ? () => deleteCommentMutation.mutate(comment.id)
+                          : undefined
+                      }
+                    />
+                  ))}
+                  {comments.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No comments yet. Be the first to comment!
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -326,10 +307,6 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           {page.description && (
             <p className="text-lg opacity-90 max-w-2xl mx-auto">{page.description}</p>
           )}
-          <p className="text-sm text-muted-foreground mt-4">
-            Click anywhere on a file to add annotations
-            {!user && " as a guest"}
-          </p>
         </header>
 
         <div className="grid gap-8">
