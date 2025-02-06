@@ -1,10 +1,12 @@
-import { users, sharePages, type User, type InsertUser, type SharePage, type InsertSharePage } from "@shared/schema";
+import { users, sharePages, type User, type InsertUser, type SharePage, type InsertSharePage, type Annotation, type InsertAnnotation } from "@shared/schema";
 import session from "express-session";
 import { nanoid } from "nanoid";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
+import { annotations } from "@shared/schema";
+
 
 const PgSession = ConnectPgSimple(session);
 
@@ -13,7 +15,6 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserDropboxToken(userId: number, token: string): Promise<User>;
-
   createSharePage(userId: number, page: InsertSharePage): Promise<SharePage>;
   getSharePage(id: number): Promise<SharePage | undefined>;
   getSharePageBySlug(slug: string): Promise<SharePage | undefined>;
@@ -21,6 +22,9 @@ export interface IStorage {
   updateSharePage(id: number, page: Partial<InsertSharePage>): Promise<SharePage>;
   deleteSharePage(id: number): Promise<void>;
 
+  createAnnotation(sharePageId: number, userId: number, annotation: InsertAnnotation): Promise<Annotation>;
+  getAnnotations(sharePageId: number, fileIndex: number): Promise<Annotation[]>;
+  deleteAnnotation(id: number, userId: number): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -105,6 +109,41 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSharePage(id: number): Promise<void> {
     await db.delete(sharePages).where(eq(sharePages.id, id));
+  }
+
+  async createAnnotation(sharePageId: number, userId: number, annotation: InsertAnnotation): Promise<Annotation> {
+    const [result] = await db
+      .insert(annotations)
+      .values({
+        ...annotation,
+        sharePageId,
+        userId,
+      })
+      .returning();
+    return result;
+  }
+
+  async getAnnotations(sharePageId: number, fileIndex: number): Promise<Annotation[]> {
+    return db
+      .select()
+      .from(annotations)
+      .where(
+        and(
+          eq(annotations.sharePageId, sharePageId),
+          eq(annotations.fileIndex, fileIndex)
+        )
+      );
+  }
+
+  async deleteAnnotation(id: number, userId: number): Promise<void> {
+    await db
+      .delete(annotations)
+      .where(
+        and(
+          eq(annotations.id, id),
+          eq(annotations.userId, userId)
+        )
+      );
   }
 }
 

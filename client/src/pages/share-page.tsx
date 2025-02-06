@@ -1,21 +1,143 @@
-import { useQuery } from "@tanstack/react-query";
-import { type SharePage, type FileObject } from "@shared/schema";
-import { Loader2, FileText, Image as ImageIcon, Film } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
+import { Loader2, FileText, Image as ImageIcon, Film, Plus, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import React from 'react';
+
+
+type AnnotationProps = {
+  annotation: Annotation;
+  onDelete?: () => void;
+  currentUserId?: number;
+};
+
+function AnnotationMarker({ annotation, onDelete, currentUserId }: AnnotationProps) {
+  return (
+    <div 
+      className="absolute group"
+      style={{ 
+        left: `${annotation.positionX}px`, 
+        top: `${annotation.positionY}px` 
+      }}
+    >
+      <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer">
+        <Plus className="w-4 h-4" />
+      </div>
+      <div className="absolute left-full ml-2 bg-background border rounded-lg p-3 shadow-lg min-w-[200px] hidden group-hover:block">
+        <div className="text-sm">{annotation.content}</div>
+        {currentUserId === annotation.userId && onDelete && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="absolute top-1 right-1 h-6 w-6 p-0"
+            onClick={onDelete}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 type FilePreviewProps = {
   file: FileObject;
   textColor: string;
   containerClassName?: string;
+  pageId?: number;
+  fileIndex?: number;
 };
 
-export function FilePreview({ file, textColor, containerClassName = "" }: FilePreviewProps) {
+export function FilePreview({ file, textColor, containerClassName = "", pageId, fileIndex }: FilePreviewProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isAnnotating, setIsAnnotating] = useState(false);
+  const [annotationInput, setAnnotationInput] = useState("");
+  const [annotationPosition, setAnnotationPosition] = useState<{ x: number, y: number } | null>(null);
+
+  // Query annotations
+  const { data: annotations = [] } = useQuery<Annotation[]>({
+    queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
+    enabled: pageId !== undefined && fileIndex !== undefined,
+  });
+
+  // Create annotation mutation
+  const createAnnotationMutation = useMutation({
+    mutationFn: async (data: { content: string; positionX: number; positionY: number }) => {
+      if (!pageId || fileIndex === undefined) return;
+      const response = await apiRequest(
+        "POST",
+        `/api/pages/${pageId}/files/${fileIndex}/annotations`,
+        {
+          ...data,
+          fileIndex,
+        }
+      );
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`] 
+      });
+      setIsAnnotating(false);
+      setAnnotationInput("");
+      setAnnotationPosition(null);
+      toast({
+        title: "Annotation added",
+        description: "Your annotation has been added successfully.",
+      });
+    },
+  });
+
+  // Delete annotation mutation
+  const deleteAnnotationMutation = useMutation({
+    mutationFn: async (annotationId: number) => {
+      await apiRequest("DELETE", `/api/annotations/${annotationId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`] 
+      });
+      toast({
+        title: "Annotation deleted",
+        description: "Your annotation has been deleted successfully.",
+      });
+    },
+  });
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!user || !pageId || fileIndex === undefined) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setAnnotationPosition({ x, y });
+    setIsAnnotating(true);
+  };
+
+  const handleAnnotationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!annotationPosition || !annotationInput.trim()) return;
+
+    createAnnotationMutation.mutate({
+      content: annotationInput,
+      positionX: Math.round(annotationPosition.x),
+      positionY: Math.round(annotationPosition.y),
+    });
+  };
+
   const fileType = file.name.split('.').pop();
   const isImage = fileType ? ['jpg', 'jpeg', 'png', 'gif'].includes(fileType) : false;
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
   const isPDF = fileType === 'pdf';
 
-  // Apply full-width styling if specified
   const wrapperClass = file.isFullWidth 
     ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]" 
     : containerClassName;
@@ -24,48 +146,110 @@ export function FilePreview({ file, textColor, containerClassName = "" }: FilePr
     <div className={wrapperClass}>
       <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none' : ''}`}>
         <CardContent className="p-0">
-          {isImage && (
-            <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
-              <img
-                src={file.preview_url || file.url}
-                alt={file.name}
-                className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
-              />
-            </div>
-          )}
-
-          {isVideo && (
-            <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
-              <video
-                controls
-                className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
-                src={file.preview_url || file.url}
-              >
-                Your browser does not support video playback.
-              </video>
-            </div>
-          )}
-
-          {isPDF && (
-            <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
-              <iframe
-                src={file.preview_url || file.url}
-                className="w-full h-full border-0"
-                title={file.name}
-              />
-            </div>
-          )}
-
-          {!isImage && !isVideo && !isPDF && (
-            <div className="aspect-video flex items-center justify-center bg-muted">
-              <div className="text-center p-4">
-                <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
-                <p className="text-sm font-medium" style={{ color: textColor }}>
-                  {file.name}
-                </p>
+          <div className="relative" onClick={user ? handleClick : undefined}>
+            {isImage && (
+              <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
+                <img
+                  src={file.preview_url || file.url}
+                  alt={file.name}
+                  className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
+                />
               </div>
-            </div>
-          )}
+            )}
+
+            {isVideo && (
+              <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
+                <video
+                  controls
+                  className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
+                  src={file.preview_url || file.url}
+                >
+                  Your browser does not support video playback.
+                </video>
+              </div>
+            )}
+
+            {isPDF && (
+              <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
+                <iframe
+                  src={file.preview_url || file.url}
+                  className="w-full h-full border-0"
+                  title={file.name}
+                />
+              </div>
+            )}
+
+            {!isImage && !isVideo && !isPDF && (
+              <div className="aspect-video flex items-center justify-center bg-muted">
+                <div className="text-center p-4">
+                  <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
+                  <p className="text-sm font-medium" style={{ color: textColor }}>
+                    {file.name}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Annotation Input Form */}
+            {isAnnotating && annotationPosition && (
+              <form
+                onSubmit={handleAnnotationSubmit}
+                className="absolute bg-background border rounded-lg p-2 shadow-lg"
+                style={{ 
+                  left: annotationPosition.x, 
+                  top: annotationPosition.y 
+                }}
+              >
+                <Input
+                  type="text"
+                  value={annotationInput}
+                  onChange={(e) => setAnnotationInput(e.target.value)}
+                  placeholder="Add your annotation..."
+                  className="mb-2"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    type="submit" 
+                    size="sm"
+                    disabled={createAnnotationMutation.isPending}
+                  >
+                    {createAnnotationMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Add"
+                    )}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setIsAnnotating(false);
+                      setAnnotationInput("");
+                      setAnnotationPosition(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Display Annotations */}
+            {annotations.map((annotation) => (
+              <AnnotationMarker
+                key={annotation.id}
+                annotation={annotation}
+                currentUserId={user?.id}
+                onDelete={
+                  user?.id === annotation.userId
+                    ? () => deleteAnnotationMutation.mutate(annotation.id)
+                    : undefined
+                }
+              />
+            ))}
+          </div>
 
           <div className="p-4 border-t">
             <div className="flex items-center gap-2">
@@ -84,6 +268,7 @@ export function FilePreview({ file, textColor, containerClassName = "" }: FilePr
 }
 
 export default function SharePageView({ params }: { params: { slug: string } }) {
+  const { user } = useAuth();
   const { data: page, isLoading } = useQuery<SharePage>({
     queryKey: [`/api/p/${params.slug}`],
   });
@@ -125,6 +310,11 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           {page.description && (
             <p className="text-lg opacity-90 max-w-2xl mx-auto">{page.description}</p>
           )}
+          {!user && (
+            <p className="text-sm text-muted-foreground mt-4">
+              Sign in to add annotations to this page
+            </p>
+          )}
         </header>
 
         <div className="grid gap-8">
@@ -133,6 +323,8 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
               key={index}
               file={file}
               textColor={page.textColor || "#000000"}
+              pageId={page.id}
+              fileIndex={index}
             />
           ))}
         </div>

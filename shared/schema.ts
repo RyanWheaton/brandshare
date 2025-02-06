@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -28,6 +28,17 @@ export const sharePages = pgTable("share_pages", {
   files: jsonb("files").notNull(),
 });
 
+export const annotations = pgTable("annotations", {
+  id: serial("id").primaryKey(),
+  sharePageId: integer("share_page_id").notNull(),
+  fileIndex: integer("file_index").notNull(),
+  userId: integer("user_id").notNull(),
+  content: text("content").notNull(),
+  positionX: integer("position_x").notNull(),
+  positionY: integer("position_y").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -46,8 +57,17 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   files: z.array(fileSchema),
 });
 
+export const insertAnnotationSchema = createInsertSchema(annotations).pick({
+  fileIndex: true,
+  content: true,
+  positionX: true,
+  positionY: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type SharePage = typeof sharePages.$inferSelect;
 export type InsertSharePage = z.infer<typeof insertSharePageSchema>;
 export type FileObject = z.infer<typeof fileSchema>;
+export type Annotation = typeof annotations.$inferSelect;
+export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;

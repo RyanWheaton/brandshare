@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertSharePageSchema } from "@shared/schema";
+import { insertSharePageSchema, insertAnnotationSchema } from "@shared/schema";
 import { setupDropbox } from "./dropbox";
 
 export function registerRoutes(app: Express): Server {
@@ -66,6 +66,44 @@ export function registerRoutes(app: Express): Server {
     if (!page || page.userId !== req.user.id) return res.sendStatus(404);
 
     await storage.deleteSharePage(page.id);
+    res.sendStatus(204);
+  });
+
+  // Annotation endpoints
+  app.post("/api/pages/:pageId/files/:fileIndex/annotations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const parsed = insertAnnotationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(parsed.error);
+    }
+
+    const page = await storage.getSharePage(parseInt(req.params.pageId));
+    if (!page) return res.sendStatus(404);
+
+    const annotation = await storage.createAnnotation(
+      page.id,
+      req.user.id,
+      parsed.data
+    );
+    res.status(201).json(annotation);
+  });
+
+  app.get("/api/pages/:pageId/files/:fileIndex/annotations", async (req, res) => {
+    const page = await storage.getSharePage(parseInt(req.params.pageId));
+    if (!page) return res.sendStatus(404);
+
+    const annotations = await storage.getAnnotations(
+      page.id,
+      parseInt(req.params.fileIndex)
+    );
+    res.json(annotations);
+  });
+
+  app.delete("/api/annotations/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    await storage.deleteAnnotation(parseInt(req.params.id), req.user.id);
     res.sendStatus(204);
   });
 
