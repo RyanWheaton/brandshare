@@ -99,20 +99,30 @@ export function setupAuth(app: Express) {
   app.post("/api/request-reset", async (req, res) => {
     try {
       const { username } = requestPasswordResetSchema.parse(req.body);
+      console.log('Processing password reset request for:', username);
+
       const token = await storage.createPasswordResetToken(username);
+      console.log('Reset token created:', token ? 'success' : 'failed');
 
       if (!token) {
-        return res.status(404).json({ message: "User not found" });
+        console.log('User not found:', username);
+        return res.status(404).json({ 
+          message: "If an account exists with this email, you will receive password reset instructions." 
+        });
       }
 
       const emailSent = await sendPasswordResetEmail(username, token);
-      if (!emailSent) {
-        return res.status(500).json({ message: "Failed to send reset email" });
-      }
+      console.log('Email sending attempt result:', emailSent ? 'success' : 'failed');
 
-      res.json({ message: "Password reset email sent" });
+      // Always return success to prevent email enumeration
+      res.json({ 
+        message: "If an account exists with this email, you will receive password reset instructions." 
+      });
     } catch (error) {
-      res.status(400).json({ message: "Invalid request" });
+      console.error('Password reset request error:', error);
+      res.status(400).json({ 
+        message: "If an account exists with this email, you will receive password reset instructions." 
+      });
     }
   });
 

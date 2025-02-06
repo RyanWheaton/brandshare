@@ -35,7 +35,7 @@ export async function sendPasswordResetEmail(
     const response = await mailService.send(msg);
     console.log('SendGrid API Response:', response);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('SendGrid email error:', error);
     if (error.response) {
       console.error('SendGrid API Error Details:', {
