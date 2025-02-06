@@ -18,6 +18,8 @@ type AnnotationProps = {
 };
 
 function AnnotationMarker({ annotation, onDelete, currentUserId }: AnnotationProps) {
+  const displayName = annotation.userId ? "User" : (annotation.guestName || "Anonymous");
+
   return (
     <div 
       className="absolute group"
@@ -30,6 +32,7 @@ function AnnotationMarker({ annotation, onDelete, currentUserId }: AnnotationPro
         <Plus className="w-4 h-4" />
       </div>
       <div className="absolute left-full ml-2 bg-background border rounded-lg p-3 shadow-lg min-w-[200px] hidden group-hover:block">
+        <div className="text-sm mb-1 text-muted-foreground">{displayName}</div>
         <div className="text-sm">{annotation.content}</div>
         {currentUserId === annotation.userId && onDelete && (
           <Button 
@@ -59,6 +62,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const { toast } = useToast();
   const [isAnnotating, setIsAnnotating] = useState(false);
   const [annotationInput, setAnnotationInput] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [annotationPosition, setAnnotationPosition] = useState<{ x: number, y: number } | null>(null);
 
   // Query annotations
@@ -69,7 +73,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
   // Create annotation mutation
   const createAnnotationMutation = useMutation({
-    mutationFn: async (data: { content: string; positionX: number; positionY: number }) => {
+    mutationFn: async (data: { content: string; positionX: number; positionY: number; guestName?: string }) => {
       if (!pageId || fileIndex === undefined) return;
       const response = await apiRequest(
         "POST",
@@ -87,6 +91,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
       });
       setIsAnnotating(false);
       setAnnotationInput("");
+      setGuestName("");
       setAnnotationPosition(null);
       toast({
         title: "Annotation added",
@@ -126,11 +131,14 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     e.preventDefault();
     if (!annotationPosition || !annotationInput.trim()) return;
 
-    createAnnotationMutation.mutate({
+    const data = {
       content: annotationInput,
       positionX: Math.round(annotationPosition.x),
       positionY: Math.round(annotationPosition.y),
-    });
+      guestName: user ? undefined : guestName || "Anonymous",
+    };
+
+    createAnnotationMutation.mutate(data);
   };
 
   const fileType = file.name.split('.').pop();
@@ -190,7 +198,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
               </div>
             )}
 
-            {/* Annotation Input Form */}
             {isAnnotating && annotationPosition && (
               <form
                 onSubmit={handleAnnotationSubmit}
@@ -200,6 +207,15 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                   top: annotationPosition.y 
                 }}
               >
+                {!user && (
+                  <Input
+                    type="text"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="Your name (optional)"
+                    className="mb-2"
+                  />
+                )}
                 <Input
                   type="text"
                   value={annotationInput}
@@ -227,6 +243,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                     onClick={() => {
                       setIsAnnotating(false);
                       setAnnotationInput("");
+                      setGuestName("");
                       setAnnotationPosition(null);
                     }}
                   >
@@ -236,7 +253,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
               </form>
             )}
 
-            {/* Display Annotations */}
             {annotations.map((annotation) => (
               <AnnotationMarker
                 key={annotation.id}
@@ -310,11 +326,10 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           {page.description && (
             <p className="text-lg opacity-90 max-w-2xl mx-auto">{page.description}</p>
           )}
-          {!user && (
-            <p className="text-sm text-muted-foreground mt-4">
-              Sign in to add annotations to this page
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground mt-4">
+            Click anywhere on a file to add annotations
+            {!user && " as a guest"}
+          </p>
         </header>
 
         <div className="grid gap-8">

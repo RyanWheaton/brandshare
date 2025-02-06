@@ -29,7 +29,6 @@ export function registerRoutes(app: Express): Server {
     res.json(pages);
   });
 
-  // Add endpoint to get a single page by ID
   app.get("/api/pages/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -71,8 +70,6 @@ export function registerRoutes(app: Express): Server {
 
   // Annotation endpoints
   app.post("/api/pages/:pageId/files/:fileIndex/annotations", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
     const parsed = insertAnnotationSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
@@ -83,7 +80,7 @@ export function registerRoutes(app: Express): Server {
 
     const annotation = await storage.createAnnotation(
       page.id,
-      req.user.id,
+      req.user?.id || null,
       parsed.data
     );
     res.status(201).json(annotation);
@@ -101,9 +98,8 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.delete("/api/annotations/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    await storage.deleteAnnotation(parseInt(req.params.id), req.user.id);
+    const userId = req.user?.id;
+    await storage.deleteAnnotation(parseInt(req.params.id), userId);
     res.sendStatus(204);
   });
 

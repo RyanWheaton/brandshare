@@ -32,7 +32,8 @@ export const annotations = pgTable("annotations", {
   id: serial("id").primaryKey(),
   sharePageId: integer("share_page_id").notNull(),
   fileIndex: integer("file_index").notNull(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id"),
+  guestName: text("guest_name"),
   content: text("content").notNull(),
   positionX: integer("position_x").notNull(),
   positionY: integer("position_y").notNull(),
@@ -62,6 +63,7 @@ export const insertAnnotationSchema = createInsertSchema(annotations).pick({
   content: true,
   positionX: true,
   positionY: true,
+  guestName: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

@@ -22,9 +22,9 @@ export interface IStorage {
   updateSharePage(id: number, page: Partial<InsertSharePage>): Promise<SharePage>;
   deleteSharePage(id: number): Promise<void>;
 
-  createAnnotation(sharePageId: number, userId: number, annotation: InsertAnnotation): Promise<Annotation>;
+  createAnnotation(sharePageId: number, userId: number | null, annotation: InsertAnnotation): Promise<Annotation>;
   getAnnotations(sharePageId: number, fileIndex: number): Promise<Annotation[]>;
-  deleteAnnotation(id: number, userId: number): Promise<void>;
+  deleteAnnotation(id: number, userId?: number): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -111,13 +111,13 @@ export class DatabaseStorage implements IStorage {
     await db.delete(sharePages).where(eq(sharePages.id, id));
   }
 
-  async createAnnotation(sharePageId: number, userId: number, annotation: InsertAnnotation): Promise<Annotation> {
+  async createAnnotation(sharePageId: number, userId: number | null, annotation: InsertAnnotation): Promise<Annotation> {
     const [result] = await db
       .insert(annotations)
       .values({
         ...annotation,
         sharePageId,
-        userId,
+        userId: userId || undefined,
       })
       .returning();
     return result;
@@ -135,15 +135,14 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async deleteAnnotation(id: number, userId: number): Promise<void> {
-    await db
-      .delete(annotations)
-      .where(
-        and(
-          eq(annotations.id, id),
-          eq(annotations.userId, userId)
-        )
-      );
+  async deleteAnnotation(id: number, userId?: number): Promise<void> {
+    const query = db.delete(annotations).where(eq(annotations.id, id));
+
+    if (userId) {
+      query.where(eq(annotations.userId, userId));
+    }
+
+    await query;
   }
 }
 
