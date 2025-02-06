@@ -19,16 +19,53 @@ export async function sendPasswordResetEmail(
   try {
     const msg = {
       to,
-      from: FROM_EMAIL,
-      subject: 'Reset Your Password',
-      text: `Click the link below to reset your password:\n${resetLink}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, you can safely ignore this email.`,
+      from: {
+        email: FROM_EMAIL,
+        name: "Dropbox Share Portal"
+      },
+      subject: 'Your Password Reset Request - Dropbox Share Portal',
+      text: `Hello,
+
+You recently requested to reset your password for your Dropbox Share Portal account. Click the link below to reset it:
+
+${resetLink}
+
+This password reset link is only valid for 1 hour.
+
+If you did not request a password reset, please ignore this email or contact support if you have concerns.
+
+Best regards,
+The Dropbox Share Portal Team`,
       html: `
-        <p>You requested to reset your password.</p>
-        <p>Click the link below to set a new password:</p>
-        <p><a href="${resetLink}">${resetLink}</a></p>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this, you can safely ignore this email.</p>
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+            <title>Reset your password</title>
+          </head>
+          <body style="background-color: #f6f9fc; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; padding: 20px; font-family: sans-serif;">
+              <h2 style="color: #333; margin-bottom: 20px;">Reset Your Password</h2>
+              <p style="color: #555; line-height: 1.5;">Hello,</p>
+              <p style="color: #555; line-height: 1.5;">You recently requested to reset your password for your Dropbox Share Portal account. Click the button below to reset it:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetLink}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Your Password</a>
+              </div>
+              <p style="color: #555; line-height: 1.5;">This password reset link is only valid for 1 hour.</p>
+              <p style="color: #555; line-height: 1.5;">If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+              <p style="color: #888; font-size: 12px;">If you're having trouble clicking the password reset button, copy and paste the URL below into your web browser:</p>
+              <p style="color: #888; font-size: 12px; word-break: break-all;">${resetLink}</p>
+            </div>
+          </body>
+        </html>
       `,
+      trackingSettings: {
+        clickTracking: { enable: true },
+        openTracking: { enable: true }
+      },
+      categories: ['password-reset']
     };
 
     console.log('Attempting to send password reset email to:', to);
