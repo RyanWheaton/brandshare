@@ -25,7 +25,6 @@ export const sharePages = pgTable("share_pages", {
   backgroundColor: text("background_color").default("#ffffff"),
   textColor: text("text_color").default("#000000"),
   files: jsonb("files").notNull(),
-  viewCount: integer("view_count").default(0),
   lastViewedAt: timestamp("last_viewed_at"),
 });
 
