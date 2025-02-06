@@ -81,9 +81,25 @@ The Dropbox Share Portal Team`,
     };
 
     console.log('Attempting to send password reset email to:', to);
+    console.log('Email configuration:', JSON.stringify({
+      to,
+      from: msg.from,
+      subject: msg.subject,
+      categories: msg.categories,
+      trackingSettings: msg.trackingSettings,
+      mailSettings: msg.mailSettings
+    }, null, 2));
+
     const response = await mailService.send(msg);
     console.log('SendGrid API Response:', response);
-    return true;
+    if (response[0]?.statusCode === 202) {
+      console.log('Email accepted by SendGrid successfully');
+      console.log('Message ID:', response[0]?.headers['x-message-id']);
+      return true;
+    } else {
+      console.error('Unexpected response status:', response[0]?.statusCode);
+      return false;
+    }
   } catch (error: any) {
     console.error('SendGrid email error:', error);
     if (error.response) {
