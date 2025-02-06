@@ -160,9 +160,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(annotations.id, id));
 
     if (annotation) {
-      const query = db.delete(annotations).where(eq(annotations.id, id));
-      if (userId) {
-        query.where(eq(annotations.userId, userId));
+      let query = db.delete(annotations).where(eq(annotations.id, id));
+
+      // If userId is provided, only delete if it matches
+      if (userId !== undefined) {
+        query = query.where(eq(annotations.userId, userId));
       }
       await query;
 
