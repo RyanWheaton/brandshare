@@ -14,10 +14,10 @@ export async function sendPasswordResetEmail(
   to: string,
   resetToken: string
 ): Promise<boolean> {
-  const resetLink = `${process.env.ORIGIN || 'http://localhost:5000'}/auth/reset-password?token=${resetToken}`;
+  const resetLink = `${process.env.ORIGIN || 'http://localhost:5000'}/auth?token=${resetToken}`;
 
   try {
-    await mailService.send({
+    const msg = {
       to,
       from: FROM_EMAIL,
       subject: 'Reset Your Password',
@@ -29,10 +29,20 @@ export async function sendPasswordResetEmail(
         <p>This link will expire in 1 hour.</p>
         <p>If you didn't request this, you can safely ignore this email.</p>
       `,
-    });
+    };
+
+    console.log('Attempting to send password reset email to:', to);
+    const response = await mailService.send(msg);
+    console.log('SendGrid API Response:', response);
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
+    if (error.response) {
+      console.error('SendGrid API Error Details:', {
+        body: error.response.body,
+        statusCode: error.response.statusCode,
+      });
+    }
     return false;
   }
 }
