@@ -1,3 +1,4 @@
+import React from 'react';
 import { Button } from "./button";
 import { Plus } from "lucide-react";
 import type { FileObject } from "@shared/schema";
@@ -22,7 +23,7 @@ interface DropboxChooserProps {
 }
 
 export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProps) {
-  const handleDropboxSelect = () => {
+  const handleDropboxSelect = React.useCallback(() => {
     window.Dropbox?.choose({
       success: (files) => {
         // Convert Dropbox files to our FileObject format
@@ -41,7 +42,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
       multiselect: true,
       extensions: ['images', 'pdf', 'video'],
     });
-  };
+  }, [onFilesSelected]);
 
   return (
     <Button

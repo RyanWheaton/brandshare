@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -75,6 +76,11 @@ function FileList({
             onUpdateFile(index, file);
           });
         }}
+        onRemove={(index) => {
+          const newFiles = [...files];
+          newFiles.splice(index, 1);
+          onUpdateFile(index, { ...newFiles[index] });
+        }}
       />
     </div>
   );
@@ -136,6 +142,14 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     },
   });
 
+  const handleFileUpdate = React.useCallback((index: number, updates: Partial<FileObject>) => {
+    const newFiles = [...formValues.files];
+    if (updates) {
+      newFiles[index] = { ...newFiles[index], ...updates };
+      form.setValue('files', newFiles, { shouldDirty: true });
+    }
+  }, [formValues.files, form]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -156,12 +170,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       </div>
     );
   }
-
-  const handleFileUpdate = (index: number, updates: Partial<FileObject>) => {
-    const newFiles = [...formValues.files];
-    newFiles[index] = { ...newFiles[index], ...updates };
-    form.setValue('files', newFiles, { shouldDirty: true });
-  };
 
   return (
     <div className="container mx-auto p-4">
