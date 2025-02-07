@@ -88,11 +88,15 @@ function FileList({
       const fileName = shareUrl.split('/').pop()?.split('?')[0];
       if (!fileName) throw new Error("Could not extract filename");
 
-      // Create the preview URL by replacing dl=0 with raw=1
-      const previewUrl = shareUrl.replace('dl=0', 'raw=1');
+      // Create the preview URL by replacing ?dl=0 or &dl=0 with raw=1
+      const previewUrl = shareUrl.replace(/[?&]dl=0/, (match) => 
+        match.startsWith('?') ? '?raw=1' : '&raw=1'
+      );
 
-      // Create the download URL by replacing dl=0 with dl=1
-      const downloadUrl = shareUrl.replace('dl=0', 'dl=1');
+      // Create the download URL similarly but with dl=1
+      const downloadUrl = shareUrl.replace(/[?&]dl=0/, (match) => 
+        match.startsWith('?') ? '?dl=1' : '&dl=1'
+      );
 
       // Create a new file object
       const newFile: FileObject = {
