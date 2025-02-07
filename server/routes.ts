@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertSharePageSchema, insertAnnotationSchema } from "@shared/schema";
+import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema } from "@shared/schema";
 import { setupDropbox } from "./dropbox";
 
 export function registerRoutes(app: Express): Server {
@@ -83,6 +83,80 @@ export function registerRoutes(app: Express): Server {
 
     await storage.deleteSharePage(page.id);
     res.sendStatus(204);
+  });
+
+  // Template endpoints
+  app.post("/api/templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const parsed = insertTemplateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(parsed.error);
+    }
+
+    const template = await storage.createTemplate(req.user.id, parsed.data);
+    res.status(201).json(template);
+  });
+
+  app.get("/api/templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const templates = await storage.getUserTemplates(req.user.id);
+    res.json(templates);
+  });
+
+  app.get("/api/templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const template = await storage.getTemplate(parseInt(req.params.id));
+    if (!template || template.userId !== req.user.id) return res.sendStatus(404);
+
+    res.json(template);
+  });
+
+  app.patch("/api/templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const parsed = insertTemplateSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(parsed.error);
+    }
+
+    const template = await storage.getTemplate(parseInt(req.params.id));
+    if (!template || template.userId !== req.user.id) return res.sendStatus(404);
+
+    const updatedTemplate = await storage.updateTemplate(template.id, parsed.data);
+    res.json(updatedTemplate);
+  });
+
+  app.delete("/api/templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const template = await storage.getTemplate(parseInt(req.params.id));
+    if (!template || template.userId !== req.user.id) return res.sendStatus(404);
+
+    await storage.deleteTemplate(template.id);
+    res.sendStatus(204);
+  });
+
+  app.post("/api/templates/:id/duplicate", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const template = await storage.getTemplate(parseInt(req.params.id));
+    if (!template) return res.sendStatus(404);
+
+    const newTemplate = await storage.duplicateTemplate(template.id, req.user.id);
+    res.json(newTemplate);
+  });
+
+  app.post("/api/templates/:id/create-page", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const template = await storage.getTemplate(parseInt(req.params.id));
+    if (!template) return res.sendStatus(404);
+
+    const newPage = await storage.createSharePageFromTemplate(template.id, req.user.id);
+    res.json(newPage);
   });
 
   // Page Stats endpoints
