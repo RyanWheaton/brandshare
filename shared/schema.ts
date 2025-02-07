@@ -86,6 +86,11 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type SharePage = typeof sharePages.$inferSelect;
@@ -94,3 +99,4 @@ export type FileObject = z.infer<typeof fileSchema>;
 export type Annotation = typeof annotations.$inferSelect;
 export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
 export type PageStats = typeof pageStats.$inferSelect;
+export type ChangePasswordData = z.infer<typeof changePasswordSchema>;

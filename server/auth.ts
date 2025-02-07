@@ -8,6 +8,8 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendPasswordResetEmail } from "./email";
 import { requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
+import {changePasswordSchema} from "@shared/schema"; // Added import
+
 
 declare global {
   namespace Express {
@@ -133,6 +135,28 @@ export function setupAuth(app: Express) {
 
       if (!user) {
         return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updatePassword(user.id, hashedPassword);
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
+  app.post("/api/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      const user = await storage.getUser(req.user!.id);
+
+      if (!user || !(await comparePasswords(currentPassword, user.password))) {
+        return res.status(400).json({ message: "Current password is incorrect" });
       }
 
       const hashedPassword = await hashPassword(newPassword);
