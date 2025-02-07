@@ -5,20 +5,36 @@ import net from "net";
 
 // Function to check if a port is available
 async function findAvailablePort(startPort: number, endPort: number): Promise<number> {
-  for (let port = startPort; port <= endPort; port++) {
-    try {
-      const server = net.createServer();
-      await new Promise<void>((resolve, reject) => {
-        server.once('error', reject);
-        server.once('listening', () => {
-          server.close();
-          resolve();
-        });
-        server.listen(port, '0.0.0.0');
+  // First try port 5000 specifically
+  try {
+    const server = net.createServer();
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.once('listening', () => {
+        server.close();
+        resolve();
       });
-      return port;
-    } catch {
-      continue;
+      server.listen(5000, '0.0.0.0');
+    });
+    return 5000;
+  } catch {
+    // If port 5000 is not available, try other ports
+    for (let port = startPort; port <= endPort; port++) {
+      if (port === 5000) continue; // Skip 5000 as we already tried it
+      try {
+        const server = net.createServer();
+        await new Promise<void>((resolve, reject) => {
+          server.once('error', reject);
+          server.once('listening', () => {
+            server.close();
+            resolve();
+          });
+          server.listen(port, '0.0.0.0');
+        });
+        return port;
+      } catch {
+        continue;
+      }
     }
   }
   throw new Error(`No available ports found between ${startPort} and ${endPort}`);
