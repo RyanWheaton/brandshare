@@ -54,6 +54,7 @@ const DUMMY_FILES = [
   }
 ];
 
+{/* Stats Card Component */}
 function StatsCard({ stats }: { stats: any }) {
   if (!stats) return null;
 
@@ -67,12 +68,12 @@ function StatsCard({ stats }: { stats: any }) {
   const currentHourViews = hourlyViews[currentHour] || 0;
 
   // Get top locations
-  const topLocations = Object.entries(locationViews)
+  const topLocations = Object.entries(locationViews || {})
     .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 3);
 
   return (
-    <div className="space-y-4 mb-4">
+    <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-4">
@@ -109,12 +110,13 @@ function StatsCard({ stats }: { stats: any }) {
         </Card>
       </div>
 
-      {topLocations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Locations</CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Always show the locations card, even if empty */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Locations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {topLocations.length > 0 ? (
             <div className="space-y-2">
               {topLocations.map(([country, views]) => (
                 <div key={country} className="flex justify-between items-center">
@@ -123,9 +125,11 @@ function StatsCard({ stats }: { stats: any }) {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground">No location data available yet</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
