@@ -5,7 +5,7 @@ import { db } from "./db";
 import { eq, and, gt } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
-import { annotations } from "@shared/schema";
+import { annotations, pageStats } from "@shared/schema";
 import { randomBytes } from "crypto";
 
 const PgSession = ConnectPgSimple(session);
@@ -251,7 +251,7 @@ export class DatabaseStorage implements IStorage {
     if (!user) return null;
 
     const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 3600000); 
+    const expiresAt = new Date(Date.now() + 3600000);
 
     const [updatedUser] = await db
       .update(users)
