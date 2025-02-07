@@ -23,6 +23,15 @@ function Router() {
           />
         )} 
       />
+      <Route 
+        path="/customize-template/:id" 
+        component={({ params }) => (
+          <ProtectedRoute 
+            component={() => <CustomizePage params={params} isTemplate={true} />} 
+            path="/customize-template/:id" 
+          />
+        )} 
+      />
       <Route path="/p/:slug" component={SharePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />

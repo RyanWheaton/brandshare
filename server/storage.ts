@@ -1,4 +1,4 @@
-import { users, sharePages, type User, type InsertUser, type SharePage, type InsertSharePage, type Annotation, type InsertAnnotation, pageStats, type PageStats } from "@shared/schema";
+import { users, sharePages, sharePageTemplates, type User, type InsertUser, type SharePage, type InsertSharePage, type Annotation, type InsertAnnotation, type PageStats, type SharePageTemplate, type InsertTemplate } from "@shared/schema";
 import session from "express-session";
 import { nanoid } from "nanoid";
 import { db } from "./db";
@@ -26,17 +26,23 @@ export interface IStorage {
   getAnnotations(sharePageId: number, fileIndex: number): Promise<Annotation[]>;
   deleteAnnotation(id: number, userId?: number): Promise<void>;
 
-  // New methods for stats
   getPageStats(sharePageId: number): Promise<PageStats | undefined>;
   recordPageView(sharePageId: number): Promise<void>;
   updateCommentCount(sharePageId: number, increment: boolean): Promise<void>;
 
-  // New methods for password reset
   createPasswordResetToken(username: string): Promise<string | null>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   updatePassword(userId: number, newPassword: string): Promise<User>;
 
   sessionStore: session.Store;
+
+  createTemplate(userId: number, template: InsertTemplate): Promise<SharePageTemplate>;
+  getTemplate(id: number): Promise<SharePageTemplate | undefined>;
+  getUserTemplates(userId: number): Promise<SharePageTemplate[]>;
+  updateTemplate(id: number, template: Partial<InsertTemplate>): Promise<SharePageTemplate>;
+  deleteTemplate(id: number): Promise<void>;
+  duplicateTemplate(id: number, userId: number): Promise<SharePageTemplate>;
+  createSharePageFromTemplate(templateId: number, userId: number): Promise<SharePage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -88,7 +94,6 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
 
-    // Initialize stats for the new page
     await db.insert(pageStats).values({
       sharePageId: sharePage.id,
       dailyViews: {},
@@ -141,7 +146,6 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
 
-    // Increment comment count
     await this.updateCommentCount(sharePageId, true);
 
     return result;
@@ -168,13 +172,11 @@ export class DatabaseStorage implements IStorage {
     if (annotation) {
       let query = db.delete(annotations).where(eq(annotations.id, id));
 
-      // If userId is provided, only delete if it matches
       if (userId !== undefined) {
         query = query.where(eq(annotations.userId, userId));
       }
       await query;
 
-      // Decrement comment count
       await this.updateCommentCount(annotation.sharePageId, false);
     }
   }
@@ -195,7 +197,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pageStats.sharePageId, sharePageId));
 
     if (!currentStats) {
-      // Initialize stats if they don't exist
       await db.insert(pageStats).values({
         sharePageId,
         dailyViews: { [today]: 1 },
@@ -224,7 +225,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pageStats.sharePageId, sharePageId));
 
     if (!currentStats) {
-      // Initialize stats if they don't exist
       await db.insert(pageStats).values({
         sharePageId,
         dailyViews: {},
@@ -251,7 +251,7 @@ export class DatabaseStorage implements IStorage {
     if (!user) return null;
 
     const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+    const expiresAt = new Date(Date.now() + 3600000); 
 
     const [updatedUser] = await db
       .update(users)
@@ -291,6 +291,90 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return user;
+  }
+
+
+  async createTemplate(userId: number, template: InsertTemplate): Promise<SharePageTemplate> {
+    const [newTemplate] = await db
+      .insert(sharePageTemplates)
+      .values({
+        ...template,
+        userId,
+        description: template.description ?? null,
+        backgroundColor: template.backgroundColor ?? "#ffffff",
+        textColor: template.textColor ?? "#000000",
+      })
+      .returning();
+    return newTemplate;
+  }
+
+  async getTemplate(id: number): Promise<SharePageTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(sharePageTemplates)
+      .where(eq(sharePageTemplates.id, id));
+    return template;
+  }
+
+  async getUserTemplates(userId: number): Promise<SharePageTemplate[]> {
+    return db
+      .select()
+      .from(sharePageTemplates)
+      .where(eq(sharePageTemplates.userId, userId));
+  }
+
+  async updateTemplate(id: number, updates: Partial<InsertTemplate>): Promise<SharePageTemplate> {
+    const [template] = await db
+      .update(sharePageTemplates)
+      .set({
+        ...updates,
+        description: updates.description ?? undefined,
+        backgroundColor: updates.backgroundColor ?? undefined,
+        textColor: updates.textColor ?? undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(sharePageTemplates.id, id))
+      .returning();
+    return template;
+  }
+
+  async deleteTemplate(id: number): Promise<void> {
+    await db.delete(sharePageTemplates).where(eq(sharePageTemplates.id, id));
+  }
+
+  async duplicateTemplate(id: number, userId: number): Promise<SharePageTemplate> {
+    const template = await this.getTemplate(id);
+    if (!template) {
+      throw new Error("Template not found");
+    }
+
+    const [newTemplate] = await db
+      .insert(sharePageTemplates)
+      .values({
+        userId,
+        title: `${template.title} (Copy)`,
+        description: template.description,
+        backgroundColor: template.backgroundColor,
+        textColor: template.textColor,
+        files: template.files,
+      })
+      .returning();
+    return newTemplate;
+  }
+
+  async createSharePageFromTemplate(templateId: number, userId: number): Promise<SharePage> {
+    const template = await this.getTemplate(templateId);
+    if (!template) {
+      throw new Error("Template not found");
+    }
+
+    return this.createSharePage(userId, {
+      title: template.title,
+      description: template.description || undefined,
+      backgroundColor: template.backgroundColor,
+      textColor: template.textColor,
+      files: template.files as any,
+    });
   }
 }
 

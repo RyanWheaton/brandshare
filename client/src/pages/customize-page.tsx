@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SharePage, insertSharePageSchema, InsertSharePage, FileObject } from "@shared/schema";
+import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,7 +73,12 @@ function FileList({
   );
 }
 
-export default function CustomizePage({ params }: { params: { id: string } }) {
+type CustomizePageProps = {
+  params: { id: string };
+  isTemplate?: boolean;
+};
+
+export default function CustomizePage({ params, isTemplate = false }: CustomizePageProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -84,13 +89,14 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
   }
 
   const id = parseInt(params.id);
+  const apiEndpoint = isTemplate ? `/api/templates/${id}` : `/api/pages/${id}`;
 
-  const { data: page, isLoading } = useQuery<SharePage>({
-    queryKey: [`/api/pages/${id}`],
+  const { data: item, isLoading } = useQuery<SharePage | SharePageTemplate>({
+    queryKey: [apiEndpoint],
   });
 
-  const form = useForm<InsertSharePage>({
-    resolver: zodResolver(insertSharePageSchema),
+  const form = useForm<InsertSharePage | InsertTemplate>({
+    resolver: zodResolver(isTemplate ? insertTemplateSchema : insertSharePageSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -98,28 +104,28 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
       textColor: "#000000",
       files: [],
     },
-    values: page ? {
-      title: page.title,
-      description: page.description || "",
-      backgroundColor: page.backgroundColor || "#ffffff",
-      textColor: page.textColor || "#000000",
-      files: page.files as FileObject[],
+    values: item ? {
+      title: item.title,
+      description: item.description || "",
+      backgroundColor: item.backgroundColor || "#ffffff",
+      textColor: item.textColor || "#000000",
+      files: item.files as FileObject[],
     } : undefined,
   });
 
   const formValues = form.watch();
 
   const updateMutation = useMutation({
-    mutationFn: async (data: Partial<InsertSharePage>) => {
-      await apiRequest("PATCH", `/api/pages/${id}`, data);
+    mutationFn: async (data: Partial<InsertSharePage | InsertTemplate>) => {
+      await apiRequest("PATCH", apiEndpoint, data);
     },
     onSuccess: () => {
-      // Invalidate both the individual page and the pages list
-      queryClient.invalidateQueries({ queryKey: [`/api/pages/${id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
+      // Invalidate both the individual item and the list
+      queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
+      queryClient.invalidateQueries({ queryKey: [isTemplate ? "/api/templates" : "/api/pages"] });
       toast({
         title: "Changes saved",
-        description: "Your share page has been updated successfully.",
+        description: `Your ${isTemplate ? 'template' : 'share page'} has been updated successfully.`,
       });
       setLocation("/");
     },
@@ -133,13 +139,13 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
     );
   }
 
-  if (!page) {
+  if (!item) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Page Not Found</h1>
+          <h1 className="text-2xl font-bold mb-2">Not Found</h1>
           <p className="text-muted-foreground">
-            This share page doesn't exist or has been removed.
+            This {isTemplate ? 'template' : 'share page'} doesn't exist or has been removed.
           </p>
         </div>
       </div>
@@ -159,7 +165,7 @@ export default function CustomizePage({ params }: { params: { id: string } }) {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Customize Share Page</CardTitle>
+              <CardTitle>Customize {isTemplate ? 'Template' : 'Share Page'}</CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...form}>

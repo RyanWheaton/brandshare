@@ -18,6 +18,19 @@ export const fileSchema = z.object({
   isFullWidth: z.boolean().default(false),
 });
 
+// New table for share page templates
+export const sharePageTemplates = pgTable("share_page_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  backgroundColor: text("background_color").default("#ffffff"),
+  textColor: text("text_color").default("#000000"),
+  files: jsonb("files").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const sharePages = pgTable("share_pages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -49,6 +62,17 @@ export const pageStats = pgTable("page_stats", {
   totalViews: integer("total_views").default(0).notNull(),
   totalComments: integer("total_comments").default(0).notNull(),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+});
+
+// Schema for template operations
+export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick({
+  title: true,
+  description: true,
+  backgroundColor: true,
+  textColor: true,
+  files: true,
+}).extend({
+  files: z.array(fileSchema),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -100,3 +124,5 @@ export type Annotation = typeof annotations.$inferSelect;
 export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
 export type PageStats = typeof pageStats.$inferSelect;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+export type SharePageTemplate = typeof sharePageTemplates.$inferSelect;
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
