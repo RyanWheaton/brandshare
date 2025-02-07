@@ -118,9 +118,9 @@ function StatsCard({ stats }: { stats: any }) {
         <CardContent>
           {topLocations.length > 0 ? (
             <div className="space-y-2">
-              {topLocations.map(([country, views]) => (
-                <div key={country} className="flex justify-between items-center">
-                  <span className="text-sm">{country}</span>
+              {topLocations.map(([location, views]) => (
+                <div key={location} className="flex justify-between items-center">
+                  <span className="text-sm">{location}</span>
                   <span className="text-sm font-medium">{views} views</span>
                 </div>
               ))}

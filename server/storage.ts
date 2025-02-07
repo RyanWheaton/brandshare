@@ -202,10 +202,12 @@ export class DatabaseStorage implements IStorage {
     if (ip) {
       const geo = geoip.lookup(ip);
       if (geo) {
+        const locationKey = [geo.country, geo.region, geo.city].filter(Boolean).join(', ');
         location = {
           country: geo.country,
           region: geo.region,
-          city: geo.city
+          city: geo.city,
+          key: locationKey
         };
       }
     }
@@ -215,7 +217,7 @@ export class DatabaseStorage implements IStorage {
         sharePageId,
         dailyViews: { [today]: 1 },
         hourlyViews: { [hour]: 1 },
-        locationViews: location ? { [location.country]: 1 } : {},
+        locationViews: location ? { [location.key]: 1 } : {},
         totalViews: 1,
         totalComments: 0,
       });
@@ -228,7 +230,7 @@ export class DatabaseStorage implements IStorage {
       hourlyViews[hour] = (hourlyViews[hour] || 0) + 1;
 
       if (location) {
-        locationViews[location.country] = (locationViews[location.country] || 0) + 1;
+        locationViews[location.key] = (locationViews[location.key] || 0) + 1;
       }
 
       await db
