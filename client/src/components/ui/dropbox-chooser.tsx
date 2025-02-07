@@ -29,7 +29,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => ({
           name: file.name,
-          preview_url: file.thumbnailLink || file.link,
+          preview_url: file.link,
           url: file.link,
           isFullWidth: false,
         }));
