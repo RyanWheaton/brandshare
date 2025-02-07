@@ -15,16 +15,19 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FileText, Image as ImageIcon, Film, GripVertical } from "lucide-react";
+import { FileText, Image as ImageIcon, Film, GripVertical, Trash2 } from "lucide-react";
 import { Card, CardContent } from "./card";
+import { Button } from "./button";
 import { cn } from "@/lib/utils";
+import type { FileObject } from "@shared/schema";
 
 interface SortableFileProps {
   id: number;
-  file: any;
+  file: FileObject;
+  onRemove?: () => void;
 }
 
-function SortableFile({ id, file }: SortableFileProps) {
+function SortableFile({ id, file, onRemove }: SortableFileProps) {
   const {
     attributes,
     listeners,
@@ -35,8 +38,8 @@ function SortableFile({ id, file }: SortableFileProps) {
   } = useSortable({ id });
 
   const fileType = file.name.split('.').pop()?.toLowerCase();
-  const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType);
-  const isVideo = ['mp4', 'mov'].includes(fileType);
+  const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType || '');
+  const isVideo = ['mp4', 'mov'].includes(fileType || '');
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -61,12 +64,24 @@ function SortableFile({ id, file }: SortableFileProps) {
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
-          
+
           {isImage && <ImageIcon className="h-4 w-4" />}
           {isVideo && <Film className="h-4 w-4" />}
           {!isImage && !isVideo && <FileText className="h-4 w-4" />}
-          
-          <span className="text-sm truncate">{file.name}</span>
+
+          <span className="text-sm truncate flex-1">{file.name}</span>
+
+          {onRemove && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={onRemove}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Remove file</span>
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -74,11 +89,12 @@ function SortableFile({ id, file }: SortableFileProps) {
 }
 
 interface SortableFilesProps {
-  files: any[];
-  onReorder: (newFiles: any[]) => void;
+  files: FileObject[];
+  onReorder: (newFiles: FileObject[]) => void;
+  onRemove?: (index: number) => void;
 }
 
-export function SortableFiles({ files, onReorder }: SortableFilesProps) {
+export function SortableFiles({ files, onReorder, onRemove }: SortableFilesProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -107,7 +123,12 @@ export function SortableFiles({ files, onReorder }: SortableFilesProps) {
         strategy={verticalListSortingStrategy}
       >
         {files.map((file, index) => (
-          <SortableFile key={index} id={index} file={file} />
+          <SortableFile 
+            key={index} 
+            id={index} 
+            file={file}
+            onRemove={onRemove ? () => onRemove(index) : undefined}
+          />
         ))}
       </SortableContext>
     </DndContext>

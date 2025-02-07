@@ -22,6 +22,8 @@ import { FilePreview } from "@/pages/share-page";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Film, FileText } from "lucide-react";
+import { DropboxChooser } from "@/components/ui/dropbox-chooser";
+import { SortableFiles } from "@/components/ui/sortable-files";
 
 
 function FileItem({ file, onToggleFullWidth, textColor }: { 
@@ -54,21 +56,26 @@ function FileItem({ file, onToggleFullWidth, textColor }: {
 
 function FileList({ 
   files, 
-  onUpdateFile 
+  onUpdateFile,
+  onAddFiles
 }: { 
   files: FileObject[];
   onUpdateFile: (index: number, updates: Partial<FileObject>) => void;
+  onAddFiles: (newFiles: FileObject[]) => void;
 }) {
   return (
-    <div className="space-y-2">
-      {files.map((file, index) => (
-        <FileItem
-          key={index}
-          file={file}
-          onToggleFullWidth={(isFullWidth) => onUpdateFile(index, { isFullWidth })}
-          textColor={"#000000"}
-        />
-      ))}
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <DropboxChooser onFilesSelected={onAddFiles} />
+      </div>
+      <SortableFiles 
+        files={files}
+        onReorder={(newFiles) => {
+          newFiles.forEach((file, index) => {
+            onUpdateFile(index, file);
+          });
+        }}
+      />
     </div>
   );
 }
@@ -82,7 +89,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  // Safely parse the ID parameter, return to dashboard if invalid
   if (!params?.id || isNaN(parseInt(params.id))) {
     setLocation("/");
     return null;
@@ -120,7 +126,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       await apiRequest("PATCH", apiEndpoint, data);
     },
     onSuccess: () => {
-      // Invalidate both the individual item and the list
       queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
       queryClient.invalidateQueries({ queryKey: [isTemplate ? "/api/templates" : "/api/pages"] });
       toast({
@@ -161,7 +166,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   return (
     <div className="container mx-auto p-4">
       <div className="grid lg:grid-cols-[30%_70%] gap-8">
-        {/* Edit Form */}
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -270,17 +274,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Toggle full-width display for each file
+                Add files from Dropbox and arrange them in your preferred order
               </p>
               <FileList 
                 files={formValues.files} 
                 onUpdateFile={handleFileUpdate}
+                onAddFiles={(newFiles) => {
+                  const updatedFiles = [...formValues.files, ...newFiles];
+                  form.setValue('files', updatedFiles, { shouldDirty: true });
+                }}
               />
             </CardContent>
           </Card>
         </div>
 
-        {/* Live Preview */}
         <div className="relative">
           <div className="sticky top-4">
             <Card>
