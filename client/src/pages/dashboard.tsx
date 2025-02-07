@@ -61,15 +61,15 @@ function StatsCard({ stats }: { stats: any }) {
   const today = new Date().toISOString().split('T')[0];
   const dailyViews = (stats.dailyViews as Record<string, number>)[today] || 0;
   const hourlyViews = stats.hourlyViews as Record<string, number>;
-  const locationViews = stats.locationViews as Record<string, number>;
+  const locationViews = stats.locationViews as Record<string, { views: number, lastView: string }>;
 
   // Get current hour's views
   const currentHour = new Date().getHours();
   const currentHourViews = hourlyViews[currentHour] || 0;
 
-  // Get top locations
+  // Get top locations with timestamps
   const topLocations = Object.entries(locationViews || {})
-    .sort(([, a], [, b]) => (b as number) - (a as number))
+    .sort(([, a], [, b]) => (b.views) - (a.views))
     .slice(0, 3);
 
   return (
@@ -118,10 +118,15 @@ function StatsCard({ stats }: { stats: any }) {
         <CardContent>
           {topLocations.length > 0 ? (
             <div className="space-y-2">
-              {topLocations.map(([location, views]) => (
-                <div key={location} className="flex justify-between items-center">
-                  <span className="text-sm">{location}</span>
-                  <span className="text-sm font-medium">{views} views</span>
+              {topLocations.map(([location, data]) => (
+                <div key={location} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">{location}</span>
+                    <span className="text-sm">{data.views} views</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Last viewed: {new Date(data.lastView).toLocaleString()}
+                  </p>
                 </div>
               ))}
             </div>

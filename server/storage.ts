@@ -193,6 +193,7 @@ export class DatabaseStorage implements IStorage {
   async recordPageView(sharePageId: number, ip?: string): Promise<void> {
     const today = new Date().toISOString().split('T')[0];
     const hour = new Date().getHours();
+    const timestamp = new Date().toISOString();
     const [currentStats] = await db
       .select()
       .from(pageStats)
@@ -207,7 +208,8 @@ export class DatabaseStorage implements IStorage {
           country: geo.country,
           region: geo.region,
           city: geo.city,
-          key: locationKey
+          key: locationKey,
+          timestamp
         };
       }
     }
@@ -217,20 +219,23 @@ export class DatabaseStorage implements IStorage {
         sharePageId,
         dailyViews: { [today]: 1 },
         hourlyViews: { [hour]: 1 },
-        locationViews: location ? { [location.key]: 1 } : {},
+        locationViews: location ? { [location.key]: { views: 1, lastView: timestamp } } : {},
         totalViews: 1,
         totalComments: 0,
       });
     } else {
       const dailyViews = currentStats.dailyViews as Record<string, number>;
       const hourlyViews = (currentStats.hourlyViews as Record<string, number>) || {};
-      const locationViews = (currentStats.locationViews as Record<string, number>) || {};
+      const locationViews = (currentStats.locationViews as Record<string, any>) || {};
 
       dailyViews[today] = (dailyViews[today] || 0) + 1;
       hourlyViews[hour] = (hourlyViews[hour] || 0) + 1;
 
       if (location) {
-        locationViews[location.key] = (locationViews[location.key] || 0) + 1;
+        locationViews[location.key] = {
+          views: (locationViews[location.key]?.views || 0) + 1,
+          lastView: timestamp
+        };
       }
 
       await db
