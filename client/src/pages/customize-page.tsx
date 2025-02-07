@@ -25,7 +25,6 @@ import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Film, FileText } from "lucide-react";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
 import { SortableFiles } from "@/components/ui/sortable-files";
-import { useState } from "react";
 
 
 function FileItem({ file, onToggleFullWidth, textColor }: { 
@@ -67,96 +66,21 @@ function FileList({
   onAddFiles: (newFiles: FileObject[]) => void;
   form: any;
 }) {
-  const { toast } = useToast();
-  const [shareUrl, setShareUrl] = useState("");
-
-  const handleShareUrlSubmit = () => {
-    if (!shareUrl.trim()) return;
-
-    // Validate if it's a Dropbox share URL
-    if (!shareUrl.includes('dropbox.com')) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid Dropbox share URL",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Extract the file name from the URL
-      const fileName = shareUrl.split('/').pop()?.split('?')[0];
-      if (!fileName) throw new Error("Could not extract filename");
-
-      // Parse the URL and its query parameters
-      const url = new URL(shareUrl);
-      const params = new URLSearchParams(url.search);
-
-      // Create preview URL (raw=1)
-      const previewParams = new URLSearchParams(params);
-      previewParams.delete('dl');
-      previewParams.set('raw', '1');
-      const previewUrl = `${url.origin}${url.pathname}?${previewParams.toString()}`;
-
-      // Create download URL (dl=1)
-      const downloadParams = new URLSearchParams(params);
-      downloadParams.set('dl', '1');
-      const downloadUrl = `${url.origin}${url.pathname}?${downloadParams.toString()}`;
-
-      // Create a new file object
-      const newFile: FileObject = {
-        name: decodeURIComponent(fileName),
-        preview_url: previewUrl,
-        url: downloadUrl,
-        isFullWidth: false,
-      };
-
-      // Add the new file to the list
-      onAddFiles([newFile]);
-      setShareUrl(""); // Clear the input
-    } catch (error) {
-      toast({
-        title: "Error processing URL",
-        description: "Could not process the Dropbox share URL",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end">
         <DropboxChooser onFilesSelected={onAddFiles} />
       </div>
-
-      <div className="flex gap-2">
-        <Input
-          placeholder="Paste Dropbox share URL here..."
-          value={shareUrl}
-          onChange={(e) => setShareUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleShareUrlSubmit();
-            }
-          }}
-        />
-        <Button 
-          variant="outline" 
-          onClick={handleShareUrlSubmit}
-        >
-          Add URL
-        </Button>
-      </div>
-
       <SortableFiles 
         files={files}
         onReorder={(newFiles) => {
+          // Update all files in their new order
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
         onRemove={(index) => {
           const newFiles = [...files];
           newFiles.splice(index, 1);
+          // Update the entire files array after removal
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
       />
