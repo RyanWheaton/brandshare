@@ -38,9 +38,9 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
       cancel: () => {
         // Handle cancel if needed
       },
-      linkType: "preview",
+      linkType: "direct", // Changed from "preview" to "direct" to get direct file URLs
       multiselect: true,
-      extensions: ['images', 'video', 'audio'], // Updated to use valid Dropbox extensions
+      extensions: ['images', 'video', 'audio'],
     });
   }, [onFilesSelected]);
 

@@ -31,8 +31,8 @@ function Comment({ annotation, onDelete, currentUserId }: CommentProps) {
         <p className="mt-1 text-sm">{annotation.content}</p>
       </div>
       {currentUserId === annotation.userId && onDelete && (
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           className="h-8 w-8 p-0"
           onClick={onDelete}
@@ -60,6 +60,18 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const [guestName, setGuestName] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
 
+  // Modify URL to force direct download for Dropbox links
+  const getDirectUrl = (url: string) => {
+    if (url && url.includes('dropbox.com')) {
+      // Convert shared link to direct download link
+      // Remove any query parameters
+      const baseUrl = url.split('?')[0];
+      // Replace www.dropbox.com with dl.dropboxusercontent.com and ensure it ends with ?raw=1
+      return baseUrl.replace('www.dropbox.com', 'dl.dropboxusercontent.com') + '?raw=1';
+    }
+    return url;
+  };
+
   // Query annotations (comments)
   const { data: comments = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
@@ -83,8 +95,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`] 
+      queryClient.invalidateQueries({
+        queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`]
       });
       setCommentInput("");
       setGuestName("");
@@ -102,8 +114,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
       await apiRequest("DELETE", `/api/annotations/${annotationId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`] 
+      queryClient.invalidateQueries({
+        queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`]
       });
       toast({
         title: "Comment deleted",
@@ -127,8 +139,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
   const isPDF = fileType === 'pdf';
 
-  const wrapperClass = file.isFullWidth 
-    ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]" 
+  const wrapperClass = file.isFullWidth
+    ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]"
     : containerClassName;
 
   return (
@@ -139,7 +151,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
             {isImage && (
               <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
                 <img
-                  src={file.preview_url || file.url}
+                  src={getDirectUrl(file.preview_url || file.url)}
                   alt={file.name}
                   className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
                 />
@@ -151,7 +163,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                 <video
                   controls
                   className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
-                  src={file.preview_url || file.url}
+                  src={getDirectUrl(file.preview_url || file.url)}
                 >
                   Your browser does not support video playback.
                 </video>
@@ -161,7 +173,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
             {isPDF && (
               <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
                 <iframe
-                  src={file.preview_url || file.url}
+                  src={getDirectUrl(file.preview_url || file.url)}
                   className="w-full h-full border-0"
                   title={file.name}
                 />
@@ -222,7 +234,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                       onChange={(e) => setCommentInput(e.target.value)}
                       placeholder="Add a comment..."
                     />
-                    <Button 
+                    <Button
                       type="submit"
                       disabled={createCommentMutation.isPending}
                     >
@@ -292,8 +304,8 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   }
 
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         backgroundColor: page.backgroundColor || "#ffffff",
         color: page.textColor || "#000000",
         minHeight: "100vh",
