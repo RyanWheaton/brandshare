@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -66,21 +66,65 @@ function FileList({
   onAddFiles: (newFiles: FileObject[]) => void;
   form: any;
 }) {
+  const [imageUrl, setImageUrl] = useState("");
+  const { toast } = useToast();
+
+  const handleAddImageUrl = () => {
+    const isImageUrl = /\.(jpg|jpeg|png|gif|webp)$/i.test(imageUrl);
+
+    if (!isImageUrl) {
+      toast({
+        title: "Invalid image URL",
+        description: "Please enter a valid image URL (jpg, jpeg, png, gif, or webp)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const fileName = imageUrl.split('/').pop() || 'image.jpg';
+    const newFile: FileObject = {
+      name: fileName,
+      url: imageUrl,
+      preview_url: imageUrl,
+      isFullWidth: false
+    };
+
+    onAddFiles([newFile]);
+    setImageUrl(""); 
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <DropboxChooser onFilesSelected={onAddFiles} />
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="Paste image URL here"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+          />
+          <Button 
+            variant="outline" 
+            onClick={handleAddImageUrl}
+            disabled={!imageUrl}
+          >
+            Add Image
+          </Button>
+        </div>
+
+        <div className="flex justify-end">
+          <DropboxChooser onFilesSelected={onAddFiles} />
+        </div>
       </div>
+
       <SortableFiles 
         files={files}
         onReorder={(newFiles) => {
-          // Update all files in their new order
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
         onRemove={(index) => {
           const newFiles = [...files];
           newFiles.splice(index, 1);
-          // Update the entire files array after removal
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
       />
