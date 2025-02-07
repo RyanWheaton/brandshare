@@ -52,8 +52,12 @@ export function registerRoutes(app: Express): Server {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
 
-    // Record page view
-    await storage.recordPageView(page.id);
+    // Get IP address from request
+    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
+    const clientIp = ip.split(',')[0].trim();
+
+    // Record page view with IP address
+    await storage.recordPageView(page.id, clientIp);
 
     const stats = await storage.getPageStats(page.id);
     res.json({ ...page, stats });

@@ -16,6 +16,7 @@ import {
   Calendar,
   Save,
   FileText,
+  Clock, // Added import for Clock icon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -58,42 +59,73 @@ function StatsCard({ stats }: { stats: any }) {
 
   const today = new Date().toISOString().split('T')[0];
   const dailyViews = (stats.dailyViews as Record<string, number>)[today] || 0;
+  const hourlyViews = stats.hourlyViews as Record<string, number>;
+  const locationViews = stats.locationViews as Record<string, number>;
+
+  // Get current hour's views
+  const currentHour = new Date().getHours();
+  const currentHourViews = hourlyViews[currentHour] || 0;
+
+  // Get top locations
+  const topLocations = Object.entries(locationViews)
+    .sort(([, a], [, b]) => (b as number) - (a as number))
+    .slice(0, 3);
 
   return (
-    <div className="grid grid-cols-3 gap-4 mb-4">
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Today's Views</p>
-              <p className="text-2xl font-bold">{dailyViews}</p>
+    <div className="space-y-4 mb-4">
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Today's Views</p>
+                <p className="text-2xl font-bold">{dailyViews}</p>
+              </div>
+              <Eye className="h-4 w-4 text-muted-foreground" />
             </div>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Views</p>
-              <p className="text-2xl font-bold">{stats.totalViews}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Current Hour</p>
+                <p className="text-2xl font-bold">{currentHourViews}</p>
+              </div>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Comments</p>
-              <p className="text-2xl font-bold">{stats.totalComments}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Comments</p>
+                <p className="text-2xl font-bold">{stats.totalComments}</p>
+              </div>
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
             </div>
-            <MessageCircle className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {topLocations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Locations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {topLocations.map(([country, views]) => (
+                <div key={country} className="flex justify-between items-center">
+                  <span className="text-sm">{country}</span>
+                  <span className="text-sm font-medium">{views} views</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -59,6 +59,8 @@ export const pageStats = pgTable("page_stats", {
   id: serial("id").primaryKey(),
   sharePageId: integer("share_page_id").notNull().unique(),
   dailyViews: jsonb("daily_views").default({}).notNull(),
+  hourlyViews: jsonb("hourly_views").default({}).notNull(),
+  locationViews: jsonb("location_views").default({}).notNull(),
   totalViews: integer("total_views").default(0).notNull(),
   totalComments: integer("total_comments").default(0).notNull(),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),

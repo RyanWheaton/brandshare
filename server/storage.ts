@@ -7,6 +7,7 @@ import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { annotations, pageStats } from "@shared/schema";
 import { randomBytes } from "crypto";
+import geoip from 'geoip-lite';
 
 const PgSession = ConnectPgSimple(session);
 
@@ -27,7 +28,7 @@ export interface IStorage {
   deleteAnnotation(id: number, userId?: number): Promise<void>;
 
   getPageStats(sharePageId: number): Promise<PageStats | undefined>;
-  recordPageView(sharePageId: number): Promise<void>;
+  recordPageView(sharePageId: number, ip?: string): Promise<void>;
   updateCommentCount(sharePageId: number, increment: boolean): Promise<void>;
 
   createPasswordResetToken(username: string): Promise<string | null>;
@@ -189,28 +190,53 @@ export class DatabaseStorage implements IStorage {
     return stats;
   }
 
-  async recordPageView(sharePageId: number): Promise<void> {
+  async recordPageView(sharePageId: number, ip?: string): Promise<void> {
     const today = new Date().toISOString().split('T')[0];
+    const hour = new Date().getHours();
     const [currentStats] = await db
       .select()
       .from(pageStats)
       .where(eq(pageStats.sharePageId, sharePageId));
 
+    let location = null;
+    if (ip) {
+      const geo = geoip.lookup(ip);
+      if (geo) {
+        location = {
+          country: geo.country,
+          region: geo.region,
+          city: geo.city
+        };
+      }
+    }
+
     if (!currentStats) {
       await db.insert(pageStats).values({
         sharePageId,
         dailyViews: { [today]: 1 },
+        hourlyViews: { [hour]: 1 },
+        locationViews: location ? { [location.country]: 1 } : {},
         totalViews: 1,
         totalComments: 0,
       });
     } else {
       const dailyViews = currentStats.dailyViews as Record<string, number>;
+      const hourlyViews = (currentStats.hourlyViews as Record<string, number>) || {};
+      const locationViews = (currentStats.locationViews as Record<string, number>) || {};
+
       dailyViews[today] = (dailyViews[today] || 0) + 1;
+      hourlyViews[hour] = (hourlyViews[hour] || 0) + 1;
+
+      if (location) {
+        locationViews[location.country] = (locationViews[location.country] || 0) + 1;
+      }
 
       await db
         .update(pageStats)
         .set({
           dailyViews,
+          hourlyViews,
+          locationViews,
           totalViews: currentStats.totalViews + 1,
           lastUpdated: new Date(),
         })
