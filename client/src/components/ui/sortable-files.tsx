@@ -108,7 +108,14 @@ export function SortableFiles({ files, onReorder, onRemove }: SortableFilesProps
     if (over && active.id !== over.id) {
       const oldIndex = files.findIndex((_, i) => i === active.id);
       const newIndex = files.findIndex((_, i) => i === over.id);
-      onReorder(arrayMove(files, oldIndex, newIndex));
+
+      // Create a new array with the reordered files
+      const newFiles = [...files];
+      const [movedFile] = newFiles.splice(oldIndex, 1);
+      newFiles.splice(newIndex, 0, movedFile);
+
+      // Call onReorder with the new array
+      onReorder(newFiles);
     }
   }
 

@@ -58,11 +58,13 @@ function FileItem({ file, onToggleFullWidth, textColor }: {
 function FileList({ 
   files, 
   onUpdateFile,
-  onAddFiles
+  onAddFiles,
+  form
 }: { 
   files: FileObject[];
   onUpdateFile: (index: number, updates: Partial<FileObject>) => void;
   onAddFiles: (newFiles: FileObject[]) => void;
+  form: any;
 }) {
   return (
     <div className="space-y-4">
@@ -72,14 +74,14 @@ function FileList({
       <SortableFiles 
         files={files}
         onReorder={(newFiles) => {
-          newFiles.forEach((file, index) => {
-            onUpdateFile(index, file);
-          });
+          // Update all files in their new order
+          form.setValue('files', newFiles, { shouldDirty: true });
         }}
         onRemove={(index) => {
           const newFiles = [...files];
           newFiles.splice(index, 1);
-          onUpdateFile(index, { ...newFiles[index] });
+          // Update the entire files array after removal
+          form.setValue('files', newFiles, { shouldDirty: true });
         }}
       />
     </div>
@@ -285,6 +287,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 Add files from Dropbox and arrange them in your preferred order
               </p>
               <FileList 
+                form={form}
                 files={formValues.files} 
                 onUpdateFile={handleFileUpdate}
                 onAddFiles={(newFiles) => {
