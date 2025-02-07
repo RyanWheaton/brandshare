@@ -40,7 +40,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
       },
       linkType: "preview",
       multiselect: true,
-      extensions: ['images', 'pdf', 'video'],
+      extensions: ['images', 'video', 'audio'], // Updated to use valid Dropbox extensions
     });
   }, [onFilesSelected]);
 
