@@ -49,7 +49,37 @@ export async function sendVerificationEmail(
             </div>
           </body>
         </html>
-      `
+      `,
+      mailSettings: {
+        bypassSpamManagement: true,
+        bypassBounceManagement: true,
+        bypassUnsubscribeManagement: true,
+        sandboxMode: {
+          enable: false
+        }
+      },
+      headers: {
+        'List-Unsubscribe': '<mailto:unsubscribe@wheatoncreative.com>',
+        'Precedence': 'Bulk',
+        'X-Auto-Response-Suppress': 'OOF, AutoReply',
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'high'
+      },
+      trackingSettings: {
+        clickTracking: {
+          enable: false
+        },
+        openTracking: {
+          enable: false
+        },
+        subscriptionTracking: {
+          enable: false
+        }
+      },
+      asm: {
+        groupId: 0
+      }
     };
 
     const response = await mailService.send(msg);
@@ -114,7 +144,37 @@ export async function sendPasswordResetEmail(
             </div>
           </body>
         </html>
-      `
+      `,
+      mailSettings: {
+        bypassSpamManagement: true,
+        bypassBounceManagement: true,
+        bypassUnsubscribeManagement: true,
+        sandboxMode: {
+          enable: false
+        }
+      },
+      headers: {
+        'List-Unsubscribe': '<mailto:unsubscribe@wheatoncreative.com>',
+        'Precedence': 'Bulk',
+        'X-Auto-Response-Suppress': 'OOF, AutoReply',
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'high'
+      },
+      trackingSettings: {
+        clickTracking: {
+          enable: false
+        },
+        openTracking: {
+          enable: false
+        },
+        subscriptionTracking: {
+          enable: false
+        }
+      },
+      asm: {
+        groupId: 0
+      }
     };
 
     console.log('Attempting to send password reset email to:', to);
