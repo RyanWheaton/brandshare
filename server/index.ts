@@ -9,7 +9,10 @@ async function findAvailablePort(startPort: number, endPort: number): Promise<nu
     try {
       const server = net.createServer();
       await new Promise<void>((resolve, reject) => {
-        server.once('error', reject);
+        server.once('error', (err) => {
+          server.close();
+          reject(err);
+        });
         server.once('listening', () => {
           server.close();
           resolve();
@@ -17,7 +20,8 @@ async function findAvailablePort(startPort: number, endPort: number): Promise<nu
         server.listen(port, '0.0.0.0');
       });
       return port;
-    } catch {
+    } catch (err) {
+      log(`Port ${port} is not available, trying next port...`);
       continue;
     }
   }
@@ -65,9 +69,8 @@ app.use((req, res, next) => {
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-
+      log(`Error: ${message}`);
       res.status(status).json({ message });
-      throw err;
     });
 
     if (app.get("env") === "development") {
@@ -76,11 +79,11 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Try to find an available port starting from 5000
-    const PORT = await findAvailablePort(5000, 5100);
+    // Try to find an available port starting from 5001
+    const PORT = await findAvailablePort(5001, 5100);
 
     server.listen(PORT, "0.0.0.0", () => {
-      log(`serving on port ${PORT}`);
+      log(`Server started successfully and is serving on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
