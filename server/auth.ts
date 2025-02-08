@@ -83,7 +83,7 @@ export function setupAuth(app: Express) {
       }
 
       const verificationToken = randomBytes(32).toString('hex');
-      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       const user = await storage.createUser({
         ...req.body,
@@ -94,7 +94,17 @@ export function setupAuth(app: Express) {
         verificationTokenExpiresAt,
       });
 
-      await sendVerificationEmail(user.email, verificationToken);
+      console.log('Sending verification email to:', user.email);
+      const emailSent = await sendVerificationEmail(user.email, verificationToken);
+
+      if (!emailSent) {
+        console.error('Failed to send verification email');
+        // Still create the user but inform them about the email issue
+        return res.status(201).json({
+          ...user,
+          message: "Account created but verification email failed to send. Please contact support.",
+        });
+      }
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -104,6 +114,7 @@ export function setupAuth(app: Express) {
         });
       });
     } catch (error) {
+      console.error('Registration error:', error);
       next(error);
     }
   });
