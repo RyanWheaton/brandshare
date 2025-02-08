@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import SharePage from "@/pages/share-page";
 import CustomizePage from "@/pages/customize-page";
+import VerifyEmailPage from "@/pages/verify-email";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -34,6 +35,7 @@ function Router() {
       />
       <Route path="/p/:slug" component={SharePage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/auth/verify" component={VerifyEmailPage} />
       <Route component={NotFound} />
     </Switch>
   );

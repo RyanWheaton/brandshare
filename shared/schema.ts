@@ -10,6 +10,9 @@ export const users = pgTable("users", {
   dropboxToken: text("dropbox_token"),
   resetToken: text("reset_token"),
   resetTokenExpiresAt: timestamp("reset_token_expires_at"),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  verificationToken: text("verification_token"),
+  verificationTokenExpiresAt: timestamp("verification_token_expires_at"),
 });
 
 export const fileSchema = z.object({

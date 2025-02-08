@@ -45,6 +45,8 @@ export interface IStorage {
   deleteTemplate(id: number): Promise<void>;
   duplicateTemplate(id: number, userId: number): Promise<SharePageTemplate>;
   createSharePageFromTemplate(templateId: number, userId: number): Promise<SharePage>;
+  verifyEmail(token: string): Promise<User | undefined>;
+  resendVerificationEmail(userId: number): Promise<string | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -414,6 +416,51 @@ export class DatabaseStorage implements IStorage {
       textColor: template.textColor,
       files: template.files as any,
     });
+  }
+
+  async verifyEmail(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.verificationToken, token),
+          gt(users.verificationTokenExpiresAt!, new Date())
+        )
+      );
+
+    if (!user) return undefined;
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        emailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiresAt: null,
+      })
+      .where(eq(users.id, user.id))
+      .returning();
+
+    return updatedUser;
+  }
+
+  async resendVerificationEmail(userId: number): Promise<string | null> {
+    const user = await this.getUser(userId);
+    if (!user || user.emailVerified) return null;
+
+    const verificationToken = randomBytes(32).toString('hex');
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        verificationToken,
+        verificationTokenExpiresAt,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return updatedUser ? verificationToken : null;
   }
 }
 

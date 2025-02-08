@@ -9,6 +9,7 @@ import { User as SelectUser } from "@shared/schema";
 import { sendPasswordResetEmail } from "./email";
 import { requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
 import { changePasswordSchema } from "@shared/schema";
+import { sendVerificationEmail } from "./email";
 
 declare global {
   namespace Express {
@@ -49,11 +50,11 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy({
-      usernameField: 'email', 
+      usernameField: 'email',
       passwordField: 'password'
     }, async (username, password, done) => {
       try {
-        const user = await storage.getUserByEmail(username); // Changed to use email
+        const user = await storage.getUserByEmail(username);
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "Invalid email or password" });
         }
@@ -76,20 +77,31 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByEmail(req.body.email); // Changed to use email
+      const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
+      const verificationToken = randomBytes(32).toString('hex');
+      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
       const user = await storage.createUser({
         ...req.body,
-        username: req.body.email, // Use email as username
+        username: req.body.email,
         password: await hashPassword(req.body.password),
+        emailVerified: false,
+        verificationToken,
+        verificationTokenExpiresAt,
       });
+
+      await sendVerificationEmail(user.email, verificationToken);
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json(user);
+        res.status(201).json({
+          ...user,
+          message: "Please check your email to verify your account",
+        });
       });
     } catch (error) {
       next(error);
@@ -97,16 +109,45 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", async (err, user, info) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Invalid email or password" });
       }
+
+      if (!user.emailVerified) {
+        return res.status(403).json({
+          message: "Please verify your email address before logging in",
+          needsVerification: true
+        });
+      }
+
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(200).json(user);
       });
     })(req, res, next);
+  });
+
+  app.post("/api/verify-email", async (req, res) => {
+    const { token } = req.body;
+
+    try {
+      const user = await storage.verifyEmail(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      if (!req.isAuthenticated()) {
+        req.login(user, (err) => {
+          if (err) throw err;
+        });
+      }
+
+      res.json({ message: "Email verified successfully" });
+    } catch (error) {
+      res.status(400).json({ message: "Failed to verify email" });
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -123,19 +164,19 @@ export function setupAuth(app: Express) {
 
   app.post("/api/request-reset", async (req, res) => {
     try {
-      const { email } = requestPasswordResetSchema.parse(req.body); // Assuming schema is updated to expect email
-      const token = await storage.createPasswordResetToken(email); // Use email here
+      const { email } = requestPasswordResetSchema.parse(req.body);
+      const token = await storage.createPasswordResetToken(email);
 
       if (token) {
-        await sendPasswordResetEmail(email, token); // Use email here
+        await sendPasswordResetEmail(email, token);
       }
 
-      res.json({ 
-        message: "If an account exists with this email, you will receive password reset instructions." 
+      res.json({
+        message: "If an account exists with this email, you will receive password reset instructions."
       });
     } catch (error) {
-      res.status(400).json({ 
-        message: "If an account exists with this email, you will receive password reset instructions." 
+      res.status(400).json({
+        message: "If an account exists with this email, you will receive password reset instructions."
       });
     }
   });
