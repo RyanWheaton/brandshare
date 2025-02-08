@@ -22,6 +22,8 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+type LoginData = Pick<InsertUser, "email" | "password">;
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [searchParams] = useLocation();
@@ -55,7 +57,7 @@ export default function AuthPage() {
           <TabsContent value="login">
             <AuthForm
               mode="login"
-              onSubmit={(data) => loginMutation.mutate(data)}
+              onSubmit={(data:LoginData) => loginMutation.mutate(data)}
               isPending={loginMutation.isPending}
             />
           </TabsContent>
@@ -63,7 +65,7 @@ export default function AuthPage() {
           <TabsContent value="register">
             <AuthForm
               mode="register"
-              onSubmit={(data) => registerMutation.mutate(data)}
+              onSubmit={(data: InsertUser) => registerMutation.mutate(data)}
               isPending={registerMutation.isPending}
             />
           </TabsContent>
@@ -95,11 +97,15 @@ function AuthForm({
   isPending,
 }: {
   mode: "login" | "register";
-  onSubmit: (data: InsertUser) => void;
+  onSubmit: (data: any) => void;
   isPending: boolean;
 }) {
-  const form = useForm<InsertUser>({
-    resolver: zodResolver(insertUserSchema),
+  const form = useForm<any>({
+    resolver: zodResolver(
+      mode === "login"
+        ? insertUserSchema.pick({ email: true, password: true })
+        : insertUserSchema
+    ),
     defaultValues: {
       email: "",
       username: "",
@@ -117,34 +123,34 @@ function AuthForm({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="you@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             {mode === "register" && (
               <FormField
                 control={form.control}
-                name="email"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input placeholder="Choose a username" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             )}
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Choose a username" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="password"
