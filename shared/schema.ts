@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  email: text("email").unique(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   dropboxToken: text("dropbox_token"),
@@ -78,9 +79,11 @@ export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick(
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  email: true,
   username: true,
   password: true,
 }).extend({
+  email: z.string().email("Please enter a valid email address"),
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });

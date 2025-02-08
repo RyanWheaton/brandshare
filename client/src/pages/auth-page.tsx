@@ -101,6 +101,7 @@ function AuthForm({
   const form = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
+      email: "",
       username: "",
       password: "",
     },
@@ -116,6 +117,21 @@ function AuthForm({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {mode === "register" && (
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="username"
