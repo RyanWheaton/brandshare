@@ -8,8 +8,7 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendPasswordResetEmail } from "./email";
 import { requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
-import {changePasswordSchema} from "@shared/schema"; // Added import
-
+import { changePasswordSchema } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -49,41 +48,65 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
+    new LocalStrategy({
+      usernameField: 'email', 
+      passwordField: 'password'
+    }, async (username, password, done) => {
+      try {
+        const user = await storage.getUserByEmail(username); // Changed to use email
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false, { message: "Invalid email or password" });
+        }
         return done(null, user);
+      } catch (error) {
+        return done(error);
       }
     }),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
+    try {
+      const existingUser = await storage.getUserByEmail(req.body.email); // Changed to use email
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      const user = await storage.createUser({
+        ...req.body,
+        username: req.body.email, // Use email as username
+        password: await hashPassword(req.body.password),
+      });
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const user = await storage.createUser({
-      ...req.body,
-      password: await hashPassword(req.body.password),
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Invalid email or password" });
+      }
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(200).json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -100,28 +123,17 @@ export function setupAuth(app: Express) {
 
   app.post("/api/request-reset", async (req, res) => {
     try {
-      const { username } = requestPasswordResetSchema.parse(req.body);
-      console.log('Processing password reset request for:', username);
+      const { email } = requestPasswordResetSchema.parse(req.body); // Assuming schema is updated to expect email
+      const token = await storage.createPasswordResetToken(email); // Use email here
 
-      const token = await storage.createPasswordResetToken(username);
-      console.log('Reset token created:', token ? 'success' : 'failed');
-
-      if (!token) {
-        console.log('User not found:', username);
-        return res.status(404).json({ 
-          message: "If an account exists with this email, you will receive password reset instructions." 
-        });
+      if (token) {
+        await sendPasswordResetEmail(email, token); // Use email here
       }
 
-      const emailSent = await sendPasswordResetEmail(username, token);
-      console.log('Email sending attempt result:', emailSent ? 'success' : 'failed');
-
-      // Always return success to prevent email enumeration
       res.json({ 
         message: "If an account exists with this email, you will receive password reset instructions." 
       });
     } catch (error) {
-      console.error('Password reset request error:', error);
       res.status(400).json({ 
         message: "If an account exists with this email, you will receive password reset instructions." 
       });
