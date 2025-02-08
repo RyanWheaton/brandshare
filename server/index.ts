@@ -4,50 +4,30 @@ import { setupVite, serveStatic, log } from "./vite";
 import net from "net";
 
 // Function to check if a port is available
-async function findAvailablePort(preferredPort: number): Promise<number> {
-  const server = net.createServer();
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', (err) => {
-        log(`Port ${preferredPort} is not available: ${err.message}`);
-        reject(err);
-      });
-      server.once('listening', () => {
-        server.close();
-        resolve();
-      });
-      server.listen(preferredPort, '0.0.0.0');
-    });
-    return preferredPort;
-  } catch (err) {
-    // If preferred port is not available, try ports 5001-5100
-    for (let port = 5001; port <= 5100; port++) {
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const testServer = net.createServer();
-          testServer.once('error', reject);
-          testServer.once('listening', () => {
-            testServer.close();
-            resolve();
-          });
-          testServer.listen(port, '0.0.0.0');
+async function findAvailablePort(startPort: number, endPort: number): Promise<number> {
+  for (let port = startPort; port <= endPort; port++) {
+    try {
+      const server = net.createServer();
+      await new Promise<void>((resolve, reject) => {
+        server.once('error', reject);
+        server.once('listening', () => {
+          server.close();
+          resolve();
         });
-        log(`Falling back to port ${port}`);
-        return port;
-      } catch {
-        continue;
-      }
+        server.listen(port, '0.0.0.0');
+      });
+      return port;
+    } catch {
+      continue;
     }
-    throw new Error('No available ports found between 5001 and 5100');
   }
+  throw new Error(`No available ports found between ${startPort} and ${endPort}`);
 }
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -82,12 +62,12 @@ app.use((req, res, next) => {
   try {
     const server = registerRoutes(app);
 
-    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-      log(`Error: ${message}`);
+
       res.status(status).json({ message });
+      throw err;
     });
 
     if (app.get("env") === "development") {
@@ -96,11 +76,11 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Try to use port 5000 first
-    const PORT = await findAvailablePort(5000);
+    // Try to find an available port starting from 5000
+    const PORT = await findAvailablePort(5000, 5100);
 
     server.listen(PORT, "0.0.0.0", () => {
-      log(`Server started successfully on port ${PORT}`);
+      log(`serving on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

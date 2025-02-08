@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, Plus } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -26,67 +26,6 @@ import { ImageIcon, Film, FileText } from "lucide-react";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
 import { SortableFiles } from "@/components/ui/sortable-files";
 
-function AddUrlForm({ onAddFile }: { onAddFile: (file: FileObject) => void }) {
-  const [url, setUrl] = useState("");
-  const { toast } = useToast();
-
-  const validateAndAddFile = () => {
-    try {
-      const urlObj = new URL(url);
-      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(urlObj.pathname);
-
-      if (!isImage) {
-        toast({
-          title: "Invalid file type",
-          description: "Please enter a URL for an image file (jpg, jpeg, png, gif, or webp)",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const fileName = urlObj.pathname.split('/').pop() || 'image.jpg';
-      const newFile: FileObject = {
-        name: fileName,
-        url: url,
-        preview_url: url,
-        isFullWidth: false
-      };
-
-      onAddFile(newFile);
-      setUrl("");
-      toast({
-        title: "File added",
-        description: "Image URL has been added to your files",
-      });
-    } catch (error) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid URL",
-        variant: "destructive",
-      });
-    }
-  };
-
-  return (
-    <div className="flex gap-2 mb-4">
-      <Input
-        type="url"
-        placeholder="Paste image URL here (jpg, png, gif, webp)"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className="flex-1"
-      />
-      <Button 
-        variant="outline"
-        onClick={validateAndAddFile}
-        disabled={!url}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Add URL
-      </Button>
-    </div>
-  );
-}
 
 function FileItem({ file, onToggleFullWidth, textColor }: { 
   file: FileObject; 
@@ -129,22 +68,19 @@ function FileList({
 }) {
   return (
     <div className="space-y-4">
-      <AddUrlForm 
-        onAddFile={(file) => onAddFiles([file])}
-      />
-
       <div className="flex justify-end">
         <DropboxChooser onFilesSelected={onAddFiles} />
       </div>
-
       <SortableFiles 
         files={files}
         onReorder={(newFiles) => {
+          // Update all files in their new order
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
         onRemove={(index) => {
           const newFiles = [...files];
           newFiles.splice(index, 1);
+          // Update the entire files array after removal
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
       />
