@@ -25,9 +25,7 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-  const adminUsername = process.env.VITE_ADMIN_USERNAME;
-
-  if (!req.isAuthenticated() || req.user!.email !== adminUsername) {
+  if (!req.isAuthenticated() || req.user!.email !== process.env.VITE_ADMIN_USERNAME) {
     return res.status(403).json({ message: 'Admin access required' });
   }
   next();
@@ -55,7 +53,7 @@ export function setupAuth(app: Express) {
       passwordField: 'password'
     }, async (email, password, done) => {
       try {
-        // Check for admin login
+        // Check for admin login with environment variables
         if (email === process.env.VITE_ADMIN_USERNAME) {
           if (password === process.env.VITE_ADMIN_PASSWORD) {
             const adminUser = {
@@ -115,7 +113,20 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Rest of the auth endpoints
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Invalid email or password" });
+      }
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(200).json(user);
+      });
+    })(req, res, next);
+  });
+
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByEmail(req.body.email);
@@ -138,20 +149,6 @@ export function setupAuth(app: Express) {
       console.error('Registration error:', error);
       next(error);
     }
-  });
-
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
-      if (!user) {
-        return res.status(401).json({ message: info?.message || "Invalid email or password" });
-      }
-
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(200).json(user);
-      });
-    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
