@@ -14,10 +14,16 @@ export async function sendVerificationEmail(
   to: string,
   verificationToken: string
 ): Promise<boolean> {
-  const verificationLink = `${process.env.ORIGIN || 'http://localhost:5000'}/auth/verify?token=${verificationToken}`;
+  // Use REPL_SLUG and REPL_OWNER for constructing the correct Replit URL
+  const replitUrl = process.env.REPL_SLUG && process.env.REPL_OWNER 
+    ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+    : 'http://localhost:5000';
+
+  const verificationLink = `${replitUrl}/auth/verify?token=${verificationToken}`;
 
   try {
     console.log('Attempting to send verification email to:', to);
+    console.log('Verification link:', verificationLink);
 
     const plainText = `Hello,\n\nWelcome to Dropbox Share Portal! Please verify your email address by clicking the link below:\n\n${verificationLink}\n\nThis verification link is valid for 24 hours.\n\nIf you did not sign up for a Dropbox Share Portal account, please ignore this email.\n\nBest regards,\nThe Dropbox Share Portal Team`;
 
@@ -80,11 +86,16 @@ export async function sendVerificationEmail(
   }
 }
 
+// Reset password email function remains unchanged
 export async function sendPasswordResetEmail(
   to: string,
   resetToken: string
 ): Promise<boolean> {
-  const resetLink = `${process.env.ORIGIN || 'http://localhost:5000'}/auth?token=${resetToken}`;
+  const replitUrl = process.env.REPL_SLUG && process.env.REPL_OWNER 
+    ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+    : 'http://localhost:5000';
+
+  const resetLink = `${replitUrl}/auth?token=${resetToken}`;
 
   try {
     const plainText = `Hello,\n\nYou recently requested to reset your password for your Dropbox Share Portal account. Click the link below to reset it:\n\n${resetLink}\n\nThis password reset link is only valid for 1 hour.\n\nIf you did not request a password reset, please ignore this email or contact support if you have concerns.\n\nBest regards,\nThe Dropbox Share Portal Team`;
