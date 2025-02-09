@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
-import { Loader2, FileText, Image as ImageIcon, Film, MessageCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, FileText, Image as ImageIcon, Film, MessageCircle, Lock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
@@ -60,25 +60,19 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const [guestName, setGuestName] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
 
-  // Modify URL to force direct download for Dropbox links
   const getDirectUrl = (url: string) => {
     if (url && url.includes('dropbox.com')) {
-      // Convert shared link to direct download link
-      // Remove any query parameters
       const baseUrl = url.split('?')[0];
-      // Replace www.dropbox.com with dl.dropboxusercontent.com and ensure it ends with ?raw=1
       return baseUrl.replace('www.dropbox.com', 'dl.dropboxusercontent.com') + '?raw=1';
     }
     return url;
   };
 
-  // Query annotations (comments)
   const { data: comments = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
     enabled: pageId !== undefined && fileIndex !== undefined,
   });
 
-  // Create comment mutation
   const createCommentMutation = useMutation({
     mutationFn: async (data: { content: string; guestName?: string }) => {
       if (!pageId || fileIndex === undefined) return;
@@ -88,7 +82,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
         {
           ...data,
           fileIndex,
-          positionX: 0, // We don't need positions anymore
+          positionX: 0, 
           positionY: 0,
         }
       );
@@ -108,7 +102,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     },
   });
 
-  // Delete comment mutation
   const deleteCommentMutation = useMutation({
     mutationFn: async (annotationId: number) => {
       await apiRequest("DELETE", `/api/annotations/${annotationId}`);
@@ -193,7 +186,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
           </div>
 
           <div className="border-t">
-            {/* File info and comment button */}
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
@@ -214,10 +206,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
               </Button>
             </div>
 
-            {/* Comments section */}
             {isCommenting && (
               <div className="px-4 pb-4">
-                {/* Comment form */}
                 <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
                   {!user && (
                     <Input
@@ -247,7 +237,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                   </div>
                 </form>
 
-                {/* Comments list */}
                 <div className="space-y-1">
                   {comments.map((comment) => (
                     <Comment
@@ -276,10 +265,84 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   );
 }
 
+function PasswordProtectionForm({ 
+  onSubmit, 
+  isLoading 
+}: { 
+  onSubmit: (password: string) => void;
+  isLoading: boolean;
+}) {
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(password);
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5" />
+            Password Protected
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+            />
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                "Access Page"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function SharePageView({ params }: { params: { slug: string } }) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [password, setPassword] = useState<string>();
+
   const { data: page, isLoading } = useQuery<SharePage>({
     queryKey: [`/api/p/${params.slug}`],
+  });
+
+  const verifyPasswordMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const response = await apiRequest(
+        "POST", 
+        `/api/p/${params.slug}/verify`,
+        { password }
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error);
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData([`/api/p/${params.slug}`], data);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Access Denied",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -303,6 +366,32 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     );
   }
 
+  if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Page Expired</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              This share page expired on {format(new Date(page.expiresAt), 'PPP')}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (page.isPasswordProtected && !page.files) {
+    return (
+      <PasswordProtectionForm
+        onSubmit={(password) => verifyPasswordMutation.mutate(password)}
+        isLoading={verifyPasswordMutation.isPending}
+      />
+    );
+  }
+
   return (
     <div
       style={{
@@ -322,7 +411,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         </header>
 
         <div className="grid gap-8">
-          {(page.files as FileObject[]).map((file, index) => (
+          {(page.files as FileObject[])?.map((file, index) => (
             <FilePreview
               key={index}
               file={file}
