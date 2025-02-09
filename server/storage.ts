@@ -47,6 +47,7 @@ export interface IStorage {
   createSharePageFromTemplate(templateId: number, userId: number): Promise<SharePage>;
   verifyEmail(token: string): Promise<User | undefined>;
   resendVerificationEmail(userId: number): Promise<string | null>;
+  deleteUser(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -463,11 +464,18 @@ export class DatabaseStorage implements IStorage {
     return updatedUser ? verificationToken : null;
   }
 
+  async deleteUser(userId: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
   async getAllUsersWithStats(): Promise<(User & { totalSharePages: number })[]> {
     const result = await db.select({
-      ...users,
+      id: users.id,
+      email: users.email,
+      username: users.username,
+      emailVerified: users.emailVerified,
       totalSharePages: db
-        .select({ count: db.fn.count('id') })
+        .select({ count: db.fn.count() })
         .from(sharePages)
         .where(eq(sharePages.userId, users.id))
         .$dynamic(),
