@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -118,6 +118,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       title: "",
       description: "",
       backgroundColor: "#ffffff",
+      backgroundColorSecondary: "", 
       textColor: "#000000",
       files: [],
       ...(isTemplate ? {} : {
@@ -129,6 +130,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       title: item.title,
       description: item.description || "",
       backgroundColor: item.backgroundColor || "#ffffff",
+      backgroundColorSecondary: item.backgroundColorSecondary || "", 
       textColor: item.textColor || "#000000",
       files: item.files as FileObject[],
       ...(isTemplate ? {} : {
@@ -249,6 +251,41 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="backgroundColorSecondary"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Secondary Background Color (Optional)</FormLabel>
+                          <FormDescription>
+                            Add a second color to create a vertical gradient background
+                          </FormDescription>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input 
+                                type="color" 
+                                {...field} 
+                                value={field.value || '#ffffff'}
+                                className="w-12 h-10 p-1" 
+                              />
+                              <Input {...field} value={field.value || ''} />
+                              {field.value && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="shrink-0"
+                                  onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="textColor"
@@ -403,6 +440,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 <div 
                   style={{ 
                     backgroundColor: formValues.backgroundColor || "#ffffff",
+                    background: formValues.backgroundColorSecondary 
+                      ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
+                      : formValues.backgroundColor || "#ffffff",
                     color: formValues.textColor || "#000000",
                     minHeight: "500px",
                     padding: "2rem",
