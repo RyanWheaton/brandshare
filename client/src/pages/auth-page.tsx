@@ -33,24 +33,13 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      if (!user.emailVerified) {
-        toast({
-          title: "Email verification required",
-          description: "Please check your email to verify your account.",
-        });
-      } else {
-        setLocation("/");
-      }
+      setLocation("/");
     }
-  }, [user, setLocation, toast]);
+  }, [user, setLocation]);
 
   const handleRegister = async (data: InsertUser) => {
     try {
       await registerMutation.mutateAsync(data);
-      toast({
-        title: "Registration successful",
-        description: "Please check your email to verify your account.",
-      });
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -64,19 +53,11 @@ export default function AuthPage() {
     try {
       await loginMutation.mutateAsync(data);
     } catch (error: any) {
-      if (error.message.includes("verify your email")) {
-        toast({
-          title: "Email verification required",
-          description: "Please check your email to verify your account.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Login failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 

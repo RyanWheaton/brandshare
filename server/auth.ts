@@ -6,10 +6,9 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { sendPasswordResetEmail } from "./email";
+// import { sendVerificationEmail } from "./email"; // Removed
 import { requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
 import { changePasswordSchema } from "@shared/schema";
-import { sendVerificationEmail } from "./email";
 
 declare global {
   namespace Express {
@@ -82,36 +81,16 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
-      const verificationToken = randomBytes(32).toString('hex');
-      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
       const user = await storage.createUser({
         ...req.body,
         username: req.body.email,
         password: await hashPassword(req.body.password),
-        emailVerified: false,
-        verificationToken,
-        verificationTokenExpiresAt,
+        emailVerified: true, // Set to true by default now
       });
-
-      console.log('Sending verification email to:', user.email);
-      const emailSent = await sendVerificationEmail(user.email, verificationToken);
-
-      if (!emailSent) {
-        console.error('Failed to send verification email');
-        // Still create the user but inform them about the email issue
-        return res.status(201).json({
-          ...user,
-          message: "Account created but verification email failed to send. Please contact support.",
-        });
-      }
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json({
-          ...user,
-          message: "Please check your email to verify your account",
-        });
+        res.status(201).json(user);
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -120,17 +99,10 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", async (err, user, info) => {
+    passport.authenticate("local", (err, user, info) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Invalid email or password" });
-      }
-
-      if (!user.emailVerified) {
-        return res.status(403).json({
-          message: "Please verify your email address before logging in",
-          needsVerification: true
-        });
       }
 
       req.login(user, (err) => {
@@ -138,27 +110,6 @@ export function setupAuth(app: Express) {
         res.status(200).json(user);
       });
     })(req, res, next);
-  });
-
-  app.post("/api/verify-email", async (req, res) => {
-    const { token } = req.body;
-
-    try {
-      const user = await storage.verifyEmail(token);
-      if (!user) {
-        return res.status(400).json({ message: "Invalid or expired verification token" });
-      }
-
-      if (!req.isAuthenticated()) {
-        req.login(user, (err) => {
-          if (err) throw err;
-        });
-      }
-
-      res.json({ message: "Email verified successfully" });
-    } catch (error) {
-      res.status(400).json({ message: "Failed to verify email" });
-    }
   });
 
   app.post("/api/logout", (req, res, next) => {
