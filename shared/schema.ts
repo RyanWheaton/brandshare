@@ -47,6 +47,8 @@ export const sharePages = pgTable("share_pages", {
   textColor: text("text_color").default("#000000"),
   titleFont: text("title_font").default("Inter"),
   descriptionFont: text("description_font").default("Inter"),
+  titleFontSize: integer("title_font_size").default(24),
+  descriptionFontSize: integer("description_font_size").default(16),
   files: jsonb("files").notNull(),
   lastViewedAt: timestamp("last_viewed_at"),
   password: text("password"),
@@ -106,6 +108,8 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   textColor: true,
   titleFont: true,
   descriptionFont: true,
+  titleFontSize: true,
+  descriptionFontSize: true,
   files: true,
   password: true,
   expiresAt: true,
@@ -116,6 +120,8 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   backgroundColorSecondary: z.string().optional(),
   titleFont: z.string().default("Inter"),
   descriptionFont: z.string().default("Inter"),
+  titleFontSize: z.number().min(12).max(48).default(24),
+  descriptionFontSize: z.number().min(12).max(32).default(16),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({

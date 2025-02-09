@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 const FONT_OPTIONS = [
   { value: "Inter", label: "Inter" },
@@ -50,8 +51,8 @@ const FONT_OPTIONS = [
   { value: "Source Sans Pro", label: "Source Sans Pro" },
 ];
 
-function FileItem({ file, onToggleFullWidth, textColor }: { 
-  file: FileObject; 
+function FileItem({ file, onToggleFullWidth, textColor }: {
+  file: FileObject;
   onToggleFullWidth: (isFullWidth: boolean) => void;
   textColor: string;
 }) {
@@ -78,12 +79,12 @@ function FileItem({ file, onToggleFullWidth, textColor }: {
   );
 }
 
-function FileList({ 
-  files, 
+function FileList({
+  files,
   onUpdateFile,
   onAddFiles,
   form
-}: { 
+}: {
   files: FileObject[];
   onUpdateFile: (index: number, updates: Partial<FileObject>) => void;
   onAddFiles: (newFiles: FileObject[]) => void;
@@ -94,7 +95,7 @@ function FileList({
       <div className="flex justify-end">
         <DropboxChooser onFilesSelected={onAddFiles} />
       </div>
-      <SortableFiles 
+      <SortableFiles
         files={files}
         onReorder={(newFiles) => {
           form.setValue('files', newFiles, { shouldDirty: true });
@@ -136,7 +137,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       title: "",
       description: "",
       backgroundColor: "#ffffff",
-      backgroundColorSecondary: "", 
+      backgroundColorSecondary: "",
       textColor: "#000000",
       titleFont: "Inter",
       descriptionFont: "Inter",
@@ -150,7 +151,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       title: item.title,
       description: item.description || "",
       backgroundColor: item.backgroundColor || "#ffffff",
-      backgroundColorSecondary: item.backgroundColorSecondary || "", 
+      backgroundColorSecondary: item.backgroundColorSecondary || "",
       textColor: item.textColor || "#000000",
       titleFont: item.titleFont || "Inter",
       descriptionFont: item.descriptionFont || "Inter",
@@ -259,11 +260,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           <FormLabel>Background Color</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input 
-                                type="color" 
-                                {...field} 
+                              <Input
+                                type="color"
+                                {...field}
                                 value={field.value || '#ffffff'}
-                                className="w-12 h-10 p-1" 
+                                className="w-12 h-10 p-1"
                               />
                               <Input {...field} value={field.value || '#ffffff'} />
                             </div>
@@ -284,11 +285,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           </FormDescription>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input 
-                                type="color" 
-                                {...field} 
+                              <Input
+                                type="color"
+                                {...field}
                                 value={field.value || '#ffffff'}
-                                className="w-12 h-10 p-1" 
+                                className="w-12 h-10 p-1"
                               />
                               <Input {...field} value={field.value || ''} />
                               {field.value && (
@@ -316,11 +317,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           <FormLabel>Text Color</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input 
-                                type="color" 
-                                {...field} 
+                              <Input
+                                type="color"
+                                {...field}
                                 value={field.value || '#000000'}
-                                className="w-12 h-10 p-1" 
+                                className="w-12 h-10 p-1"
                               />
                               <Input {...field} value={field.value || '#000000'} />
                             </div>
@@ -382,6 +383,54 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="titleFontSize"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title Font Size</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-4">
+                            <Slider
+                              min={12}
+                              max={48}
+                              step={1}
+                              value={[field.value || 24]}
+                              onValueChange={(value) => field.onChange(value[0])}
+                              className="flex-1"
+                            />
+                            <span className="w-12 text-right">{field.value || 24}px</span>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="descriptionFontSize"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description Font Size</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-4">
+                            <Slider
+                              min={12}
+                              max={32}
+                              step={1}
+                              value={[field.value || 16]}
+                              onValueChange={(value) => field.onChange(value[0])}
+                              className="flex-1"
+                            />
+                            <span className="w-12 text-right">{field.value || 16}px</span>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
 
                   <Separator className="my-4" />
@@ -492,9 +541,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               <p className="text-sm text-muted-foreground mb-4">
                 Add files from Dropbox and arrange them in your preferred order
               </p>
-              <FileList 
+              <FileList
                 form={form}
-                files={formValues.files} 
+                files={formValues.files}
                 onUpdateFile={handleFileUpdate}
                 onAddFiles={(newFiles) => {
                   const updatedFiles = [...formValues.files, ...newFiles];
@@ -512,10 +561,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 <CardTitle>Preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <div 
-                  style={{ 
+                <div
+                  style={{
                     backgroundColor: formValues.backgroundColor || "#ffffff",
-                    background: formValues.backgroundColorSecondary 
+                    background: formValues.backgroundColorSecondary
                       ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
                       : formValues.backgroundColor || "#ffffff",
                     color: formValues.textColor || "#000000",
@@ -526,16 +575,22 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                   className="overflow-hidden"
                 >
                   <div className="text-center mb-8">
-                    <h1 
+                    <h1
                       className="text-3xl font-bold mb-4"
-                      style={{ fontFamily: formValues.titleFont }}
+                      style={{
+                        fontFamily: formValues.titleFont,
+                        fontSize: `${formValues.titleFontSize || 24}px`
+                      }}
                     >
                       {formValues.title}
                     </h1>
                     {formValues.description && (
-                      <p 
+                      <p
                         className="text-lg opacity-90"
-                        style={{ fontFamily: formValues.descriptionFont }}
+                        style={{
+                          fontFamily: formValues.descriptionFont,
+                          fontSize: `${formValues.descriptionFontSize || 16}px`
+                        }}
                       >
                         {formValues.description}
                       </p>
