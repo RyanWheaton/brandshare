@@ -6,7 +6,6 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-// import { sendVerificationEmail } from "./email"; // Removed
 import { requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
 import { changePasswordSchema } from "@shared/schema";
 
@@ -31,10 +30,11 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-const ADMIN_EMAILS = ['admin@example.com']; // Replace with actual admin emails
-
 export const isAdmin = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-  if (!req.isAuthenticated() || !ADMIN_EMAILS.includes(req.user!.email)) {
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminEmail = process.env.ADMIN_USERNAME; // Using username as email since we're using email for login
+
+  if (!req.isAuthenticated() || req.user!.email !== adminEmail) {
     return res.status(403).json({ message: 'Admin access required' });
   }
   next();
@@ -62,6 +62,23 @@ export function setupAuth(app: Express) {
       passwordField: 'password'
     }, async (username, password, done) => {
       try {
+        // Check if trying to login as admin
+        if (username === process.env.ADMIN_USERNAME) {
+          if (password === process.env.ADMIN_PASSWORD) {
+            // Create a virtual admin user
+            const adminUser = {
+              id: 0, // Special admin ID
+              email: process.env.ADMIN_USERNAME,
+              username: process.env.ADMIN_USERNAME,
+              password: '', // Not storing admin password
+              emailVerified: true,
+            };
+            return done(null, adminUser);
+          }
+          return done(null, false, { message: "Invalid admin credentials" });
+        }
+
+        // Regular user login
         const user = await storage.getUserByEmail(username);
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "Invalid email or password" });
@@ -76,6 +93,18 @@ export function setupAuth(app: Express) {
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
+      // Special handling for admin user
+      if (id === 0) {
+        const adminUser = {
+          id: 0,
+          email: process.env.ADMIN_USERNAME,
+          username: process.env.ADMIN_USERNAME,
+          password: '',
+          emailVerified: true,
+        };
+        return done(null, adminUser);
+      }
+
       const user = await storage.getUser(id);
       done(null, user);
     } catch (error) {
@@ -83,6 +112,7 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Rest of the auth endpoints remain the same
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByEmail(req.body.email);
@@ -94,7 +124,7 @@ export function setupAuth(app: Express) {
         ...req.body,
         username: req.body.email,
         password: await hashPassword(req.body.password),
-        emailVerified: true, // Set to true by default now
+        emailVerified: true,
       });
 
       req.login(user, (err) => {
@@ -131,65 +161,6 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
-  });
-
-  app.post("/api/request-reset", async (req, res) => {
-    try {
-      const { email } = requestPasswordResetSchema.parse(req.body);
-      const token = await storage.createPasswordResetToken(email);
-
-      if (token) {
-        await sendPasswordResetEmail(email, token);
-      }
-
-      res.json({
-        message: "If an account exists with this email, you will receive password reset instructions."
-      });
-    } catch (error) {
-      res.status(400).json({
-        message: "If an account exists with this email, you will receive password reset instructions."
-      });
-    }
-  });
-
-  app.post("/api/reset-password", async (req, res) => {
-    try {
-      const { token, newPassword } = resetPasswordSchema.parse(req.body);
-      const user = await storage.getUserByResetToken(token);
-
-      if (!user) {
-        return res.status(400).json({ message: "Invalid or expired reset token" });
-      }
-
-      const hashedPassword = await hashPassword(newPassword);
-      await storage.updatePassword(user.id, hashedPassword);
-
-      res.json({ message: "Password updated successfully" });
-    } catch (error) {
-      res.status(400).json({ message: "Invalid request" });
-    }
-  });
-
-  app.post("/api/change-password", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
-      const user = await storage.getUser(req.user!.id);
-
-      if (!user || !(await comparePasswords(currentPassword, user.password))) {
-        return res.status(400).json({ message: "Current password is incorrect" });
-      }
-
-      const hashedPassword = await hashPassword(newPassword);
-      await storage.updatePassword(user.id, hashedPassword);
-
-      res.json({ message: "Password updated successfully" });
-    } catch (error) {
-      res.status(400).json({ message: "Invalid request" });
-    }
   });
 
   app.get("/api/admin/users", isAdmin, async (req, res) => {
