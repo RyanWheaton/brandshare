@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import SharePage from "@/pages/share-page";
 import CustomizePage from "@/pages/customize-page";
 import VerifyEmailPage from "@/pages/verify-email";
+import AdminDashboard from "@/pages/admin-dashboard";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -32,6 +33,15 @@ function Router() {
             path="/customize-template/:id" 
           />
         )} 
+      />
+      <Route 
+        path="/admin" 
+        component={() => (
+          <ProtectedRoute 
+            component={() => <AdminDashboard />} 
+            path="/admin" 
+          />
+        )}
       />
       <Route path="/p/:slug" component={SharePage} />
       <Route path="/auth" component={AuthPage} />

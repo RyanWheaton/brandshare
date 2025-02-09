@@ -462,6 +462,22 @@ export class DatabaseStorage implements IStorage {
 
     return updatedUser ? verificationToken : null;
   }
+
+  async getAllUsersWithStats(): Promise<(User & { totalSharePages: number })[]> {
+    const result = await db.select({
+      ...users,
+      totalSharePages: db
+        .select({ count: db.fn.count('id') })
+        .from(sharePages)
+        .where(eq(sharePages.userId, users.id))
+        .$dynamic(),
+    }).from(users);
+
+    return result.map(user => ({
+      ...user,
+      totalSharePages: Number(user.totalSharePages),
+    }));
+  }
 }
 
 export const storage = new DatabaseStorage();
