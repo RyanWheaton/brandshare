@@ -469,33 +469,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUsersWithStats(): Promise<(User & { totalSharePages: number })[]> {
-    // First get all database users
-    const dbUsers = await db.select({
-      id: users.id,
-      email: users.email,
-      username: users.username,
-      password: users.password,
-      emailVerified: users.emailVerified,
-      dropboxToken: users.dropboxToken,
-      resetToken: users.resetToken,
-      resetTokenExpiresAt: users.resetTokenExpiresAt,
-      verificationToken: users.verificationToken,
-      verificationTokenExpiresAt: users.verificationTokenExpiresAt,
-      totalSharePages: db.select({
-        count: db.fn.count(sharePages.id)
+    const dbUsers = await db.select().from(users);
+
+    const usersWithStats = await Promise.all(
+      dbUsers.map(async (user) => {
+        const pages = await db
+          .select()
+          .from(sharePages)
+          .where(eq(sharePages.userId, user.id));
+
+        return {
+          ...user,
+          totalSharePages: pages.length
+        };
       })
-        .from(sharePages)
-        .where(eq(sharePages.userId, users.id))
-        .limit(1)
-    }).from(users);
+    );
 
-    const result = dbUsers.map(user => ({
-      ...user,
-      totalSharePages: Number(user.totalSharePages?.count || 0)
-    }));
-
-    // Return the combined list
-    return result;
+    return usersWithStats;
   }
 }
 
