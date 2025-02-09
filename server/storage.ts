@@ -473,9 +473,15 @@ export class DatabaseStorage implements IStorage {
       id: users.id,
       email: users.email,
       username: users.username,
+      password: users.password,
       emailVerified: users.emailVerified,
+      dropboxToken: users.dropboxToken,
+      resetToken: users.resetToken,
+      resetTokenExpiresAt: users.resetTokenExpiresAt,
+      verificationToken: users.verificationToken,
+      verificationTokenExpiresAt: users.verificationTokenExpiresAt,
       totalSharePages: db
-        .select({ count: db.fn.count() })
+        .select({ value: db.fn.count('*') })
         .from(sharePages)
         .where(eq(sharePages.userId, users.id))
         .$dynamic(),
@@ -483,7 +489,7 @@ export class DatabaseStorage implements IStorage {
 
     return result.map(user => ({
       ...user,
-      totalSharePages: Number(user.totalSharePages),
+      totalSharePages: Number(user.totalSharePages?.value || 0),
     }));
   }
 }
