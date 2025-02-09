@@ -5,6 +5,37 @@ import { storage } from "./storage";
 import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema } from "@shared/schema";
 import { setupDropbox } from "./dropbox";
 
+// Middleware to check password protection
+async function checkSharePageAccess(req: any, res: any, next: any) {
+  const page = await storage.getSharePageBySlug(req.params.slug);
+  if (!page) return res.sendStatus(404);
+
+  // Check if page has expired
+  if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
+    return res.status(403).json({ error: "This share page has expired" });
+  }
+
+  // If page has no password, or if correct password is in session, proceed
+  if (!page.password || req.session.authorizedPages?.includes(page.id)) {
+    req.sharePage = page;
+    return next();
+  }
+
+  // Check if password was provided in request
+  const providedPassword = req.body.password;
+  if (providedPassword === page.password) {
+    // Store authorized page in session
+    if (!req.session.authorizedPages) {
+      req.session.authorizedPages = [];
+    }
+    req.session.authorizedPages.push(page.id);
+    req.sharePage = page;
+    return next();
+  }
+
+  return res.status(401).json({ error: "Password required" });
+}
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
   setupDropbox(app);
@@ -18,7 +49,7 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json(parsed.error);
     }
 
-    const page = await storage.createSharePage(req.user.id, parsed.data);
+    const page = await storage.createSharePage(req.user!.id, parsed.data);
     res.status(201).json(page);
   });
 
@@ -48,9 +79,30 @@ export function registerRoutes(app: Express): Server {
     res.json({ ...page, stats });
   });
 
+  // Get share page with password verification
+  app.post("/api/p/:slug/verify", checkSharePageAccess, async (req, res) => {
+    const stats = await storage.getPageStats(req.sharePage.id);
+    res.json({ ...req.sharePage, stats });
+  });
+
+  // Get share page (public route)
   app.get("/api/p/:slug", async (req, res) => {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
+
+    // Check expiration
+    if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
+      return res.status(403).json({ error: "This share page has expired" });
+    }
+
+    // If page is password protected and not authorized, return minimal info
+    if (page.password && !req.session.authorizedPages?.includes(page.id)) {
+      return res.json({
+        id: page.id,
+        title: page.title,
+        isPasswordProtected: true,
+      });
+    }
 
     // Get IP address from request
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';

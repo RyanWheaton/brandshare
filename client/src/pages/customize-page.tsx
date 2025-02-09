@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +26,11 @@ import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Film, FileText } from "lucide-react";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
 import { SortableFiles } from "@/components/ui/sortable-files";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, Lock } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 
 function FileItem({ file, onToggleFullWidth, textColor }: { 
@@ -74,13 +80,11 @@ function FileList({
       <SortableFiles 
         files={files}
         onReorder={(newFiles) => {
-          // Update all files in their new order
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
         onRemove={(index) => {
           const newFiles = [...files];
           newFiles.splice(index, 1);
-          // Update the entire files array after removal
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
       />
@@ -117,6 +121,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       backgroundColor: "#ffffff",
       textColor: "#000000",
       files: [],
+      password: "",
+      expiresAt: undefined,
     },
     values: item ? {
       title: item.title,
@@ -124,6 +130,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       backgroundColor: item.backgroundColor || "#ffffff",
       textColor: item.textColor || "#000000",
       files: item.files as FileObject[],
+      password: item.password || "",
+      expiresAt: item.expiresAt || undefined,
     } : undefined,
   });
 
@@ -255,6 +263,89 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               <Input {...field} value={field.value || '#000000'} />
                             </div>
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Security Settings</h3>
+
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password Protection</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input
+                                type="password"
+                                placeholder="Leave empty for no password"
+                                {...field}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="shrink-0"
+                                onClick={() => form.setValue('password', '')}
+                                disabled={!field.value}
+                              >
+                                <Lock className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Optional: Add a password to restrict access
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="expiresAt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Expiration Date</FormLabel>
+                          <FormControl>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value ? (
+                                    format(new Date(field.value), "PPP")
+                                  ) : (
+                                    <span>No expiration date</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value ? new Date(field.value) : undefined}
+                                  onSelect={(date) =>
+                                    field.onChange(date ? date.toISOString() : undefined)
+                                  }
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </FormControl>
+                          <FormDescription>
+                            Optional: Set when this share page should expire
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

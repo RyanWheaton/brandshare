@@ -22,7 +22,6 @@ export const fileSchema = z.object({
   isFullWidth: z.boolean().default(false),
 });
 
-// New table for share page templates
 export const sharePageTemplates = pgTable("share_page_templates", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -45,6 +44,8 @@ export const sharePages = pgTable("share_pages", {
   textColor: text("text_color").default("#000000"),
   files: jsonb("files").notNull(),
   lastViewedAt: timestamp("last_viewed_at"),
+  password: text("password"),
+  expiresAt: timestamp("expires_at"),
 });
 
 export const annotations = pgTable("annotations", {
@@ -70,7 +71,6 @@ export const pageStats = pgTable("page_stats", {
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 });
 
-// Schema for template operations
 export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick({
   title: true,
   description: true,
@@ -97,8 +97,12 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   backgroundColor: true,
   textColor: true,
   files: true,
+  password: true,
+  expiresAt: true,
 }).extend({
   files: z.array(fileSchema),
+  password: z.string().optional(),
+  expiresAt: z.string().optional(),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({
