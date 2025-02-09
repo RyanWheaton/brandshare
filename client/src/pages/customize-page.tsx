@@ -190,7 +190,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         title: "Changes saved",
         description: `Your ${isTemplate ? 'template' : 'share page'} has been updated successfully.`,
       });
-      setLocation("/");
+      // Removed setLocation("/") to stay on the current page
     },
   });
 
