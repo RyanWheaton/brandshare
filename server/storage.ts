@@ -101,6 +101,7 @@ export class DatabaseStorage implements IStorage {
         description: page.description ?? null,
         backgroundColor: page.backgroundColor ?? "#ffffff",
         textColor: page.textColor ?? "#000000",
+        expiresAt: page.expiresAt ? new Date(page.expiresAt) : null,
       })
       .returning();
 
@@ -136,6 +137,7 @@ export class DatabaseStorage implements IStorage {
         description: updates.description ?? undefined,
         backgroundColor: updates.backgroundColor ?? undefined,
         textColor: updates.textColor ?? undefined,
+        expiresAt: updates.expiresAt ? new Date(updates.expiresAt) : undefined,
       })
       .where(eq(sharePages.id, id))
       .returning();
@@ -174,20 +176,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAnnotation(id: number, userId?: number): Promise<void> {
-    const [annotation] = await db
-      .select()
-      .from(annotations)
-      .where(eq(annotations.id, id));
+    const query = db.delete(annotations).where(eq(annotations.id, id));
 
-    if (annotation) {
-      let query = db.delete(annotations).where(eq(annotations.id, id));
-
-      if (userId !== undefined) {
-        query = query.where(eq(annotations.userId, userId));
-      }
+    if (userId !== undefined) {
+      await query.where(eq(annotations.userId, userId));
+    } else {
       await query;
-
-      await this.updateCommentCount(annotation.sharePageId, false);
     }
   }
 

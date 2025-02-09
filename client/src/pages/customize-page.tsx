@@ -32,7 +32,6 @@ import { CalendarIcon, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-
 function FileItem({ file, onToggleFullWidth, textColor }: { 
   file: FileObject; 
   onToggleFullWidth: (isFullWidth: boolean) => void;
@@ -121,8 +120,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       backgroundColor: "#ffffff",
       textColor: "#000000",
       files: [],
-      password: "",
-      expiresAt: undefined,
+      ...(isTemplate ? {} : {
+        password: "",
+        expiresAt: undefined,
+      }),
     },
     values: item ? {
       title: item.title,
@@ -130,8 +131,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       backgroundColor: item.backgroundColor || "#ffffff",
       textColor: item.textColor || "#000000",
       files: item.files as FileObject[],
-      password: item.password || "",
-      expiresAt: item.expiresAt || undefined,
+      ...(isTemplate ? {} : {
+        password: (item as SharePage).password || "",
+        expiresAt: (item as SharePage).expiresAt || undefined,
+      }),
     } : undefined,
   });
 
