@@ -31,10 +31,9 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export const isAdmin = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-  const adminUsername = process.env.ADMIN_USERNAME;
-  const adminEmail = process.env.ADMIN_USERNAME; // Using username as email since we're using email for login
+  const adminUsername = process.env.VITE_ADMIN_USERNAME;
 
-  if (!req.isAuthenticated() || req.user!.email !== adminEmail) {
+  if (!req.isAuthenticated() || req.user!.email !== adminUsername) {
     return res.status(403).json({ message: 'Admin access required' });
   }
   next();
@@ -63,13 +62,13 @@ export function setupAuth(app: Express) {
     }, async (username, password, done) => {
       try {
         // Check if trying to login as admin
-        if (username === process.env.ADMIN_USERNAME) {
-          if (password === process.env.ADMIN_PASSWORD) {
+        if (username === process.env.VITE_ADMIN_USERNAME) {
+          if (password === process.env.VITE_ADMIN_PASSWORD) {
             // Create a virtual admin user
             const adminUser = {
               id: 0, // Special admin ID
-              email: process.env.ADMIN_USERNAME,
-              username: process.env.ADMIN_USERNAME,
+              email: process.env.VITE_ADMIN_USERNAME,
+              username: process.env.VITE_ADMIN_USERNAME,
               password: '', // Not storing admin password
               emailVerified: true,
             };
@@ -97,8 +96,8 @@ export function setupAuth(app: Express) {
       if (id === 0) {
         const adminUser = {
           id: 0,
-          email: process.env.ADMIN_USERNAME,
-          username: process.env.ADMIN_USERNAME,
+          email: process.env.VITE_ADMIN_USERNAME,
+          username: process.env.VITE_ADMIN_USERNAME,
           password: '',
           emailVerified: true,
         };
