@@ -34,7 +34,7 @@ export function ProtectedRoute({
   }
 
   // Check for admin access
-  if (requireAdmin && user.email !== process.env.VITE_ADMIN_USERNAME) {
+  if (requireAdmin && user.email !== import.meta.env.VITE_ADMIN_USERNAME) {
     return (
       <Route path={path}>
         <Redirect to="/auth" />
