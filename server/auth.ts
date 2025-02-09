@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -8,12 +8,6 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { requestPasswordResetSchema, resetPasswordSchema } from "@shared/schema";
 import { changePasswordSchema } from "@shared/schema";
-
-declare global {
-  namespace Express {
-    interface User extends SelectUser {}
-  }
-}
 
 const scryptAsync = promisify(scrypt);
 
@@ -30,7 +24,7 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-export const isAdmin = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   const adminUsername = process.env.VITE_ADMIN_USERNAME;
 
   if (!req.isAuthenticated() || req.user!.email !== adminUsername) {
@@ -59,18 +53,22 @@ export function setupAuth(app: Express) {
     new LocalStrategy({
       usernameField: 'email',
       passwordField: 'password'
-    }, async (username, password, done) => {
+    }, async (email, password, done) => {
       try {
-        // Check if trying to login as admin
-        if (username === process.env.VITE_ADMIN_USERNAME) {
+        // Check for admin login
+        if (email === process.env.VITE_ADMIN_USERNAME) {
           if (password === process.env.VITE_ADMIN_PASSWORD) {
-            // Create a virtual admin user
             const adminUser = {
-              id: 0, // Special admin ID
+              id: 0,
               email: process.env.VITE_ADMIN_USERNAME,
               username: process.env.VITE_ADMIN_USERNAME,
-              password: '', // Not storing admin password
+              password: '',
               emailVerified: true,
+              dropboxToken: null,
+              resetToken: null,
+              resetTokenExpiresAt: null,
+              verificationToken: null,
+              verificationTokenExpiresAt: null
             };
             return done(null, adminUser);
           }
@@ -78,7 +76,7 @@ export function setupAuth(app: Express) {
         }
 
         // Regular user login
-        const user = await storage.getUserByEmail(username);
+        const user = await storage.getUserByEmail(email);
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "Invalid email or password" });
         }
@@ -86,10 +84,11 @@ export function setupAuth(app: Express) {
       } catch (error) {
         return done(error);
       }
-    }),
+    })
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       // Special handling for admin user
@@ -100,6 +99,11 @@ export function setupAuth(app: Express) {
           username: process.env.VITE_ADMIN_USERNAME,
           password: '',
           emailVerified: true,
+          dropboxToken: null,
+          resetToken: null,
+          resetTokenExpiresAt: null,
+          verificationToken: null,
+          verificationTokenExpiresAt: null
         };
         return done(null, adminUser);
       }
@@ -111,7 +115,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Rest of the auth endpoints remain the same
+  // Rest of the auth endpoints
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByEmail(req.body.email);
