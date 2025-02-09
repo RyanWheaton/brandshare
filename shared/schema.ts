@@ -41,6 +41,7 @@ export const sharePages = pgTable("share_pages", {
   description: text("description"),
   slug: text("slug").notNull().unique(),
   backgroundColor: text("background_color").default("#ffffff"),
+  backgroundColorSecondary: text("background_color_secondary"),
   textColor: text("text_color").default("#000000"),
   files: jsonb("files").notNull(),
   lastViewedAt: timestamp("last_viewed_at"),
@@ -95,6 +96,7 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   title: true,
   description: true,
   backgroundColor: true,
+  backgroundColorSecondary: true,
   textColor: true,
   files: true,
   password: true,
@@ -103,6 +105,7 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   files: z.array(fileSchema),
   password: z.string().optional(),
   expiresAt: z.string().optional(),
+  backgroundColorSecondary: z.string().optional(),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({

@@ -450,6 +450,9 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     <div
       style={{
         backgroundColor: page.backgroundColor || "#ffffff",
+        background: page.backgroundColorSecondary 
+          ? `linear-gradient(to bottom, ${page.backgroundColor || "#ffffff"}, ${page.backgroundColorSecondary})`
+          : page.backgroundColor || "#ffffff",
         color: page.textColor || "#000000",
         minHeight: "100vh",
         padding: "2rem",
