@@ -101,6 +101,10 @@ export class DatabaseStorage implements IStorage {
         description: page.description ?? null,
         backgroundColor: page.backgroundColor ?? "#ffffff",
         textColor: page.textColor ?? "#000000",
+        titleFont: page.titleFont ?? "Inter",
+        descriptionFont: page.descriptionFont ?? "Inter",
+        titleFontSize: page.titleFontSize ?? 24,
+        descriptionFontSize: page.descriptionFontSize ?? 16,
         password: page.password || null,
         expiresAt: page.expiresAt ? new Date(page.expiresAt) : null,
       })
@@ -139,6 +143,10 @@ export class DatabaseStorage implements IStorage {
         description: updates.description ?? undefined,
         backgroundColor: updates.backgroundColor ?? undefined,
         textColor: updates.textColor ?? undefined,
+        titleFont: updates.titleFont ?? undefined,
+        descriptionFont: updates.descriptionFont ?? undefined,
+        titleFontSize: updates.titleFontSize ?? undefined,
+        descriptionFontSize: updates.descriptionFontSize ?? undefined,
         password: updates.password ?? undefined,
         expiresAt: updates.expiresAt ? new Date(updates.expiresAt) : undefined,
       })
