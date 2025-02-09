@@ -38,8 +38,9 @@ function Router() {
         path="/admin" 
         component={() => (
           <ProtectedRoute 
-            component={() => <AdminDashboard />} 
-            path="/admin" 
+            component={AdminDashboard} 
+            path="/admin"
+            requireAdmin={true}
           />
         )}
       />
