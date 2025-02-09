@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -202,6 +202,28 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     }
   }, [formValues.files, form]);
 
+  // Add keyboard shortcut handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        // Only trigger save if the form is dirty
+        if (form.formState.isDirty) {
+          const formData = form.getValues();
+          updateMutation.mutate(formData);
+        } else {
+          toast({
+            title: "No changes to save",
+            description: "Make some changes first before saving.",
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [form, updateMutation, toast]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -353,8 +375,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Title Font</FormLabel>
-                          <Select 
-                            value={field.value || "Inter"} 
+                          <Select
+                            value={field.value || "Inter"}
                             onValueChange={field.onChange}
                           >
                             <FormControl>
@@ -381,8 +403,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Description Font</FormLabel>
-                          <Select 
-                            value={field.value || "Inter"} 
+                          <Select
+                            value={field.value || "Inter"}
                             onValueChange={field.onChange}
                           >
                             <FormControl>
