@@ -105,7 +105,16 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const pages = await storage.getUserSharePages(req.user!.id);
-    res.json(pages);
+
+    // Fetch stats for each page
+    const pagesWithStats = await Promise.all(
+      pages.map(async (page) => {
+        const stats = await storage.getPageStats(page.id);
+        return { ...page, stats };
+      })
+    );
+
+    res.json(pagesWithStats);
   });
 
   app.get("/api/pages/:id", async (req: CustomRequest, res: Response) => {
