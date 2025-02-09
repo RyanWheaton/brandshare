@@ -142,6 +142,7 @@ export class DatabaseStorage implements IStorage {
         ...updates,
         description: updates.description ?? undefined,
         backgroundColor: updates.backgroundColor ?? undefined,
+        backgroundColorSecondary: updates.backgroundColorSecondary ?? undefined,
         textColor: updates.textColor ?? undefined,
         titleFont: updates.titleFont ?? undefined,
         descriptionFont: updates.descriptionFont ?? undefined,
