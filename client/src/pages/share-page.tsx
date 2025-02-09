@@ -461,9 +461,26 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     >
       <div className="container max-w-4xl mx-auto">
         <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">{page.title}</h1>
+          <h1 
+            className="mb-4"
+            style={{
+              fontFamily: page.titleFont || "Inter",
+              fontSize: `${page.titleFontSize || 24}px`,
+              fontWeight: "bold",
+            }}
+          >
+            {page.title}
+          </h1>
           {page.description && (
-            <p className="text-lg opacity-90 max-w-2xl mx-auto">{page.description}</p>
+            <p 
+              className="opacity-90 max-w-2xl mx-auto"
+              style={{
+                fontFamily: page.descriptionFont || "Inter",
+                fontSize: `${page.descriptionFontSize || 16}px`,
+              }}
+            >
+              {page.description}
+            </p>
           )}
         </header>
 
