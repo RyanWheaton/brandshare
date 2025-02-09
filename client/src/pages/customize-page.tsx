@@ -31,6 +31,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const FONT_OPTIONS = [
+  { value: "Inter", label: "Inter" },
+  { value: "Roboto", label: "Roboto" },
+  { value: "Open Sans", label: "Open Sans" },
+  { value: "Lato", label: "Lato" },
+  { value: "Montserrat", label: "Montserrat" },
+  { value: "Poppins", label: "Poppins" },
+  { value: "Playfair Display", label: "Playfair Display" },
+  { value: "Source Sans Pro", label: "Source Sans Pro" },
+];
 
 function FileItem({ file, onToggleFullWidth, textColor }: { 
   file: FileObject; 
@@ -120,6 +138,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       backgroundColor: "#ffffff",
       backgroundColorSecondary: "", 
       textColor: "#000000",
+      titleFont: "Inter",
+      descriptionFont: "Inter",
       files: [],
       ...(isTemplate ? {} : {
         password: "",
@@ -132,6 +152,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       backgroundColor: item.backgroundColor || "#ffffff",
       backgroundColorSecondary: item.backgroundColorSecondary || "", 
       textColor: item.textColor || "#000000",
+      titleFont: item.titleFont || "Inter",
+      descriptionFont: item.descriptionFont || "Inter",
       files: item.files as FileObject[],
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
@@ -309,6 +331,59 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     />
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="titleFont"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title Font</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a font" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {FONT_OPTIONS.map((font) => (
+                                <SelectItem key={font.value} value={font.value}>
+                                  {font.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="descriptionFont"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description Font</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a font" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {FONT_OPTIONS.map((font) => (
+                                <SelectItem key={font.value} value={font.value}>
+                                  {font.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+
                   <Separator className="my-4" />
 
                   <div className="space-y-4">
@@ -451,9 +526,19 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                   className="overflow-hidden"
                 >
                   <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold mb-4">{formValues.title}</h1>
+                    <h1 
+                      className="text-3xl font-bold mb-4"
+                      style={{ fontFamily: formValues.titleFont }}
+                    >
+                      {formValues.title}
+                    </h1>
                     {formValues.description && (
-                      <p className="text-lg opacity-90">{formValues.description}</p>
+                      <p 
+                        className="text-lg opacity-90"
+                        style={{ fontFamily: formValues.descriptionFont }}
+                      >
+                        {formValues.description}
+                      </p>
                     )}
                   </div>
 

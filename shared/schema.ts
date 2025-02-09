@@ -29,6 +29,8 @@ export const sharePageTemplates = pgTable("share_page_templates", {
   description: text("description"),
   backgroundColor: text("background_color").default("#ffffff"),
   textColor: text("text_color").default("#000000"),
+  titleFont: text("title_font").default("Inter"),
+  descriptionFont: text("description_font").default("Inter"),
   files: jsonb("files").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -43,6 +45,8 @@ export const sharePages = pgTable("share_pages", {
   backgroundColor: text("background_color").default("#ffffff"),
   backgroundColorSecondary: text("background_color_secondary"),
   textColor: text("text_color").default("#000000"),
+  titleFont: text("title_font").default("Inter"),
+  descriptionFont: text("description_font").default("Inter"),
   files: jsonb("files").notNull(),
   lastViewedAt: timestamp("last_viewed_at"),
   password: text("password"),
@@ -77,6 +81,8 @@ export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick(
   description: true,
   backgroundColor: true,
   textColor: true,
+  titleFont: true,
+  descriptionFont: true,
   files: true,
 }).extend({
   files: z.array(fileSchema),
@@ -98,6 +104,8 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   backgroundColor: true,
   backgroundColorSecondary: true,
   textColor: true,
+  titleFont: true,
+  descriptionFont: true,
   files: true,
   password: true,
   expiresAt: true,
@@ -106,6 +114,8 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   password: z.string().optional(),
   expiresAt: z.string().optional(),
   backgroundColorSecondary: z.string().optional(),
+  titleFont: z.string().default("Inter"),
+  descriptionFont: z.string().default("Inter"),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({
