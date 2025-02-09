@@ -141,6 +141,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       textColor: "#000000",
       titleFont: "Inter",
       descriptionFont: "Inter",
+      titleFontSize: 24,
+      descriptionFontSize: 16,
       files: [],
       ...(isTemplate ? {} : {
         password: "",
@@ -151,10 +153,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       title: item.title,
       description: item.description || "",
       backgroundColor: item.backgroundColor || "#ffffff",
-      backgroundColorSecondary: item.backgroundColorSecondary || "",
+      backgroundColorSecondary: isTemplate ? undefined : (item as SharePage).backgroundColorSecondary || "",
       textColor: item.textColor || "#000000",
       titleFont: item.titleFont || "Inter",
       descriptionFont: item.descriptionFont || "Inter",
+      titleFontSize: isTemplate ? 24 : (item as SharePage).titleFontSize || 24,
+      descriptionFontSize: isTemplate ? 16 : (item as SharePage).descriptionFontSize || 16,
       files: item.files as FileObject[],
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
@@ -166,8 +170,18 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const formValues = form.watch();
 
   const updateMutation = useMutation({
-    mutationFn: async (data: Partial<InsertSharePage | InsertTemplate>) => {
-      await apiRequest("PATCH", apiEndpoint, data);
+    mutationFn: async (data: InsertSharePage | InsertTemplate) => {
+      const response = await apiRequest("PATCH", apiEndpoint, {
+        ...data,
+        titleFont: data.titleFont || "Inter",
+        descriptionFont: data.descriptionFont || "Inter",
+        ...(isTemplate ? {} : {
+          titleFontSize: data.titleFontSize || 24,
+          descriptionFontSize: data.descriptionFontSize || 16,
+          backgroundColorSecondary: data.backgroundColorSecondary || undefined
+        })
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
@@ -339,7 +353,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Title Font</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select 
+                            value={field.value || "Inter"} 
+                            onValueChange={field.onChange}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a font" />
@@ -364,7 +381,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Description Font</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select 
+                            value={field.value || "Inter"} 
+                            onValueChange={field.onChange}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a font" />
@@ -396,11 +416,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               min={12}
                               max={48}
                               step={1}
-                              value={[field.value || 24]}
+                              value={[field.value]}
                               onValueChange={(value) => field.onChange(value[0])}
                               className="flex-1"
                             />
-                            <span className="w-12 text-right">{field.value || 24}px</span>
+                            <span className="w-12 text-right">{field.value}px</span>
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -420,11 +440,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               min={12}
                               max={32}
                               step={1}
-                              value={[field.value || 16]}
+                              value={[field.value]}
                               onValueChange={(value) => field.onChange(value[0])}
                               className="flex-1"
                             />
-                            <span className="w-12 text-right">{field.value || 16}px</span>
+                            <span className="w-12 text-right">{field.value}px</span>
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -564,7 +584,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 <div
                   style={{
                     backgroundColor: formValues.backgroundColor || "#ffffff",
-                    background: formValues.backgroundColorSecondary
+                    background: !isTemplate && formValues.backgroundColorSecondary
                       ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
                       : formValues.backgroundColor || "#ffffff",
                     color: formValues.textColor || "#000000",
@@ -578,8 +598,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     <h1
                       className="text-3xl font-bold mb-4"
                       style={{
-                        fontFamily: formValues.titleFont,
-                        fontSize: `${formValues.titleFontSize || 24}px`
+                        fontFamily: formValues.titleFont || "Inter",
+                        fontSize: `${isTemplate ? 24 : formValues.titleFontSize || 24}px`
                       }}
                     >
                       {formValues.title}
@@ -588,8 +608,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       <p
                         className="text-lg opacity-90"
                         style={{
-                          fontFamily: formValues.descriptionFont,
-                          fontSize: `${formValues.descriptionFontSize || 16}px`
+                          fontFamily: formValues.descriptionFont || "Inter",
+                          fontSize: `${isTemplate ? 16 : formValues.descriptionFontSize || 16}px`
                         }}
                       >
                         {formValues.description}
