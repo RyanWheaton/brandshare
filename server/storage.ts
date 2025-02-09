@@ -101,10 +101,12 @@ export class DatabaseStorage implements IStorage {
         description: page.description ?? null,
         backgroundColor: page.backgroundColor ?? "#ffffff",
         textColor: page.textColor ?? "#000000",
+        password: page.password || null,
         expiresAt: page.expiresAt ? new Date(page.expiresAt) : null,
       })
       .returning();
 
+    // Initialize stats
     await db.insert(pageStats).values({
       sharePageId: sharePage.id,
       dailyViews: {},
@@ -137,6 +139,7 @@ export class DatabaseStorage implements IStorage {
         description: updates.description ?? undefined,
         backgroundColor: updates.backgroundColor ?? undefined,
         textColor: updates.textColor ?? undefined,
+        password: updates.password ?? undefined,
         expiresAt: updates.expiresAt ? new Date(updates.expiresAt) : undefined,
       })
       .where(eq(sharePages.id, id))
@@ -176,13 +179,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAnnotation(id: number, userId?: number): Promise<void> {
-    const query = db.delete(annotations).where(eq(annotations.id, id));
+    const [annotation] = await db
+      .select()
+      .from(annotations)
+      .where(eq(annotations.id, id));
+
+    if (!annotation) return;
 
     if (userId !== undefined) {
-      await query.where(eq(annotations.userId, userId));
+      await db
+        .delete(annotations)
+        .where(
+          and(
+            eq(annotations.id, id),
+            eq(annotations.userId, userId)
+          )
+        );
     } else {
-      await query;
+      await db
+        .delete(annotations)
+        .where(eq(annotations.id, id));
     }
+
+    await this.updateCommentCount(annotation.sharePageId, false);
   }
 
   async getPageStats(sharePageId: number): Promise<PageStats | undefined> {

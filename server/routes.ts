@@ -8,11 +8,14 @@ import session from "express-session";
 import { User } from "@shared/schema";
 
 // Extend Express Request type to include our custom properties
+declare module 'express-session' {
+  interface SessionData {
+    authorizedPages?: number[];
+  }
+}
+
 interface CustomRequest extends Request {
   user?: User;
-  session: session.Session & {
-    authorizedPages?: number[];
-  };
   sharePage?: any;
 }
 
@@ -23,28 +26,42 @@ async function checkSharePageAccess(req: CustomRequest, res: Response, next: Nex
 
   // Check if page has expired
   if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
-    return res.status(403).json({ error: "This share page has expired" });
+    return res.status(403).json({ 
+      error: "This share page has expired",
+      expiredAt: page.expiresAt 
+    });
   }
 
-  // If page has no password, or if correct password is in session, proceed
-  if (!page.password || req.session.authorizedPages?.includes(page.id)) {
+  // Initialize authorized pages if not exists
+  if (!req.session.authorizedPages) {
+    req.session.authorizedPages = [];
+  }
+
+  // If page has no password, or user is already authorized, proceed
+  if (!page.password || req.session.authorizedPages.includes(page.id)) {
     req.sharePage = page;
     return next();
   }
 
-  // Check if password was provided in request
+  // Check provided password
   const providedPassword = req.body.password;
+  if (!providedPassword) {
+    return res.status(401).json({ 
+      error: "Password required",
+      isPasswordProtected: true 
+    });
+  }
+
   if (providedPassword === page.password) {
-    // Store authorized page in session
-    if (!req.session.authorizedPages) {
-      req.session.authorizedPages = [];
-    }
     req.session.authorizedPages.push(page.id);
     req.sharePage = page;
     return next();
   }
 
-  return res.status(401).json({ error: "Password required" });
+  return res.status(401).json({ 
+    error: "Incorrect password",
+    isPasswordProtected: true 
+  });
 }
 
 export function registerRoutes(app: Express): Server {
@@ -101,13 +118,13 @@ export function registerRoutes(app: Express): Server {
     res.json({ ...page, stats });
   });
 
-  // Get share page with password verification
+  // Password verification endpoint
   app.post("/api/p/:slug/verify", checkSharePageAccess, async (req: CustomRequest, res: Response) => {
     const stats = await storage.getPageStats(req.sharePage!.id);
-    res.json({ ...req.sharePage!, stats });
+    res.json({ ...req.sharePage, stats });
   });
 
-  // Get share page (public route)
+  // Public share page endpoint
   app.get("/api/p/:slug", async (req: CustomRequest, res: Response) => {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
@@ -122,15 +139,13 @@ export function registerRoutes(app: Express): Server {
       return res.json({
         id: page.id,
         title: page.title,
-        isPasswordProtected: true,
+        isPasswordProtected: true
       });
     }
 
-    // Get IP address from request
+    // Record page view
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
     const clientIp = ip.split(',')[0].trim();
-
-    // Record page view with IP address
     await storage.recordPageView(page.id, clientIp);
 
     const stats = await storage.getPageStats(page.id);
