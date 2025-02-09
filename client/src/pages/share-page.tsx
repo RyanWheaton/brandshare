@@ -53,6 +53,28 @@ type FilePreviewProps = {
   fileIndex?: number;
 };
 
+// Add CommentsSkeleton component near the top of the file
+function CommentsSkeleton() {
+  return (
+    <div className="space-y-4 px-4 pb-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex gap-3 py-3 border-t">
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+              <div className="w-32 h-3 bg-muted rounded animate-pulse" />
+            </div>
+            <div className="mt-2 space-y-2">
+              <div className="w-full h-4 bg-muted rounded animate-pulse" />
+              <div className="w-2/3 h-4 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function FilePreview({ file, textColor, containerClassName = "", pageId, fileIndex }: FilePreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -68,7 +90,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     return url;
   };
 
-  const { data: comments = [] } = useQuery<Annotation[]>({
+  const { data: comments = [], isLoading: isLoadingComments } = useQuery<Annotation[]>({
     queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
     enabled: pageId !== undefined && fileIndex !== undefined,
   });
@@ -82,7 +104,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
         {
           ...data,
           fileIndex,
-          positionX: 0, 
+          positionX: 0,
           positionY: 0,
         }
       );
@@ -237,30 +259,66 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                   </div>
                 </form>
 
-                <div className="space-y-1">
-                  {comments.map((comment) => (
-                    <Comment
-                      key={comment.id}
-                      annotation={comment}
-                      currentUserId={user?.id}
-                      onDelete={
-                        user?.id === comment.userId
-                          ? () => deleteCommentMutation.mutate(comment.id)
-                          : undefined
-                      }
-                    />
-                  ))}
-                  {comments.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No comments yet. Be the first to comment!
-                    </p>
-                  )}
-                </div>
+                {isLoadingComments ? (
+                  <CommentsSkeleton />
+                ) : (
+                  <div className="space-y-1">
+                    {comments.map((comment) => (
+                      <Comment
+                        key={comment.id}
+                        annotation={comment}
+                        currentUserId={user?.id}
+                        onDelete={
+                          user?.id === comment.userId
+                            ? () => deleteCommentMutation.mutate(comment.id)
+                            : undefined
+                        }
+                      />
+                    ))}
+                    {comments.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No comments yet. Be the first to comment!
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function SharePageSkeleton() {
+  return (
+    <div className="min-h-screen p-8">
+      <div className="container max-w-4xl mx-auto">
+        <div className="text-center mb-12 space-y-4">
+          <div className="h-12 w-3/4 mx-auto bg-muted animate-pulse rounded-lg" />
+          <div className="h-6 w-1/2 mx-auto bg-muted animate-pulse rounded-lg" />
+        </div>
+
+        <div className="space-y-8">
+          {[1, 2].map((i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="aspect-video bg-muted animate-pulse" />
+                <div className="border-t">
+                  <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+                      <div className="w-40 h-4 bg-muted rounded animate-pulse" />
+                    </div>
+                    <div className="w-20 h-8 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -346,11 +404,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   });
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
-      </div>
-    );
+    return <SharePageSkeleton />;
   }
 
   if (!page) {
