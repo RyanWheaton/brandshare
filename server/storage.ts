@@ -428,6 +428,10 @@ export class DatabaseStorage implements IStorage {
       description: template.description || undefined,
       backgroundColor: template.backgroundColor,
       textColor: template.textColor,
+      titleFont: template.titleFont,
+      descriptionFont: template.descriptionFont,
+      titleFontSize: 24,
+      descriptionFontSize: 16,
       files: template.files as any,
     });
   }
