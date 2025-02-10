@@ -24,11 +24,27 @@ interface DropboxChooserProps {
 }
 
 function convertDropboxUrlToRaw(url: string): string {
-  // Simple replacement of dl=0 with raw=1 at the end of the URL
-  if (url.includes('dl=0')) {
-    return url.replace(/dl=0$/, 'raw=1').replace(/&dl=0/, '&raw=1');
+  try {
+    // For URLs that already contain dl=0, replace it with raw=1
+    if (url.includes('dl=0')) {
+      // Split the URL into base and query string
+      const [baseUrl, queryString] = url.split('?');
+
+      // Parse the query parameters
+      const params = new URLSearchParams(queryString);
+
+      // Remove dl=0 and add raw=1
+      params.delete('dl');
+      params.append('raw', '1');
+
+      // Reconstruct the URL, preserving all other parameters
+      return `${baseUrl}?${params.toString()}`;
+    }
+    return url;
+  } catch (error) {
+    console.error("Error converting Dropbox URL:", error);
+    return url;
   }
-  return url;
 }
 
 export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProps) {
@@ -40,7 +56,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => ({
           name: file.name,
-          preview_url: file.link.replace('dl=0', 'raw=1'), // Use raw=1 for direct image display
+          preview_url: convertDropboxUrlToRaw(file.link),
           url: file.link.replace('dl=0', 'dl=1'), // Force direct download URL
           isFullWidth: false,
         }));
