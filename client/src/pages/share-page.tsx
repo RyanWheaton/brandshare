@@ -88,6 +88,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
       if (url.includes('dl=0')) {
         return url.replace('dl=0', 'dl=1');
       }
+      return url;
     }
     return url;
   };
