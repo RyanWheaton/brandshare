@@ -179,7 +179,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
             {isImage && (
               <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
                 <img
-                  src={getDirectUrl(file.preview_url || file.url)}
+                  src={getDirectUrl(file.url)}
                   alt={file.name}
                   className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
                 />
@@ -191,7 +191,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                 <video
                   controls
                   className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
-                  src={getDirectUrl(file.preview_url || file.url)}
+                  src={getDirectUrl(file.url)}
                 >
                   Your browser does not support video playback.
                 </video>
@@ -201,7 +201,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
             {isPDF && (
               <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
                 <iframe
-                  src={getDirectUrl(file.preview_url || file.url)}
+                  src={getDirectUrl(file.url)}
                   className="w-full h-full border-0"
                   title={file.name}
                 />
