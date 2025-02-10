@@ -152,7 +152,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     });
   };
 
-  const fileType = file.name.split('.').pop();
+  const fileType = file.name.split('.').pop()?.toLowerCase();
   const isImage = fileType ? ['jpg', 'jpeg', 'png', 'gif'].includes(fileType) : false;
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
   const isPDF = fileType === 'pdf';
@@ -161,53 +161,69 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]"
     : containerClassName;
 
+  const renderContent = () => {
+    if (isImage) {
+      return (
+        <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
+          <img
+            src={getDirectUrl(file.preview_url || file.url)}
+            alt={file.name}
+            className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
+            loading="lazy"
+          />
+        </div>
+      );
+    }
+
+    if (isVideo) {
+      return (
+        <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
+          <video
+            controls
+            preload="metadata"
+            className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
+            src={getDirectUrl(file.preview_url || file.url)}
+          >
+            <source src={getDirectUrl(file.preview_url || file.url)} type={`video/${fileType}`} />
+            Your browser does not support video playback.
+          </video>
+        </div>
+      );
+    }
+
+    if (isPDF) {
+      return (
+        <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
+          <iframe
+            src={getDirectUrl(file.preview_url || file.url)}
+            className="w-full h-full border-0"
+            title={file.name}
+            sandbox="allow-same-origin allow-scripts allow-forms"
+          />
+        </div>
+      );
+    }
+
+    // Fallback for unsupported file types
+    return (
+      <div className="aspect-video flex items-center justify-center bg-muted">
+        <div className="text-center p-4">
+          <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
+          <p className="text-sm font-medium" style={{ color: textColor }}>
+            {file.name}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // Rest of the component remains unchanged, just update the rendering part:
   return (
     <div className={wrapperClass}>
       <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none' : ''}`}>
         <CardContent className="p-0">
           <div className="relative">
-            {isImage && (
-              <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
-                <img
-                  src={getDirectUrl(file.preview_url || file.url)}
-                  alt={file.name}
-                  className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
-                />
-              </div>
-            )}
-
-            {isVideo && (
-              <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
-                <video
-                  controls
-                  className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
-                  src={getDirectUrl(file.preview_url || file.url)}
-                >
-                  Your browser does not support video playback.
-                </video>
-              </div>
-            )}
-
-            {isPDF && (
-              <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
-                <iframe
-                  src={getDirectUrl(file.preview_url || file.url)}
-                  className="w-full h-full border-0"
-                  title={file.name}
-                />
-              </div>
-            )}
-
-            {!isImage && !isVideo && !isPDF && (
-              <div className="aspect-video flex items-center justify-center bg-muted">
-                <div className="text-center p-4">
-                  <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
-                  <p className="text-sm font-medium" style={{ color: textColor }}>
-                    {file.name}
-                  </p>
-                </div>
-              </div>
-            )}
+            {renderContent()}
           </div>
 
           <div className="border-t">

@@ -11,6 +11,15 @@ interface DropboxLinkInputProps {
   onSuccess?: (file: FileObject) => void;
 }
 
+const SUPPORTED_FILE_TYPES = [
+  // Images
+  'jpg', 'jpeg', 'png', 'gif',
+  // Videos
+  'mp4', 'mov',
+  // Documents
+  'pdf'
+];
+
 function convertDropboxLink(url: string): string {
   if (!url.includes('dropbox.com')) {
     throw new Error('Not a valid Dropbox URL');
@@ -23,12 +32,29 @@ function convertDropboxLink(url: string): string {
   return url;
 }
 
+function getFileExtension(filename: string): string {
+  return filename.split('.').pop()?.toLowerCase() || '';
+}
+
+function validateFileType(filename: string): boolean {
+  const extension = getFileExtension(filename);
+  return SUPPORTED_FILE_TYPES.includes(extension);
+}
+
 export function DropboxLinkInput({ onSuccess }: DropboxLinkInputProps) {
   const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
 
   const addDropboxFile = useMutation({
     mutationFn: async (dropboxUrl: string) => {
+      // Extract filename from Dropbox URL
+      const urlParts = dropboxUrl.split('/');
+      const filename = urlParts[urlParts.length - 1].split('?')[0];
+
+      if (!validateFileType(filename)) {
+        throw new Error(`Unsupported file type. Supported types are: ${SUPPORTED_FILE_TYPES.join(', ')}`);
+      }
+
       const response = await fetch('/api/files/dropbox', {
         method: 'POST',
         headers: {
