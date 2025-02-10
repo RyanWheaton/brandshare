@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -39,7 +39,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Link2 } from "lucide-react"; // Add Link2 icon
 
 const FONT_OPTIONS = [
   { value: "Inter", label: "Inter" },
@@ -91,54 +90,10 @@ function FileList({
   onAddFiles: (newFiles: FileObject[]) => void;
   form: any;
 }) {
-  const [urlInput, setUrlInput] = useState("");
-
-  const handleUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!urlInput.trim()) return;
-
-    const fileName = urlInput.split('/').pop() || 'URL File';
-    const fileType = getFileType(urlInput);
-
-    const newFile: FileObject = {
-      name: fileName,
-      url: urlInput,
-      preview_url: urlInput,
-      isFullWidth: false,
-      isUrlFile: true,
-      type: fileType,
-    };
-
-    onAddFiles([newFile]);
-    setUrlInput("");
-  };
-
-  const getFileType = (url: string): 'image' | 'video' | 'pdf' | 'other' => {
-    const extension = url.split('.').pop()?.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) return 'image';
-    if (['mp4', 'webm', 'ogg'].includes(extension || '')) return 'video';
-    if (extension === 'pdf') return 'pdf';
-    return 'other';
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4">
-        <form onSubmit={handleUrlSubmit} className="flex gap-2">
-          <Input
-            type="url"
-            placeholder="Enter file URL..."
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            className="flex-1"
-          />
-          <Button type="submit" variant="outline" size="icon">
-            <Link2 className="h-4 w-4" />
-          </Button>
-        </form>
-        <div className="flex justify-end">
-          <DropboxChooser onFilesSelected={onAddFiles} />
-        </div>
+      <div className="flex justify-end">
+        <DropboxChooser onFilesSelected={onAddFiles} />
       </div>
       <SortableFiles
         files={files}

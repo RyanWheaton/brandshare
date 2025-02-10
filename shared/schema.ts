@@ -20,8 +20,6 @@ export const fileSchema = z.object({
   preview_url: z.string(),
   url: z.string(),
   isFullWidth: z.boolean().default(false),
-  isUrlFile: z.boolean().default(false), // New field to identify URL-based files
-  type: z.enum(['image', 'video', 'pdf', 'other']).default('other'), // New field to identify file type
 });
 
 export const sharePageTemplates = pgTable("share_page_templates", {
