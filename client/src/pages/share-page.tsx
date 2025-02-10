@@ -84,8 +84,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
   const getDirectUrl = (url: string) => {
     if (url && url.includes('dropbox.com')) {
-      const baseUrl = url.split('?')[0];
-      return baseUrl.replace('www.dropbox.com', 'dl.dropboxusercontent.com') + '?raw=1';
+      // Only change dl=0 to dl=1 at the end of the URL
+      return url.replace('dl=0', 'dl=1');
     }
     return url;
   };
