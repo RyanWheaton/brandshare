@@ -82,8 +82,25 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const [guestName, setGuestName] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
 
+  const getFileType = () => {
+    if (file.type && file.isUrlFile) return file.type;
+
+    const fileType = file.name.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileType || '')) return 'image';
+    if (['mp4', 'webm', 'ogg'].includes(fileType || '')) return 'video';
+    if (fileType === 'pdf') return 'pdf';
+    return 'other';
+  };
+
+  const fileType = getFileType();
+  const isImage = fileType === 'image';
+  const isVideo = fileType === 'video';
+  const isPDF = fileType === 'pdf';
+
   const getDirectUrl = (url: string) => {
-    if (url && url.includes('dropbox.com')) {
+    if (!url) return '';
+    if (file.isUrlFile) return url;
+    if (url.includes('dropbox.com')) {
       const baseUrl = url.split('?')[0];
       return baseUrl.replace('www.dropbox.com', 'dl.dropboxusercontent.com') + '?raw=1';
     }
@@ -149,10 +166,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     });
   };
 
-  const fileType = file.name.split('.').pop();
-  const isImage = fileType ? ['jpg', 'jpeg', 'png', 'gif'].includes(fileType) : false;
-  const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
-  const isPDF = fileType === 'pdf';
 
   const wrapperClass = file.isFullWidth
     ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]"
