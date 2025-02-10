@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import React from 'react';
+import { PDFViewer } from "@/components/ui/pdf-viewer";
 
 type CommentProps = {
   annotation: Annotation;
@@ -53,7 +54,6 @@ type FilePreviewProps = {
   fileIndex?: number;
 };
 
-// Add CommentsSkeleton component near the top of the file
 function CommentsSkeleton() {
   return (
     <div className="space-y-4 px-4 pb-4">
@@ -194,11 +194,9 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     if (isPDF) {
       return (
         <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
-          <iframe
-            src={getDirectUrl(file.preview_url || file.url)}
-            className="w-full h-full border-0"
-            title={file.name}
-            sandbox="allow-same-origin allow-scripts allow-forms"
+          <PDFViewer 
+            url={getDirectUrl(file.preview_url || file.url)}
+            className="w-full h-full"
           />
         </div>
       );
@@ -217,7 +215,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     );
   };
 
-  // Rest of the component remains unchanged, just update the rendering part:
   return (
     <div className={wrapperClass}>
       <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none' : ''}`}>
