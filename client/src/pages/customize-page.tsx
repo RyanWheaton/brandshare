@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { DropboxLinkInput } from "@/components/ui/dropbox-link-input";
 
 const FONT_OPTIONS = [
   { value: "Inter", label: "Inter" },
@@ -92,9 +93,18 @@ function FileList({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <DropboxChooser onFilesSelected={onAddFiles} />
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <DropboxChooser onFilesSelected={onAddFiles} />
+          <span className="text-sm text-muted-foreground">or</span>
+          <DropboxLinkInput
+            onSuccess={(file) => {
+              onAddFiles([file]);
+            }}
+          />
+        </div>
       </div>
+
       <SortableFiles
         files={files}
         onReorder={(newFiles) => {
