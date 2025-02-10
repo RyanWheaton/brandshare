@@ -15,14 +15,12 @@ function convertDropboxLink(url: string): string {
   if (!url.includes('dropbox.com')) {
     throw new Error('Not a valid Dropbox URL');
   }
-  
-  let newUrl = url;
-  if (url.indexOf('?dl=') > -1) {
-    newUrl = url.replace(/(\?dl=)[0-9]/, '?dl=1');
-  } else {
-    newUrl = url + '?dl=1';
+
+  // Only modify the URL if it contains dl=0
+  if (url.includes('dl=0')) {
+    return url.replace('dl=0', 'dl=1');
   }
-  return newUrl;
+  return url;
 }
 
 export function DropboxLinkInput({ onSuccess }: DropboxLinkInputProps) {
@@ -38,12 +36,12 @@ export function DropboxLinkInput({ onSuccess }: DropboxLinkInputProps) {
         },
         body: JSON.stringify({ dropboxUrl }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to add Dropbox file');
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
