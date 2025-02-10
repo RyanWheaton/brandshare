@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Set worker path to use CDN version matching the installed version
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).href;
 
 interface PDFViewerProps {
   url: string;
@@ -25,7 +28,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         setError(null);
 
         // Load the PDF document
-        pdfDoc = await pdfjsLib.getDocument(url).promise;
+        const loadingTask = pdfjsLib.getDocument(url);
+        pdfDoc = await loadingTask.promise;
 
         if (!isSubscribed) return;
 
