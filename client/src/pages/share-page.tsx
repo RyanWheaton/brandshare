@@ -84,8 +84,10 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
   const getDirectUrl = (url: string) => {
     if (url && url.includes('dropbox.com')) {
-      // Only change dl=0 to dl=1 at the end of the URL
-      return url.replace('dl=0', 'dl=1');
+      // Check if the URL already contains dl=0, only then replace it
+      if (url.includes('dl=0')) {
+        return url.replace('dl=0', 'dl=1');
+      }
     }
     return url;
   };
