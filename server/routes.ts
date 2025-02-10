@@ -1,11 +1,12 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema } from "@shared/schema";
+import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, fileSchema } from "@shared/schema";
 import { setupDropbox } from "./dropbox";
 import session from "express-session";
 import { User } from "@shared/schema";
+import { z } from "zod";
 
 // Extend Express Request type to include our custom properties
 declare module 'express-session' {
@@ -19,6 +20,12 @@ interface CustomRequest extends Request {
   sharePage?: any;
 }
 
+type TypedRequestHandler<P = {}, ResBody = any, ReqBody = any> = (
+  req: CustomRequest & { params: P; body: ReqBody },
+  res: Response<ResBody>,
+  next?: NextFunction
+) => Promise<void | Response>;
+
 // Middleware to check password protection
 async function checkSharePageAccess(req: CustomRequest, res: Response, next: NextFunction) {
   const page = await storage.getSharePageBySlug(req.params.slug);
@@ -26,9 +33,9 @@ async function checkSharePageAccess(req: CustomRequest, res: Response, next: Nex
 
   // Check if page has expired
   if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: "This share page has expired",
-      expiredAt: page.expiresAt 
+      expiredAt: page.expiresAt
     });
   }
 
@@ -46,9 +53,9 @@ async function checkSharePageAccess(req: CustomRequest, res: Response, next: Nex
   // Check provided password
   const providedPassword = req.body.password;
   if (!providedPassword) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: "Password required",
-      isPasswordProtected: true 
+      isPasswordProtected: true
     });
   }
 
@@ -58,18 +65,62 @@ async function checkSharePageAccess(req: CustomRequest, res: Response, next: Nex
     return next();
   }
 
-  return res.status(401).json({ 
+  return res.status(401).json({
     error: "Incorrect password",
-    isPasswordProtected: true 
+    isPasswordProtected: true
   });
 }
+
+// Add Dropbox URL validation schema
+const dropboxUrlSchema = z.object({
+  dropboxUrl: z.string().url().refine(url => url.includes('dropbox.com'), {
+    message: "Not a valid Dropbox URL"
+  })
+});
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
   setupDropbox(app);
 
+  // Add Dropbox file endpoint
+  app.post("/api/files/dropbox", (async (req: CustomRequest, res: Response) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const parsed = dropboxUrlSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(parsed.error);
+    }
+
+    try {
+      const { dropboxUrl } = parsed.data;
+
+      // Extract filename from URL
+      const urlParts = new URL(dropboxUrl);
+      const pathSegments = urlParts.pathname.split('/');
+      const filename = pathSegments[pathSegments.length - 1];
+
+      // Create file object
+      const file = {
+        name: decodeURIComponent(filename),
+        url: dropboxUrl,
+        preview_url: dropboxUrl,
+        isFullWidth: false
+      };
+
+      const parsedFile = fileSchema.parse(file);
+
+      res.json({ success: true, file: parsedFile });
+    } catch (error) {
+      console.error('Error processing Dropbox URL:', error);
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to process Dropbox URL"
+      });
+    }
+  }) as RequestHandler);
+
   // Share Pages CRUD
-  app.post("/api/pages", async (req: CustomRequest, res: Response) => {
+  app.post("/api/pages", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertSharePageSchema.safeParse(req.body);
@@ -99,9 +150,9 @@ export function registerRoutes(app: Express): Server {
       console.error('Error creating share page:', error);
       res.status(500).json({ error: "Failed to create share page" });
     }
-  });
+  }) as RequestHandler);
 
-  app.get("/api/pages", async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const pages = await storage.getUserSharePages(req.user!.id);
@@ -115,9 +166,9 @@ export function registerRoutes(app: Express): Server {
     );
 
     res.json(pagesWithStats);
-  });
+  }) as RequestHandler);
 
-  app.get("/api/pages/:id", async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages/:id", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const page = await storage.getSharePage(parseInt(req.params.id));
@@ -125,16 +176,16 @@ export function registerRoutes(app: Express): Server {
 
     const stats = await storage.getPageStats(page.id);
     res.json({ ...page, stats });
-  });
+  }) as RequestHandler);
 
   // Password verification endpoint
-  app.post("/api/p/:slug/verify", checkSharePageAccess, async (req: CustomRequest, res: Response) => {
+  app.post("/api/p/:slug/verify", checkSharePageAccess, (async (req: CustomRequest, res: Response) => {
     const stats = await storage.getPageStats(req.sharePage!.id);
     res.json({ ...req.sharePage, stats });
-  });
+  }) as RequestHandler);
 
   // Public share page endpoint
-  app.get("/api/p/:slug", async (req: CustomRequest, res: Response) => {
+  app.get("/api/p/:slug", (async (req: CustomRequest, res: Response) => {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
 
@@ -159,9 +210,9 @@ export function registerRoutes(app: Express): Server {
 
     const stats = await storage.getPageStats(page.id);
     res.json({ ...page, stats });
-  });
+  }) as RequestHandler);
 
-  app.patch("/api/pages/:id", async (req: CustomRequest, res: Response) => {
+  app.patch("/api/pages/:id", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertSharePageSchema.partial().safeParse(req.body);
@@ -195,9 +246,9 @@ export function registerRoutes(app: Express): Server {
       console.error('Error updating share page:', error);
       res.status(500).json({ error: "Failed to update share page" });
     }
-  });
+  }) as RequestHandler);
 
-  app.delete("/api/pages/:id", async (req: CustomRequest, res: Response) => {
+  app.delete("/api/pages/:id", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const page = await storage.getSharePage(parseInt(req.params.id));
@@ -205,10 +256,10 @@ export function registerRoutes(app: Express): Server {
 
     await storage.deleteSharePage(page.id);
     res.sendStatus(204);
-  });
+  }) as RequestHandler);
 
   // Template endpoints
-  app.post("/api/templates", async (req: CustomRequest, res: Response) => {
+  app.post("/api/templates", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertTemplateSchema.safeParse(req.body);
@@ -218,25 +269,25 @@ export function registerRoutes(app: Express): Server {
 
     const template = await storage.createTemplate(req.user!.id, parsed.data);
     res.status(201).json(template);
-  });
+  }) as RequestHandler);
 
-  app.get("/api/templates", async (req: CustomRequest, res: Response) => {
+  app.get("/api/templates", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const templates = await storage.getUserTemplates(req.user!.id);
     res.json(templates);
-  });
+  }) as RequestHandler);
 
-  app.get("/api/templates/:id", async (req: CustomRequest, res: Response) => {
+  app.get("/api/templates/:id", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
     if (!template || template.userId !== req.user!.id) return res.sendStatus(404);
 
     res.json(template);
-  });
+  }) as RequestHandler);
 
-  app.patch("/api/templates/:id", async (req: CustomRequest, res: Response) => {
+  app.patch("/api/templates/:id", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertTemplateSchema.partial().safeParse(req.body);
@@ -249,9 +300,9 @@ export function registerRoutes(app: Express): Server {
 
     const updatedTemplate = await storage.updateTemplate(template.id, parsed.data);
     res.json(updatedTemplate);
-  });
+  }) as RequestHandler);
 
-  app.delete("/api/templates/:id", async (req: CustomRequest, res: Response) => {
+  app.delete("/api/templates/:id", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
@@ -259,9 +310,9 @@ export function registerRoutes(app: Express): Server {
 
     await storage.deleteTemplate(template.id);
     res.sendStatus(204);
-  });
+  }) as RequestHandler);
 
-  app.post("/api/templates/:id/duplicate", async (req: CustomRequest, res: Response) => {
+  app.post("/api/templates/:id/duplicate", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
@@ -269,9 +320,9 @@ export function registerRoutes(app: Express): Server {
 
     const newTemplate = await storage.duplicateTemplate(template.id, req.user!.id);
     res.json(newTemplate);
-  });
+  }) as RequestHandler);
 
-  app.post("/api/templates/:id/create-page", async (req: CustomRequest, res: Response) => {
+  app.post("/api/templates/:id/create-page", (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
@@ -279,10 +330,10 @@ export function registerRoutes(app: Express): Server {
 
     const newPage = await storage.createSharePageFromTemplate(template.id, req.user!.id);
     res.json(newPage);
-  });
+  }) as RequestHandler);
 
   // Page Stats endpoints
-  app.get("/api/pages/:id/stats", async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages/:id/stats", (async (req: CustomRequest, res: Response) => {
     const page = await storage.getSharePage(parseInt(req.params.id));
     if (!page) return res.sendStatus(404);
 
@@ -293,10 +344,10 @@ export function registerRoutes(app: Express): Server {
     } else {
       res.sendStatus(403);
     }
-  });
+  }) as RequestHandler);
 
   // Annotation endpoints
-  app.post("/api/pages/:pageId/files/:fileIndex/annotations", async (req: CustomRequest, res: Response) => {
+  app.post("/api/pages/:pageId/files/:fileIndex/annotations", (async (req: CustomRequest, res: Response) => {
     const parsed = insertAnnotationSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
@@ -311,9 +362,9 @@ export function registerRoutes(app: Express): Server {
       parsed.data
     );
     res.status(201).json(annotation);
-  });
+  }) as RequestHandler);
 
-  app.get("/api/pages/:pageId/files/:fileIndex/annotations", async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages/:pageId/files/:fileIndex/annotations", (async (req: CustomRequest, res: Response) => {
     const page = await storage.getSharePage(parseInt(req.params.pageId));
     if (!page) return res.sendStatus(404);
 
@@ -322,13 +373,13 @@ export function registerRoutes(app: Express): Server {
       parseInt(req.params.fileIndex)
     );
     res.json(annotations);
-  });
+  }) as RequestHandler);
 
-  app.delete("/api/annotations/:id", async (req: CustomRequest, res: Response) => {
+  app.delete("/api/annotations/:id", (async (req: CustomRequest, res: Response) => {
     const userId = req.user?.id;
     await storage.deleteAnnotation(parseInt(req.params.id), userId);
     res.sendStatus(204);
-  });
+  }) as RequestHandler);
 
   const httpServer = createServer(app);
   return httpServer;
