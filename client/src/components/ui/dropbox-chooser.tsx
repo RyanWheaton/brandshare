@@ -56,8 +56,8 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => ({
           name: file.name,
-          preview_url: file.link.replace('?dl=0', '?raw=1'), // Use raw=1 for direct image display
-          url: file.link.replace('?dl=0', '?dl=1'), // Force direct download URL
+          preview_url: file.link.replace('dl=0', 'raw=1'), // Use raw=1 for direct image display
+          url: file.link.replace('dl=0', 'dl=1'), // Force direct download URL
           isFullWidth: false,
         }));
         onFilesSelected(convertedFiles);
