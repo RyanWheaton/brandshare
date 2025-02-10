@@ -34,6 +34,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { DropboxLinkInput } from "@/components/ui/dropbox-link-input"; // Added import
+
 
 // Dummy files for testing
 const DUMMY_FILES = [
@@ -399,6 +401,29 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Add Dropbox Link Section */}
+      <div className="mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Files from Dropbox</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Paste a Dropbox share link to add files to your collection
+            </p>
+            <DropboxLinkInput
+              onSuccess={(file) => {
+                toast({
+                  title: "File added",
+                  description: `${file.name} has been added to your files.`,
+                });
+              }}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
 
       {/* Templates Section */}
       <div className="mb-8">
