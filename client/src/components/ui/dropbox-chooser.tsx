@@ -24,27 +24,11 @@ interface DropboxChooserProps {
 }
 
 function convertDropboxUrlToRaw(url: string): string {
-  // Parse the URL to maintain its structure
-  try {
-    const urlObj = new URL(url);
-
-    // Get the search params
-    const params = new URLSearchParams(urlObj.search);
-
-    // Remove the st parameter if it exists
-    params.delete('st');
-
-    // Replace dl=0 with raw=1
-    params.delete('dl');
-    params.append('raw', '1');
-
-    // Reconstruct the URL with the modified parameters
-    urlObj.search = params.toString();
-    return urlObj.toString();
-  } catch (error) {
-    console.error('Invalid URL:', error);
-    return url;
+  // Simple replacement of dl=0 with raw=1 at the end of the URL
+  if (url.includes('dl=0')) {
+    return url.replace(/dl=0$/, 'raw=1').replace(/&dl=0/, '&raw=1');
   }
+  return url;
 }
 
 export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProps) {
