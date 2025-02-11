@@ -196,10 +196,10 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
     if (isPDF) {
       return (
-        <div className="relative bg-muted h-[80vh]">
+        <div className="relative bg-muted w-full">
           <PDFViewer
             url={convertDropboxUrl(file.preview_url || file.url)}
-            className="w-full h-full"
+            className="w-full min-h-[90vh]"
           />
         </div>
       );
