@@ -14,10 +14,10 @@ interface DropboxLinkInputProps {
 const SUPPORTED_FILE_TYPES = [
   // Images
   'jpg', 'jpeg', 'png', 'gif',
+  // PDFs
+  'pdf',
   // Videos
-  'mp4', 'mov',
-  // Documents
-  'pdf'
+  'mp4', 'mov'
 ];
 
 function convertDropboxLink(url: string): string {
@@ -25,11 +25,18 @@ function convertDropboxLink(url: string): string {
     throw new Error('Not a valid Dropbox URL');
   }
 
-  // Only modify the URL if it contains dl=0
-  if (url.includes('dl=0')) {
-    return url.replace('dl=0', 'dl=1');
+  // Replace dl=0 with dl=1 and raw=1 with dl=1
+  let convertedUrl = url
+    .replace('dl=0', 'dl=1')
+    .replace('raw=1', 'dl=1')
+    .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+
+  // If no dl parameter exists, add it
+  if (!convertedUrl.includes('dl=1')) {
+    convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
   }
-  return url;
+
+  return convertedUrl;
 }
 
 function getFileExtension(filename: string): string {

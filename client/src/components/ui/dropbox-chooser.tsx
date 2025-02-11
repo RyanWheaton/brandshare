@@ -29,7 +29,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => ({
           name: file.name,
-          preview_url: file.link.replace('?dl=0', '?raw=1'), // Use raw=1 for direct image display
+          preview_url: file.link.replace('?dl=0', '?raw=1'), // Use raw=1 for direct file display
           url: file.link.replace('?dl=0', '?dl=1'), // Force direct download URL
           isFullWidth: false,
         }));
@@ -40,7 +40,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
       },
       linkType: "direct", // This ensures we get direct links
       multiselect: true,
-      extensions: ['images'], // Only allow image files
+      extensions: ['images', 'pdf'], // Allow both image and PDF files
     });
   }, [onFilesSelected]);
 
