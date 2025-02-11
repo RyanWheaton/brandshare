@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Initialize PDF.js worker
-if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-}
+// Initialize PDF.js worker using the bundled worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'node_modules/pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).href;
 
 interface PDFViewerProps {
   url: string;
