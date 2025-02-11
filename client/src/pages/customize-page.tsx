@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -298,9 +298,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       {/* Fixed Header */}
       <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex items-center justify-between h-16 gap-4">
-          <h1 className="font-semibold">
-            Customize {isTemplate ? 'Template' : 'Share Page'}
-          </h1>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLocation("/")}
+              className="shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">Back to Dashboard</span>
+            </Button>
+            <h1 className="font-semibold">
+              Customize {isTemplate ? 'Template' : 'Share Page'}
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
