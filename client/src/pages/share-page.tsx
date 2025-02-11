@@ -163,18 +163,14 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     return convertedUrl;
   };
 
-  const wrapperClass = file.isFullWidth
-    ? "w-full max-w-none relative"
-    : containerClassName;
-
   const renderContent = () => {
     if (isImage) {
       return (
-        <div className={`relative ${file.isFullWidth ? '' : 'aspect-video bg-muted'}`}>
+        <div className="relative">
           <img
             src={convertDropboxUrl(file.preview_url || file.url)}
             alt={file.name}
-            className={`w-full ${file.isFullWidth ? '' : 'h-full object-contain'}`}
+            className="w-full h-auto"
             loading="lazy"
           />
         </div>
@@ -184,11 +180,11 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     if (isVideo) {
       const videoUrl = convertDropboxUrl(file.preview_url || file.url);
       return (
-        <div className={`relative ${file.isFullWidth ? '' : 'aspect-video bg-muted'}`}>
+        <div className="relative aspect-video bg-muted">
           <video
             controls
             preload="metadata"
-            className={`w-full ${file.isFullWidth ? '' : 'h-full object-contain'}`}
+            className="w-full h-full object-contain"
             src={videoUrl}
           >
             <source src={videoUrl} type={`video/${fileType}`} />
@@ -200,7 +196,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
     if (isPDF) {
       return (
-        <div className={`relative bg-muted ${file.isFullWidth ? 'h-screen' : 'h-[600px]'}`}>
+        <div className="relative bg-muted h-[80vh]">
           <PDFViewer
             url={convertDropboxUrl(file.preview_url || file.url)}
             className="w-full h-full"
@@ -223,12 +219,10 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   };
 
   return (
-    <div className={wrapperClass}>
-      <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none shadow-none border-0' : ''}`}>
+    <div className={containerClassName}>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="relative">
-            {renderContent()}
-          </div>
+          {renderContent()}
           <div className="border-t">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -477,11 +471,10 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           : page.backgroundColor || "#ffffff",
         color: page.textColor || "#000000",
         minHeight: "100vh",
-        padding: "2rem",
       }}
       className="min-h-screen"
     >
-      <div className="container max-w-4xl mx-auto">
+      <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="text-center mb-12">
           <h1
             className="mb-4"
@@ -506,7 +499,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           )}
         </header>
 
-        <div className="grid gap-8">
+        <div className="space-y-8">
           {(page.files as FileObject[])?.map((file, index) => (
             <FilePreview
               key={index}
@@ -514,6 +507,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
               textColor={page.textColor || "#000000"}
               pageId={page.id}
               fileIndex={index}
+              containerClassName="w-full"
             />
           ))}
         </div>
