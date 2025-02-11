@@ -164,17 +164,17 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   };
 
   const wrapperClass = file.isFullWidth
-    ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]"
+    ? "w-full max-w-none relative"
     : containerClassName;
 
   const renderContent = () => {
     if (isImage) {
       return (
-        <div className={`relative ${file.isFullWidth ? 'bg-muted' : 'bg-muted aspect-video'}`}>
+        <div className={`relative ${file.isFullWidth ? '' : 'aspect-video bg-muted'}`}>
           <img
             src={convertDropboxUrl(file.preview_url || file.url)}
             alt={file.name}
-            className={`w-full ${file.isFullWidth ? 'max-w-none' : 'h-full object-contain'}`}
+            className={`w-full ${file.isFullWidth ? '' : 'h-full object-contain'}`}
             loading="lazy"
           />
         </div>
@@ -184,11 +184,11 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     if (isVideo) {
       const videoUrl = convertDropboxUrl(file.preview_url || file.url);
       return (
-        <div className={`relative ${file.isFullWidth ? 'bg-muted' : 'bg-muted aspect-video'}`}>
+        <div className={`relative ${file.isFullWidth ? '' : 'aspect-video bg-muted'}`}>
           <video
             controls
             preload="metadata"
-            className={`w-full ${file.isFullWidth ? 'max-w-none' : 'h-full object-contain'}`}
+            className={`w-full ${file.isFullWidth ? '' : 'h-full object-contain'}`}
             src={videoUrl}
           >
             <source src={videoUrl} type={`video/${fileType}`} />
@@ -200,7 +200,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
     if (isPDF) {
       return (
-        <div className={`relative bg-muted ${file.isFullWidth ? 'h-[90vh]' : 'h-[600px]'}`}>
+        <div className={`relative bg-muted ${file.isFullWidth ? 'h-screen' : 'h-[600px]'}`}>
           <PDFViewer
             url={convertDropboxUrl(file.preview_url || file.url)}
             className="w-full h-full"
@@ -224,12 +224,11 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
   return (
     <div className={wrapperClass}>
-      <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none shadow-none' : ''}`}>
+      <Card className={`overflow-hidden ${file.isFullWidth ? 'rounded-none shadow-none border-0' : ''}`}>
         <CardContent className="p-0">
           <div className="relative">
             {renderContent()}
           </div>
-
           <div className="border-t">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">

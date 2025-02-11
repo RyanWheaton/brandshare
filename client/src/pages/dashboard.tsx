@@ -46,19 +46,19 @@ const DUMMY_FILES = [
     name: "sample-image.jpg",
     preview_url: "https://picsum.photos/800/600",
     url: "https://picsum.photos/800/600",
-    isFullWidth: false,
+    isFullWidth: true,
   },
   {
     name: "sample-pdf.pdf",
     preview_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
     url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    isFullWidth: false,
+    isFullWidth: true,
   },
   {
     name: "sample-video.mp4",
     preview_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
     url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
-    isFullWidth: false,
+    isFullWidth: true,
   }
 ];
 
