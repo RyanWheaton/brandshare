@@ -321,6 +321,10 @@ export default function Dashboard() {
         title: "New Template",
         description: "A blank template for share pages",
         files: [],
+        backgroundColor: "#ffffff",
+        textColor: "#000000",
+        titleFont: "Inter",
+        descriptionFont: "Inter"
       });
       return await response.json();
     },
