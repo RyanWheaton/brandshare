@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, changePasswordSchema } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { fadeIn, slideIn, staggerContainer } from "@/lib/animation";
 import {
   ExternalLink,
   Copy,
@@ -16,7 +18,7 @@ import {
   Calendar,
   Save,
   FileText,
-  Clock, // Added import for Clock icon
+  Clock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -34,8 +36,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { DropboxLinkInput } from "@/components/ui/dropbox-link-input"; // Added import
-import { PageThumbnail } from "@/components/ui/page-thumbnail"; // Added import for PageThumbnail
+import { DropboxLinkInput } from "@/components/ui/dropbox-link-input";
+import { PageThumbnail } from "@/components/ui/page-thumbnail";
 
 
 // Dummy files for testing
@@ -224,6 +226,9 @@ function ChangePasswordCard() {
   );
 }
 
+// Wrap Card component with motion
+const AnimatedCard = motion(Card);
+
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
@@ -365,8 +370,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container max-w-4xl mx-auto p-4">
-      <div className="flex items-center justify-between mb-8">
+    <motion.div
+      className="container max-w-4xl mx-auto p-4"
+      {...fadeIn}
+    >
+      <motion.div
+        className="flex items-center justify-between mb-8"
+        {...slideIn}
+      >
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
           <Button
@@ -408,11 +419,18 @@ export default function Dashboard() {
             Create Test Share Page
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Add Dropbox Link Section */}
-      <div className="mb-8">
-        <Card>
+      <motion.div
+        className="mb-8"
+        {...fadeIn}
+        transition={{ delay: 0.1 }}
+      >
+        <AnimatedCard
+          whileHover={{ scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+        >
           <CardHeader>
             <CardTitle>Add Files from Dropbox</CardTitle>
           </CardHeader>
@@ -429,196 +447,245 @@ export default function Dashboard() {
               }}
             />
           </CardContent>
-        </Card>
-      </div>
+        </AnimatedCard>
+      </motion.div>
 
 
       {/* Templates Section */}
-      <div className="mb-8">
+      <motion.div
+        className="mb-8"
+        {...fadeIn}
+        transition={{ delay: 0.2 }}
+      >
         <h2 className="text-2xl font-bold mb-4">Templates</h2>
-        <div className="grid gap-4">
-          {templates.map((template) => (
-            <Card key={template.id}>
-              <div className="grid lg:grid-cols-[200px_1fr] gap-4">
-                <div className="p-4">
-                  <PageThumbnail
-                    title={template.title}
-                    description={template.description}
-                    files={template.files as FileObject[]}
-                    backgroundColor={template.backgroundColor || "#ffffff"}
-                    textColor={template.textColor || "#000000"}
-                    titleFont={template.titleFont || "Inter"}
-                    descriptionFont={template.descriptionFont || "Inter"}
-                  />
+        <motion.div
+          className="grid gap-4"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
+          {templates.map((template, index) => (
+            <motion.div
+              key={template.id}
+              variants={fadeIn}
+              transition={{ delay: index * 0.1 }}
+            >
+              <AnimatedCard
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="grid lg:grid-cols-[200px_1fr] gap-4">
+                  <div className="p-4">
+                    <PageThumbnail
+                      title={template.title}
+                      description={template.description}
+                      files={template.files as FileObject[]}
+                      backgroundColor={template.backgroundColor || "#ffffff"}
+                      textColor={template.textColor || "#000000"}
+                      titleFont={template.titleFont || "Inter"}
+                      descriptionFont={template.descriptionFont || "Inter"}
+                    />
+                  </div>
+                  <div>
+                    <CardHeader>
+                      <CardTitle>{template.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {template.description || "No description"}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLocation(`/customize-template/${template.id}`)}
+                        >
+                          <Palette className="mr-2 h-4 w-4" />
+                          Edit Template
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => duplicateTemplateMutation.mutate(template.id)}
+                          disabled={duplicateTemplateMutation.isPending}
+                        >
+                          {duplicateTemplateMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Copy className="mr-2 h-4 w-4" />
+                          )}
+                          Duplicate
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => createFromTemplateMutation.mutate(template.id)}
+                          disabled={createFromTemplateMutation.isPending}
+                        >
+                          {createFromTemplateMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Plus className="mr-2 h-4 w-4" />
+                          )}
+                          Create Page
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteTemplateMutation.mutate(template.id)}
+                          disabled={deleteTemplateMutation.isPending}
+                        >
+                          {deleteTemplateMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="mr-2 h-4 w-4" />
+                          )}
+                          Delete
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </div>
                 </div>
-                <div>
-                  <CardHeader>
-                    <CardTitle>{template.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {template.description || "No description"}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setLocation(`/customize-template/${template.id}`)}
-                      >
-                        <Palette className="mr-2 h-4 w-4" />
-                        Edit Template
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => duplicateTemplateMutation.mutate(template.id)}
-                        disabled={duplicateTemplateMutation.isPending}
-                      >
-                        {duplicateTemplateMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Copy className="mr-2 h-4 w-4" />
-                        )}
-                        Duplicate
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => createFromTemplateMutation.mutate(template.id)}
-                        disabled={createFromTemplateMutation.isPending}
-                      >
-                        {createFromTemplateMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Plus className="mr-2 h-4 w-4" />
-                        )}
-                        Create Page
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteTemplateMutation.mutate(template.id)}
-                        disabled={deleteTemplateMutation.isPending}
-                      >
-                        {deleteTemplateMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="mr-2 h-4 w-4" />
-                        )}
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </div>
-              </div>
-            </Card>
+              </AnimatedCard>
+            </motion.div>
           ))}
 
           {templates.length === 0 && (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                <p>You haven't created any templates yet.</p>
-                <p className="text-sm mt-1">
-                  Click "Create Template" to create your first template.
-                </p>
-              </CardContent>
-            </Card>
+            <motion.div variants={fadeIn}>
+              <AnimatedCard>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  <p>You haven't created any templates yet.</p>
+                  <p className="text-sm mt-1">
+                    Click "Create Template" to create your first template.
+                  </p>
+                </CardContent>
+              </AnimatedCard>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Share Pages Section */}
-      <div className="mb-8">
+      <motion.div
+        className="mb-8"
+        {...fadeIn}
+        transition={{ delay: 0.3 }}
+      >
         <h2 className="text-2xl font-bold mb-4">Share Pages</h2>
-        <div className="grid gap-4">
-          {pages.map((page) => (
-            <Card key={page.id}>
-              <div className="grid lg:grid-cols-[200px_1fr] gap-4">
-                <div className="p-4">
-                  <PageThumbnail
-                    title={page.title}
-                    description={page.description}
-                    files={page.files as FileObject[]}
-                    backgroundColor={page.backgroundColor || "#ffffff"}
-                    backgroundColorSecondary={page.backgroundColorSecondary}
-                    textColor={page.textColor || "#000000"}
-                    titleFont={page.titleFont || "Inter"}
-                    descriptionFont={page.descriptionFont || "Inter"}
-                    titleFontSize={page.titleFontSize || 24}
-                    descriptionFontSize={page.descriptionFontSize || 16}
-                  />
+        <motion.div
+          className="grid gap-4"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
+          {pages.map((page, index) => (
+            <motion.div
+              key={page.id}
+              variants={fadeIn}
+              transition={{ delay: index * 0.1 }}
+            >
+              <AnimatedCard
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="grid lg:grid-cols-[200px_1fr] gap-4">
+                  <div className="p-4">
+                    <PageThumbnail
+                      title={page.title}
+                      description={page.description}
+                      files={page.files as FileObject[]}
+                      backgroundColor={page.backgroundColor || "#ffffff"}
+                      backgroundColorSecondary={page.backgroundColorSecondary}
+                      textColor={page.textColor || "#000000"}
+                      titleFont={page.titleFont || "Inter"}
+                      descriptionFont={page.descriptionFont || "Inter"}
+                      titleFontSize={page.titleFontSize || 24}
+                      descriptionFontSize={page.descriptionFontSize || 16}
+                    />
+                  </div>
+                  <div>
+                    <CardHeader>
+                      <CardTitle>{page.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <StatsCard stats={page.stats} />
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {page.description || "No description"}
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLocation(`/customize/${page.id}`)}
+                        >
+                          <Palette className="mr-2 h-4 w-4" />
+                          Customize
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/p/${page.slug}`, "_blank")}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          View Page
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(page.slug)}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy Link
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate(page.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          {deleteMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="mr-2 h-4 w-4" />
+                          )}
+                          Delete
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </div>
                 </div>
-                <div>
-                  <CardHeader>
-                    <CardTitle>{page.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <StatsCard stats={page.stats} />
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {page.description || "No description"}
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setLocation(`/customize/${page.id}`)}
-                      >
-                        <Palette className="mr-2 h-4 w-4" />
-                        Customize
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`/p/${page.slug}`, "_blank")}
-                      >
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        View Page
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(page.slug)}
-                      >
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copy Link
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteMutation.mutate(page.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        {deleteMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="mr-2 h-4 w-4" />
-                        )}
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </div>
-              </div>
-            </Card>
+              </AnimatedCard>
+            </motion.div>
           ))}
 
           {pages.length === 0 && (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                <p>You haven't created any share pages yet.</p>
-                <p className="text-sm mt-1">
-                  Click "Create Test Share Page" or use a template to create your first page.
-                </p>
-              </CardContent>
-            </Card>
+            <motion.div variants={fadeIn}>
+              <AnimatedCard>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  <p>You haven't created any share pages yet.</p>
+                  <p className="text-sm mt-1">
+                    Click "Create Test Share Page" or use a template to create your first page.
+                  </p>
+                </CardContent>
+              </AnimatedCard>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      <div className="mt-8">
-        <ChangePasswordCard />
-      </div>
-    </div>
+      <motion.div
+        className="mt-8"
+        {...fadeIn}
+        transition={{ delay: 0.4 }}
+      >
+        <AnimatedCard
+          whileHover={{ scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChangePasswordCard />
+        </AnimatedCard>
+      </motion.div>
+    </motion.div>
   );
 }
 
