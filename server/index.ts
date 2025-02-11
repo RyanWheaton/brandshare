@@ -77,9 +77,10 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    // Use port 5000 by default or process.env.PORT if set
+    const PORT = process.env.PORT || 5000;
 
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
     });
 

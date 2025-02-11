@@ -4,11 +4,12 @@ import { storage } from "./storage";
 
 const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY!;
 const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET!;
+const PORT = process.env.PORT || 5000;
 
 // Get the full Replit URL for the callback
 const REDIRECT_URI = process.env.REPLIT_DEV_DOMAIN 
   ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/dropbox/callback`
-  : 'http://localhost:5000/api/dropbox/callback';
+  : `http://localhost:${PORT}/api/dropbox/callback`;
 
 export function setupDropbox(app: Express) {
   app.get("/api/dropbox/auth", async (req, res) => {
