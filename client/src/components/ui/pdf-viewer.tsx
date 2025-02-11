@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Initialize PDF.js with fake worker for reliability in Replit environment
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';  // Clear any existing worker
-pdfjsLib.GlobalWorkerOptions.disableWorker = true;  // Force fake worker mode
+// Set worker source path
+GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   url: string;
@@ -48,7 +48,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         }
 
         console.log('Loading PDF from URL:', pdfUrl);
-        const loadingTask = pdfjsLib.getDocument({
+        const loadingTask = getDocument({
           url: pdfUrl,
           withCredentials: false,
         });
