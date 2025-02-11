@@ -2,11 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Initialize PDF.js worker using the bundled worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'node_modules/pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
-).href;
+// Initialize PDF.js worker with fallback handling
+try {
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    console.log('PDF.js worker initialized with URL:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+  }
+} catch (error) {
+  console.error('Failed to initialize PDF.js worker:', error);
+}
 
 interface PDFViewerProps {
   url: string;
@@ -43,10 +47,10 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           if (!pdfUrl.includes('dl=1')) {
             pdfUrl += pdfUrl.includes('?') ? '&dl=1' : '?dl=1';
           }
-          console.log('Loading PDF from Dropbox URL:', pdfUrl);
+          console.log('Loading PDF from URL:', pdfUrl);
         }
 
-        // Load the PDF document
+        // Load the PDF document with better error handling
         const loadingTask = pdfjsLib.getDocument({
           url: pdfUrl,
           withCredentials: false,
@@ -99,7 +103,9 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           let errorMessage = 'Failed to load PDF. ';
 
           if (err instanceof Error) {
-            if (err.message.includes('CORS')) {
+            if (err.message.includes('worker')) {
+              errorMessage += 'PDF viewer initialization failed. Please try refreshing the page.';
+            } else if (err.message.includes('CORS')) {
               errorMessage += 'CORS error: The PDF cannot be accessed due to security restrictions.';
             } else if (err.message.includes('Invalid PDF')) {
               errorMessage += 'The file appears to be corrupted or is not a valid PDF.';
@@ -128,8 +134,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center w-full h-full bg-muted">
-        <p className="text-sm text-red-500">{error}</p>
+      <div className="flex items-center justify-center w-full h-full bg-muted p-4">
+        <p className="text-sm text-red-500 text-center">{error}</p>
       </div>
     );
   }
