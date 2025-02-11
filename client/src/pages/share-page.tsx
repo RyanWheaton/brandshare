@@ -1,16 +1,31 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
-import { Loader2, FileText, Image as ImageIcon, Film, MessageCircle, Lock } from "lucide-react";
+import {
+  Loader2,
+  FileText,
+  Image as ImageIcon,
+  Film,
+  MessageCircle,
+  Lock,
+  LayoutGrid,
+  Maximize,
+  Image,
+  ChevronLeft,
+  ChevronRight,
+  X
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import React from 'react';
+import { motion, AnimatePresence } from "framer-motion";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
+import React from 'react';
 
 type CommentProps = {
   annotation: Annotation;
@@ -52,6 +67,8 @@ type FilePreviewProps = {
   containerClassName?: string;
   pageId?: number;
   fileIndex?: number;
+  viewMode: 'grid' | 'large' | 'gallery';
+  onGalleryOpen?: () => void;
 };
 
 function CommentsSkeleton() {
@@ -75,7 +92,17 @@ function CommentsSkeleton() {
   );
 }
 
-export function FilePreview({ file, textColor, containerClassName = "", pageId, fileIndex }: FilePreviewProps) {
+type ViewMode = 'grid' | 'large' | 'gallery';
+
+export function FilePreview({
+  file,
+  textColor,
+  containerClassName = "",
+  pageId,
+  fileIndex,
+  viewMode,
+  onGalleryOpen,
+}: FilePreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [commentInput, setCommentInput] = useState("");
@@ -166,11 +193,19 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const renderContent = () => {
     if (isImage) {
       return (
-        <div className="relative">
+        <div className="relative" onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}>
           <img
             src={convertDropboxUrl(file.preview_url || file.url)}
             alt={file.name}
-            className={`w-full h-auto ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}
+            className={`w-full h-auto ${
+              viewMode === 'grid'
+                ? 'aspect-square object-cover cursor-pointer'
+                : viewMode === 'gallery'
+                ? 'max-h-[90vh] object-contain'
+                : !file.isFullWidth
+                ? 'max-w-4xl mx-auto'
+                : ''
+            }`}
             loading="lazy"
           />
         </div>
@@ -180,11 +215,20 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     if (isVideo) {
       const videoUrl = convertDropboxUrl(file.preview_url || file.url);
       return (
-        <div className={`relative aspect-video bg-muted ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
+        <div
+          className={`relative ${
+            viewMode === 'grid'
+              ? 'aspect-square bg-muted cursor-pointer'
+              : viewMode === 'gallery'
+              ? 'max-h-[90vh]'
+              : `aspect-video bg-muted ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`
+          }`}
+          onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}
+        >
           <video
-            controls
+            controls={viewMode !== 'grid'}
             preload="metadata"
-            className="w-full h-full object-contain"
+            className={`w-full h-full ${viewMode === 'grid' ? 'object-cover' : 'object-contain'}`}
             src={videoUrl}
           >
             <source src={videoUrl} type={`video/${fileType}`} />
@@ -196,19 +240,44 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
     if (isPDF) {
       return (
-        <div className={`relative bg-muted w-full ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
-          <PDFViewer
-            url={convertDropboxUrl(file.preview_url || file.url)}
-            className="w-full min-h-[90vh] max-w-none"
-            style={{ transform: 'none' }}
-          />
+        <div
+          className={`relative bg-muted w-full ${
+            viewMode === 'grid'
+              ? 'aspect-square cursor-pointer'
+              : viewMode === 'gallery'
+              ? 'max-h-[90vh]'
+              : !file.isFullWidth
+              ? 'max-w-4xl mx-auto'
+              : ''
+          }`}
+          onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}
+        >
+          {viewMode === 'grid' ? (
+            <div className="flex items-center justify-center h-full">
+              <FileText className="w-12 h-12" style={{ color: textColor }} />
+            </div>
+          ) : (
+            <PDFViewer
+              url={convertDropboxUrl(file.preview_url || file.url)}
+              className="w-full min-h-[90vh] max-w-none"
+            />
+          )}
         </div>
       );
     }
 
     // Fallback for unsupported file types
     return (
-      <div className={`aspect-video flex items-center justify-center bg-muted ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
+      <div
+        className={`${
+          viewMode === 'grid'
+            ? 'aspect-square'
+            : 'aspect-video'
+        } flex items-center justify-center bg-muted ${
+          viewMode !== 'grid' && !file.isFullWidth ? 'max-w-4xl mx-auto' : ''
+        }`}
+        onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}
+      >
         <div className="text-center p-4">
           <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
           <p className="text-sm font-medium" style={{ color: textColor }}>
@@ -219,13 +288,24 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     );
   };
 
+  // Don't show comments in grid or gallery mode
+  if (viewMode === 'grid' || viewMode === 'gallery') {
+    return (
+      <div className={containerClassName}>
+        <Card className="overflow-hidden border-0 shadow-none bg-transparent">
+          <CardContent className="p-0">{renderContent()}</CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className={containerClassName}>
       <Card className={`overflow-hidden border-0 shadow-none ${file.isFullWidth ? 'bg-transparent' : 'bg-card max-w-4xl mx-auto'}`}>
         <CardContent className="p-0">
           {renderContent()}
-          <div className={`border-t ${file.isFullWidth ? 'max-w-4xl mx-auto bg-card' : ''}`}>
-            <div className="p-4 flex items-center justify-between">
+          <div className={`border-t ${file.isFullWidth ? 'max-w-4xl mx-auto bg-card' : ''} ${viewMode === 'grid' ? 'p-2' : 'p-4'}`}>
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
                 {isVideo && <Film className="w-4 h-4" style={{ color: textColor }} />}
@@ -390,6 +470,8 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   const { user } = useAuth();
   const { toast } = useToast();
   const [password, setPassword] = useState<string>();
+  const [viewMode, setViewMode] = useState<ViewMode>('large');
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const { data: page, isLoading } = useQuery<SharePage>({
     queryKey: [`/api/p/${params.slug}`],
@@ -463,6 +545,20 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     );
   }
 
+  const handleGalleryClose = () => {
+    setGalleryIndex(null);
+  };
+
+  const handleGalleryNext = () => {
+    if (galleryIndex === null || !page?.files) return;
+    setGalleryIndex((galleryIndex + 1) % (page.files as FileObject[]).length);
+  };
+
+  const handleGalleryPrev = () => {
+    if (galleryIndex === null || !page?.files) return;
+    setGalleryIndex((galleryIndex - 1 + (page.files as FileObject[]).length) % (page.files as FileObject[]).length);
+  };
+
   return (
     <div
       style={{
@@ -473,7 +569,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         color: page.textColor || "#000000",
         minHeight: "100vh",
       }}
-      className="min-h-screen"
+      className="min-h-screen relative"
     >
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <header className="text-center mb-12">
@@ -500,7 +596,37 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           )}
         </header>
 
-        <div className="space-y-8">
+        {/* View mode switcher */}
+        <div className="flex justify-center mb-8">
+          <ButtonGroup>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'large' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('large')}
+            >
+              <Image className="w-4 h-4 mr-2" />
+              Large
+            </Button>
+            <Button
+              variant={viewMode === 'gallery' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('gallery')}
+            >
+              <Maximize className="w-4 h-4 mr-2" />
+              Gallery
+            </Button>
+          </ButtonGroup>
+        </div>
+
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-8'}>
           {(page.files as FileObject[])?.map((file, index) => (
             <FilePreview
               key={index}
@@ -508,10 +634,62 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
               textColor={page.textColor || "#000000"}
               pageId={page.id}
               fileIndex={index}
-              containerClassName="w-full"
+              containerClassName={viewMode === 'grid' ? '' : 'w-full'}
+              viewMode={viewMode}
+              onGalleryOpen={() => setGalleryIndex(index)}
             />
           ))}
         </div>
+
+        {/* Gallery/Lightbox View */}
+        <AnimatePresence>
+          {galleryIndex !== null && page.files && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+              onClick={handleGalleryClose}
+            >
+              <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white"
+                  onClick={handleGalleryPrev}
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </Button>
+                <div className="max-w-[90vw] max-h-[90vh]">
+                  <FilePreview
+                    file={(page.files as FileObject[])[galleryIndex]}
+                    textColor="#ffffff"
+                    pageId={page.id}
+                    fileIndex={galleryIndex}
+                    viewMode="gallery"
+                    containerClassName="w-full h-full"
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white"
+                  onClick={handleGalleryNext}
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-4 text-white"
+                  onClick={handleGalleryClose}
+                >
+                  <X className="w-6 h-6" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
