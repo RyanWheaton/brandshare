@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DropboxLinkInput } from "@/components/ui/dropbox-link-input"; // Added import
+import { PageThumbnail } from "@/components/ui/page-thumbnail"; // Added import for PageThumbnail
 
 
 // Dummy files for testing
@@ -431,63 +432,78 @@ export default function Dashboard() {
         <div className="grid gap-4">
           {templates.map((template) => (
             <Card key={template.id}>
-              <CardHeader>
-                <CardTitle>{template.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {template.description || "No description"}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLocation(`/customize-template/${template.id}`)}
-                  >
-                    <Palette className="mr-2 h-4 w-4" />
-                    Edit Template
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => duplicateTemplateMutation.mutate(template.id)}
-                    disabled={duplicateTemplateMutation.isPending}
-                  >
-                    {duplicateTemplateMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Copy className="mr-2 h-4 w-4" />
-                    )}
-                    Duplicate
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => createFromTemplateMutation.mutate(template.id)}
-                    disabled={createFromTemplateMutation.isPending}
-                  >
-                    {createFromTemplateMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="mr-2 h-4 w-4" />
-                    )}
-                    Create Page
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteTemplateMutation.mutate(template.id)}
-                    disabled={deleteTemplateMutation.isPending}
-                  >
-                    {deleteTemplateMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="mr-2 h-4 w-4" />
-                    )}
-                    Delete
-                  </Button>
+              <div className="grid lg:grid-cols-[200px_1fr] gap-4">
+                <div className="p-4">
+                  <PageThumbnail
+                    title={template.title}
+                    description={template.description}
+                    files={template.files as FileObject[]}
+                    backgroundColor={template.backgroundColor || "#ffffff"}
+                    textColor={template.textColor || "#000000"}
+                    titleFont={template.titleFont || "Inter"}
+                    descriptionFont={template.descriptionFont || "Inter"}
+                  />
                 </div>
-              </CardContent>
+                <div>
+                  <CardHeader>
+                    <CardTitle>{template.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {template.description || "No description"}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLocation(`/customize-template/${template.id}`)}
+                      >
+                        <Palette className="mr-2 h-4 w-4" />
+                        Edit Template
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => duplicateTemplateMutation.mutate(template.id)}
+                        disabled={duplicateTemplateMutation.isPending}
+                      >
+                        {duplicateTemplateMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Copy className="mr-2 h-4 w-4" />
+                        )}
+                        Duplicate
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => createFromTemplateMutation.mutate(template.id)}
+                        disabled={createFromTemplateMutation.isPending}
+                      >
+                        {createFromTemplateMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="mr-2 h-4 w-4" />
+                        )}
+                        Create Page
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteTemplateMutation.mutate(template.id)}
+                        disabled={deleteTemplateMutation.isPending}
+                      >
+                        {deleteTemplateMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                  </CardContent>
+                </div>
+              </div>
             </Card>
           ))}
 
@@ -510,54 +526,72 @@ export default function Dashboard() {
         <div className="grid gap-4">
           {pages.map((page) => (
             <Card key={page.id}>
-              <CardHeader>
-                <CardTitle>{page.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <StatsCard stats={page.stats} />
-                <p className="text-sm text-muted-foreground mb-4">
-                  {page.description || "No description"}
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLocation(`/customize/${page.id}`)}
-                  >
-                    <Palette className="mr-2 h-4 w-4" />
-                    Customize
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`/p/${page.slug}`, "_blank")}
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View Page
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(page.slug)}
-                  >
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy Link
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteMutation.mutate(page.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    {deleteMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="mr-2 h-4 w-4" />
-                    )}
-                    Delete
-                  </Button>
+              <div className="grid lg:grid-cols-[200px_1fr] gap-4">
+                <div className="p-4">
+                  <PageThumbnail
+                    title={page.title}
+                    description={page.description}
+                    files={page.files as FileObject[]}
+                    backgroundColor={page.backgroundColor || "#ffffff"}
+                    backgroundColorSecondary={page.backgroundColorSecondary}
+                    textColor={page.textColor || "#000000"}
+                    titleFont={page.titleFont || "Inter"}
+                    descriptionFont={page.descriptionFont || "Inter"}
+                    titleFontSize={page.titleFontSize || 24}
+                    descriptionFontSize={page.descriptionFontSize || 16}
+                  />
                 </div>
-              </CardContent>
+                <div>
+                  <CardHeader>
+                    <CardTitle>{page.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <StatsCard stats={page.stats} />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {page.description || "No description"}
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLocation(`/customize/${page.id}`)}
+                      >
+                        <Palette className="mr-2 h-4 w-4" />
+                        Customize
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/p/${page.slug}`, "_blank")}
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Page
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(page.slug)}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Link
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(page.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                  </CardContent>
+                </div>
+              </div>
             </Card>
           ))}
 
@@ -580,3 +614,10 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// Type definition -  You'll need to adapt this to your actual FileObject type.
+type FileObject = {
+  name: string;
+  preview_url?: string;
+  url: string;
+};
