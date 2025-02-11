@@ -201,7 +201,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
     if (isPDF) {
       return (
-        <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
+        <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'h-[600px]'}`}>
           <PDFViewer
             url={convertDropboxUrl(file.preview_url || file.url)}
             className="w-full h-full"

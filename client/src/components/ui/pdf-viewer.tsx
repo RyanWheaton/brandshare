@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from './button';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
 // Set worker source path
@@ -18,12 +20,77 @@ interface ProgressData {
 
 export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [numPages, setNumPages] = useState(0);
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [scale, setScale] = useState(1);
 
+  // Function to calculate optimal scale
+  const calculateOptimalScale = (viewport: { width: number; height: number }) => {
+    if (!containerRef.current) return 1;
+
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    // Calculate scales that would fit width and height
+    const scaleX = (containerWidth - 40) / viewport.width; // 40px padding
+    const scaleY = (containerHeight - 80) / viewport.height; // 80px for controls
+
+    // Return the smaller scale to ensure PDF fits in both dimensions
+    return Math.min(scaleX, scaleY, 2); // Cap at 2x to prevent excessive scaling
+  };
+
+  // Function to render a specific page
+  const renderPage = async (pageNumber: number) => {
+    if (!pdfDoc || !canvasRef.current || !containerRef.current) return;
+
+    try {
+      const page = await pdfDoc.getPage(pageNumber);
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        throw new Error('Could not get canvas context');
+      }
+
+      const viewport = page.getViewport({ scale: 1.0 });
+      const optimalScale = calculateOptimalScale(viewport);
+      setScale(optimalScale);
+
+      const scaledViewport = page.getViewport({ scale: optimalScale });
+
+      canvas.height = scaledViewport.height;
+      canvas.width = scaledViewport.width;
+
+      await page.render({
+        canvasContext: context,
+        viewport: scaledViewport,
+      }).promise;
+    } catch (err) {
+      console.error('Error rendering page:', err);
+      setError('Error rendering page. Please try again.');
+    }
+  };
+
+  // Navigation handlers
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < numPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  // Effect for loading the PDF
   useEffect(() => {
-    let pdfDoc: pdfjsLib.PDFDocumentProxy | null = null;
     let isSubscribed = true;
 
     async function loadPDF() {
@@ -31,6 +98,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         setIsLoading(true);
         setError(null);
         setLoadingProgress(0);
+        setCurrentPage(1);
 
         // Convert Dropbox URL if necessary
         let pdfUrl = url;
@@ -63,38 +131,19 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           }
         };
 
-        pdfDoc = await loadingTask.promise;
+        const doc = await loadingTask.promise;
         console.log('PDF loaded successfully');
 
-        if (!isSubscribed || !canvasRef.current) return;
+        if (!isSubscribed) return;
 
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-
-        if (!context) {
-          throw new Error('Could not get canvas context');
-        }
-
-        console.log('Getting first page');
-        const page = await pdfDoc.getPage(1);
-        console.log('First page loaded');
-
-        const viewport = page.getViewport({ scale: 1.0 });
-        const containerWidth = canvas.parentElement?.clientWidth || viewport.width;
-        const scale = containerWidth / viewport.width;
-        const scaledViewport = page.getViewport({ scale });
-
-        canvas.height = scaledViewport.height;
-        canvas.width = scaledViewport.width;
-
-        console.log('Rendering page');
-        await page.render({
-          canvasContext: context,
-          viewport: scaledViewport,
-        }).promise;
-        console.log('Page rendered successfully');
-
+        setPdfDoc(doc);
+        setNumPages(doc.numPages);
         setIsLoading(false);
+
+        // Render the first page
+        if (canvasRef.current) {
+          await renderPage(1);
+        }
       } catch (err) {
         console.error('PDF loading error:', err);
         if (isSubscribed) {
@@ -126,8 +175,30 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     };
   }, [url]);
 
+  // Effect for handling page changes
+  useEffect(() => {
+    if (pdfDoc && !isLoading) {
+      renderPage(currentPage);
+    }
+  }, [currentPage, pdfDoc]);
+
+  // Effect for handling window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (pdfDoc && !isLoading) {
+        renderPage(currentPage);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [pdfDoc, isLoading, currentPage]);
+
   return (
-    <div className={`pdf-viewer relative ${className}`}>
+    <div 
+      ref={containerRef}
+      className={`pdf-viewer relative flex flex-col items-center justify-center h-full ${className}`}
+    >
       {isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mb-2" />
@@ -141,7 +212,33 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           <p className="text-sm text-red-500 text-center">{error}</p>
         </div>
       )}
-      <canvas ref={canvasRef} className="w-full h-full" />
+      <div className="flex-1 overflow-auto w-full flex items-center justify-center">
+        <canvas ref={canvasRef} className="max-w-full" />
+      </div>
+
+      {!isLoading && !error && numPages > 1 && (
+        <div className="flex items-center justify-center gap-4 p-4 bg-background/80 backdrop-blur-sm w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToPreviousPage}
+            disabled={currentPage <= 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium">
+            Page {currentPage} of {numPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToNextPage}
+            disabled={currentPage >= numPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
