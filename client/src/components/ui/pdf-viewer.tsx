@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Initialize PDF.js with CDN worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Initialize PDF.js with fake worker for reliability in Replit environment
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';  // Clear any existing worker
+pdfjsLib.GlobalWorkerOptions.disableWorker = true;  // Force fake worker mode
 
 interface PDFViewerProps {
   url: string;
@@ -36,8 +37,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         if (url.includes('dropbox.com')) {
           console.log('Original Dropbox URL:', url);
           pdfUrl = url
-            .replace('?dl=0', '?dl=1')
-            .replace('?raw=1', '?dl=1')
+            .replace('dl=0', 'dl=1')
+            .replace('raw=1', 'dl=1')
             .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
 
           if (!pdfUrl.includes('dl=1')) {
@@ -46,11 +47,10 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           console.log('Converted Dropbox URL:', pdfUrl);
         }
 
+        console.log('Loading PDF from URL:', pdfUrl);
         const loadingTask = pdfjsLib.getDocument({
           url: pdfUrl,
           withCredentials: false,
-          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
-          cMapPacked: true,
         });
 
         loadingTask.onProgress = function(progress: ProgressData) {
@@ -63,7 +63,6 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           }
         };
 
-        console.log('Starting PDF load from URL:', pdfUrl);
         pdfDoc = await loadingTask.promise;
         console.log('PDF loaded successfully');
 
@@ -97,8 +96,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
         setIsLoading(false);
       } catch (err) {
+        console.error('PDF loading error:', err);
         if (isSubscribed) {
-          console.error('PDF loading error:', err);
           let errorMessage = 'Could not load PDF: ';
 
           if (err instanceof Error) {
@@ -106,18 +105,9 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
               message: err.message,
               stack: err.stack
             });
-
-            if (err.message.includes('CORS')) {
-              errorMessage += 'Access denied due to security restrictions.';
-            } else if (err.message.includes('Missing PDF')) {
-              errorMessage += 'The file could not be found.';
-            } else if (err.message.includes('Invalid PDF')) {
-              errorMessage += 'The file appears to be corrupted.';
-            } else {
-              errorMessage += 'An unexpected error occurred while loading.';
-            }
+            errorMessage += err.message;
           } else {
-            errorMessage += 'An unknown error occurred.';
+            errorMessage += 'An unknown error occurred';
           }
 
           setError(errorMessage);
@@ -136,14 +126,6 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     };
   }, [url]);
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center w-full h-full bg-muted p-4">
-        <p className="text-sm text-red-500 text-center">{error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className={`pdf-viewer relative ${className}`}>
       {isLoading && (
@@ -152,6 +134,11 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           {loadingProgress > 0 && (
             <p className="text-sm text-muted-foreground">Loading... {loadingProgress}%</p>
           )}
+        </div>
+      )}
+      {error && (
+        <div className="flex items-center justify-center w-full h-full bg-muted p-4">
+          <p className="text-sm text-red-500 text-center">{error}</p>
         </div>
       )}
       <canvas ref={canvasRef} className="w-full h-full" />
