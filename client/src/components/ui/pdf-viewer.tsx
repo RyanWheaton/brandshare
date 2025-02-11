@@ -2,19 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Initialize PDF.js worker with fallback to fake worker
-if (typeof window !== 'undefined') {
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    try {
-      // Try to use the worker from the CDN as a fallback
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-    } catch (error) {
-      console.warn('Failed to load PDF.js worker, falling back to fake worker');
-      // @ts-ignore - This is a valid option but TypeScript doesn't know about it
-      pdfjsLib.GlobalWorkerOptions.disableWorker = true;
-    }
-  }
-}
+// Initialize PDF.js with fake worker for reliability in Replit environment
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';  // Clear any existing worker
+pdfjsLib.GlobalWorkerOptions.disableWorker = true;  // Force fake worker mode
 
 interface PDFViewerProps {
   url: string;
@@ -55,28 +45,21 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           }
         }
 
-        // Load the PDF document with better error handling
         const loadingTask = pdfjsLib.getDocument({
           url: pdfUrl,
           withCredentials: false,
-          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
-          cMapPacked: true,
         });
 
-        // Add progress callback
         loadingTask.onProgress = function(progress: ProgressData) {
           if (progress.total > 0) {
             const percentage = (progress.loaded / progress.total) * 100;
-            setLoadingProgress(Math.round(percentage));
+            if (isSubscribed) {
+              setLoadingProgress(Math.round(percentage));
+            }
           }
         };
 
         pdfDoc = await loadingTask.promise;
-
-        if (!isSubscribed) return;
-
-        // Get the first page
-        const page = await pdfDoc.getPage(1);
 
         if (!isSubscribed || !canvasRef.current) return;
 
@@ -87,17 +70,15 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           throw new Error('Could not get canvas context');
         }
 
-        // Calculate scale to fit the container while maintaining aspect ratio
+        const page = await pdfDoc.getPage(1);
         const viewport = page.getViewport({ scale: 1.0 });
         const containerWidth = canvas.parentElement?.clientWidth || viewport.width;
         const scale = containerWidth / viewport.width;
         const scaledViewport = page.getViewport({ scale });
 
-        // Set canvas dimensions
         canvas.height = scaledViewport.height;
         canvas.width = scaledViewport.width;
 
-        // Render the PDF page
         await page.render({
           canvasContext: context,
           viewport: scaledViewport,
@@ -106,23 +87,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         setIsLoading(false);
       } catch (err) {
         if (isSubscribed) {
-          console.error('Error loading PDF:', err);
-          let errorMessage = 'Failed to load PDF. ';
-
-          if (err instanceof Error) {
-            if (err.message.includes('worker')) {
-              errorMessage += 'PDF viewer initialization failed. Please try again in a moment.';
-            } else if (err.message.includes('CORS')) {
-              errorMessage += 'CORS error: The PDF cannot be accessed due to security restrictions.';
-            } else if (err.message.includes('Invalid PDF')) {
-              errorMessage += 'The file appears to be corrupted or is not a valid PDF.';
-            } else if (err.message.includes('Missing PDF')) {
-              errorMessage += 'The PDF file could not be found at the specified location.';
-            } else {
-              errorMessage += err.message;
-            }
-          }
-
+          console.error('PDF loading error:', err);
+          let errorMessage = 'Could not load PDF. Please try again later.';
           setError(errorMessage);
           setIsLoading(false);
         }
