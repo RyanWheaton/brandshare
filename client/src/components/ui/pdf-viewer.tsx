@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Initialize PDF.js worker with fallback handling
-try {
+// Initialize PDF.js worker with fallback to fake worker
+if (typeof window !== 'undefined') {
   if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
-    console.log('PDF.js worker initialized with URL:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+    try {
+      // First try to use the worker from the same origin
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+    } catch (error) {
+      console.warn('Failed to load PDF.js worker, falling back to fake worker');
+      // Use fake worker as fallback
+      pdfjsLib.GlobalWorkerOptions.disableWorker = true;
+    }
   }
-} catch (error) {
-  console.error('Failed to initialize PDF.js worker:', error);
 }
 
 interface PDFViewerProps {
@@ -47,7 +51,6 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           if (!pdfUrl.includes('dl=1')) {
             pdfUrl += pdfUrl.includes('?') ? '&dl=1' : '?dl=1';
           }
-          console.log('Loading PDF from URL:', pdfUrl);
         }
 
         // Load the PDF document with better error handling
@@ -104,7 +107,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
           if (err instanceof Error) {
             if (err.message.includes('worker')) {
-              errorMessage += 'PDF viewer initialization failed. Please try refreshing the page.';
+              errorMessage += 'Using fallback viewer. The PDF might take longer to load.';
             } else if (err.message.includes('CORS')) {
               errorMessage += 'CORS error: The PDF cannot be accessed due to security restrictions.';
             } else if (err.message.includes('Invalid PDF')) {
