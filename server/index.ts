@@ -1,10 +1,29 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import { storage } from "./storage";
+
+// Set development mode explicitly if not set
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure session middleware
+app.use(
+  session({
+    store: storage.sessionStore,
+    secret: process.env.SESSION_SECRET || 'development_secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -49,17 +68,19 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    if (app.get("env") === "development") {
+    // In development mode, always use Vite's dev server
+    if (process.env.NODE_ENV === "development") {
+      log("Starting in development mode with Vite dev server");
       await setupVite(app, server);
     } else {
+      log("Starting in production mode with static files");
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT || 3000;
-    const HOST = '0.0.0.0';
+    const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
     server.listen(PORT, () => {
-      log(`Server started successfully and is serving on port ${PORT}`);
+      log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
     });
 
     // Handle server errors
