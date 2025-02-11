@@ -126,6 +126,9 @@ function FileList({
           newFiles.splice(index, 1);
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
+        onToggleFullWidth={(index) => {
+          onUpdateFile(index, { isFullWidth: !files[index].isFullWidth });
+        }}
       />
     </div>
   );
