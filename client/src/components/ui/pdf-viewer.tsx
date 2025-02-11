@@ -6,11 +6,11 @@ import 'pdfjs-dist/web/pdf_viewer.css';
 if (typeof window !== 'undefined') {
   if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
     try {
-      // First try to use the worker from the same origin
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      // Try to use the worker from the CDN as a fallback
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
     } catch (error) {
       console.warn('Failed to load PDF.js worker, falling back to fake worker');
-      // Use fake worker as fallback
+      // @ts-ignore - This is a valid option but TypeScript doesn't know about it
       pdfjsLib.GlobalWorkerOptions.disableWorker = true;
     }
   }
@@ -30,6 +30,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     let pdfDoc: pdfjsLib.PDFDocumentProxy | null = null;
@@ -39,6 +40,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
       try {
         setIsLoading(true);
         setError(null);
+        setLoadingProgress(0);
 
         // Convert Dropbox URL if necessary
         let pdfUrl = url;
@@ -57,13 +59,15 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         const loadingTask = pdfjsLib.getDocument({
           url: pdfUrl,
           withCredentials: false,
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
+          cMapPacked: true,
         });
 
         // Add progress callback
         loadingTask.onProgress = function(progress: ProgressData) {
           if (progress.total > 0) {
             const percentage = (progress.loaded / progress.total) * 100;
-            console.log(`Loading PDF: ${Math.round(percentage)}%`);
+            setLoadingProgress(Math.round(percentage));
           }
         };
 
@@ -107,7 +111,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
           if (err instanceof Error) {
             if (err.message.includes('worker')) {
-              errorMessage += 'Using fallback viewer. The PDF might take longer to load.';
+              errorMessage += 'PDF viewer initialization failed. Please try again in a moment.';
             } else if (err.message.includes('CORS')) {
               errorMessage += 'CORS error: The PDF cannot be accessed due to security restrictions.';
             } else if (err.message.includes('Invalid PDF')) {
@@ -146,8 +150,11 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   return (
     <div className={`pdf-viewer relative ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mb-2" />
+          {loadingProgress > 0 && (
+            <p className="text-sm text-muted-foreground">Loading... {loadingProgress}%</p>
+          )}
         </div>
       )}
       <canvas ref={canvasRef} className="w-full h-full" />
