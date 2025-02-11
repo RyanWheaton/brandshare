@@ -27,12 +27,28 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
     window.Dropbox?.choose({
       success: (files) => {
         // Convert Dropbox files to our FileObject format
-        const convertedFiles: FileObject[] = files.map((file) => ({
-          name: file.name,
-          preview_url: file.link.replace('?dl=0', '?raw=1'), // Use raw=1 for direct file display
-          url: file.link.replace('?dl=0', '?dl=1'), // Force direct download URL
-          isFullWidth: false,
-        }));
+        const convertedFiles: FileObject[] = files.map((file) => {
+          let previewUrl = file.link;
+          const isPDF = file.name.toLowerCase().endsWith('.pdf');
+
+          // For PDFs, use dl=1 for both preview and download
+          if (isPDF) {
+            previewUrl = file.link.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+            if (!previewUrl.includes('dl=1')) {
+              previewUrl += previewUrl.includes('?') ? '&dl=1' : '?dl=1';
+            }
+          } else {
+            // For other files (images), use raw=1 for preview
+            previewUrl = file.link.replace('?dl=0', '?raw=1');
+          }
+
+          return {
+            name: file.name,
+            preview_url: previewUrl,
+            url: file.link.replace('?dl=0', '?dl=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com'),
+            isFullWidth: false,
+          };
+        });
         onFilesSelected(convertedFiles);
       },
       cancel: () => {
