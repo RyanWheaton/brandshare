@@ -199,7 +199,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
         <div className="relative bg-muted w-full">
           <PDFViewer
             url={convertDropboxUrl(file.preview_url || file.url)}
-            className="w-full min-h-[90vh]"
+            className="w-full min-h-[90vh] max-w-none"
+            style={{ transform: 'none' }}
           />
         </div>
       );
@@ -220,10 +221,10 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
   return (
     <div className={containerClassName}>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-0 shadow-none bg-transparent">
         <CardContent className="p-0">
           {renderContent()}
-          <div className="border-t">
+          <div className="border-t bg-card">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
@@ -243,64 +244,64 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
                 <span>{comments.length}</span>
               </Button>
             </div>
-
-            {isCommenting && (
-              <div className="px-4 pb-4">
-                <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
-                  {!user && (
-                    <Input
-                      type="text"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="Your name (optional)"
-                    />
-                  )}
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={commentInput}
-                      onChange={(e) => setCommentInput(e.target.value)}
-                      placeholder="Add a comment..."
-                    />
-                    <Button
-                      type="submit"
-                      disabled={createCommentMutation.isPending}
-                    >
-                      {createCommentMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Post"
-                      )}
-                    </Button>
-                  </div>
-                </form>
-
-                {isLoadingComments ? (
-                  <CommentsSkeleton />
-                ) : (
-                  <div className="space-y-1">
-                    {comments.map((comment) => (
-                      <Comment
-                        key={comment.id}
-                        annotation={comment}
-                        currentUserId={user?.id}
-                        onDelete={
-                          user?.id === comment.userId
-                            ? () => deleteCommentMutation.mutate(comment.id)
-                            : undefined
-                        }
-                      />
-                    ))}
-                    {comments.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No comments yet. Be the first to comment!
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
+
+          {isCommenting && (
+            <div className="px-4 pb-4 bg-card">
+              <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
+                {!user && (
+                  <Input
+                    type="text"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="Your name (optional)"
+                  />
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="Add a comment..."
+                  />
+                  <Button
+                    type="submit"
+                    disabled={createCommentMutation.isPending}
+                  >
+                    {createCommentMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Post"
+                    )}
+                  </Button>
+                </div>
+              </form>
+
+              {isLoadingComments ? (
+                <CommentsSkeleton />
+              ) : (
+                <div className="space-y-1">
+                  {comments.map((comment) => (
+                    <Comment
+                      key={comment.id}
+                      annotation={comment}
+                      currentUserId={user?.id}
+                      onDelete={
+                        user?.id === comment.userId
+                          ? () => deleteCommentMutation.mutate(comment.id)
+                          : undefined
+                      }
+                    />
+                  ))}
+                  {comments.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No comments yet. Be the first to comment!
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -474,7 +475,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       }}
       className="min-h-screen"
     >
-      <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <header className="text-center mb-12">
           <h1
             className="mb-4"
