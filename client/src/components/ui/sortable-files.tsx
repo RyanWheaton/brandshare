@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FileText, Image as ImageIcon, Film, GripVertical, Trash2 } from "lucide-react";
+import { FileText, Image as ImageIcon, Film, GripVertical, Trash2, Maximize2, Minimize2 } from "lucide-react";
 import { Card, CardContent } from "./card";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
@@ -25,9 +25,10 @@ interface SortableFileProps {
   id: number;
   file: FileObject;
   onRemove?: () => void;
+  onToggleFullWidth?: () => void;
 }
 
-function SortableFile({ id, file, onRemove }: SortableFileProps) {
+function SortableFile({ id, file, onRemove, onToggleFullWidth }: SortableFileProps) {
   const {
     attributes,
     listeners,
@@ -71,6 +72,24 @@ function SortableFile({ id, file, onRemove }: SortableFileProps) {
 
           <span className="text-sm truncate flex-1">{file.name}</span>
 
+          {onToggleFullWidth && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={onToggleFullWidth}
+            >
+              {file.isFullWidth ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {file.isFullWidth ? "Standard width" : "Full width"}
+              </span>
+            </Button>
+          )}
+
           {onRemove && (
             <Button
               variant="ghost"
@@ -92,9 +111,10 @@ interface SortableFilesProps {
   files: FileObject[];
   onReorder: (newFiles: FileObject[]) => void;
   onRemove?: (index: number) => void;
+  onToggleFullWidth?: (index: number) => void;
 }
 
-export function SortableFiles({ files, onReorder, onRemove }: SortableFilesProps) {
+export function SortableFiles({ files, onReorder, onRemove, onToggleFullWidth }: SortableFilesProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -109,12 +129,10 @@ export function SortableFiles({ files, onReorder, onRemove }: SortableFilesProps
       const oldIndex = files.findIndex((_, i) => i === active.id);
       const newIndex = files.findIndex((_, i) => i === over.id);
 
-      // Create a new array with the reordered files
       const newFiles = [...files];
       const [movedFile] = newFiles.splice(oldIndex, 1);
       newFiles.splice(newIndex, 0, movedFile);
 
-      // Call onReorder with the new array
       onReorder(newFiles);
     }
   }
@@ -135,6 +153,7 @@ export function SortableFiles({ files, onReorder, onRemove }: SortableFilesProps
             id={index} 
             file={file}
             onRemove={onRemove ? () => onRemove(index) : undefined}
+            onToggleFullWidth={onToggleFullWidth ? () => onToggleFullWidth(index) : undefined}
           />
         ))}
       </SortableContext>

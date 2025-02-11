@@ -170,7 +170,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
           <img
             src={convertDropboxUrl(file.preview_url || file.url)}
             alt={file.name}
-            className="w-full h-auto"
+            className={`w-full h-auto ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}
             loading="lazy"
           />
         </div>
@@ -180,7 +180,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     if (isVideo) {
       const videoUrl = convertDropboxUrl(file.preview_url || file.url);
       return (
-        <div className="relative aspect-video bg-muted">
+        <div className={`relative aspect-video bg-muted ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
           <video
             controls
             preload="metadata"
@@ -196,7 +196,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
     if (isPDF) {
       return (
-        <div className="relative bg-muted w-full">
+        <div className={`relative bg-muted w-full ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
           <PDFViewer
             url={convertDropboxUrl(file.preview_url || file.url)}
             className="w-full min-h-[90vh] max-w-none"
@@ -208,7 +208,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
     // Fallback for unsupported file types
     return (
-      <div className="aspect-video flex items-center justify-center bg-muted">
+      <div className={`aspect-video flex items-center justify-center bg-muted ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
         <div className="text-center p-4">
           <FileText className="w-12 h-12 mx-auto mb-2" style={{ color: textColor }} />
           <p className="text-sm font-medium" style={{ color: textColor }}>
@@ -221,10 +221,10 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
 
   return (
     <div className={containerClassName}>
-      <Card className="overflow-hidden border-0 shadow-none bg-transparent">
+      <Card className={`overflow-hidden border-0 shadow-none ${file.isFullWidth ? 'bg-transparent' : 'bg-card max-w-4xl mx-auto'}`}>
         <CardContent className="p-0">
           {renderContent()}
-          <div className="border-t bg-card">
+          <div className={`border-t ${file.isFullWidth ? 'max-w-4xl mx-auto bg-card' : ''}`}>
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
