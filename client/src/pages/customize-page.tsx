@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -139,6 +139,7 @@ type CustomizePageProps = {
 export default function CustomizePage({ params, isTemplate = false }: CustomizePageProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [isCopied, setIsCopied] = useState(false);
 
   if (!params?.id || isNaN(parseInt(params.id))) {
     setLocation("/");
@@ -211,7 +212,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         title: "Changes saved",
         description: `Your ${isTemplate ? 'template' : 'share page'} has been updated successfully.`,
       });
-      // Removed setLocation("/") to stay on the current page
     },
   });
 
@@ -245,6 +245,33 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [form, updateMutation, toast]);
 
+  const copyToClipboard = async () => {
+    if (!item) return;
+
+    try {
+      const shareUrl = `${window.location.origin}/p/${(item as SharePage).slug}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setIsCopied(true);
+      toast({
+        title: "URL copied",
+        description: "Share page URL has been copied to your clipboard.",
+      });
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy URL to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openSharePage = () => {
+    if (!item) return;
+    const shareUrl = `${window.location.origin}/p/${(item as SharePage).slug}`;
+    window.open(shareUrl, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -267,63 +294,260 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="grid lg:grid-cols-[30%_70%] gap-8">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customize {isTemplate ? 'Template' : 'Share Page'}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+    <div className="min-h-screen flex flex-col">
+      {/* Fixed Header */}
+      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex items-center justify-between h-16 gap-4">
+          <h1 className="font-semibold">
+            Customize {isTemplate ? 'Template' : 'Share Page'}
+          </h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={copyToClipboard}
+              className="gap-2"
+              disabled={!item || isTemplate}
+            >
+              {isCopied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              Copy URL
+            </Button>
+            <Button
+              variant="outline"
+              onClick={openSharePage}
+              className="gap-2"
+              disabled={!item || isTemplate}
+            >
+              <ExternalLink className="h-4 w-4" />
+              View Page
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (form.formState.isDirty) {
+                  const formData = form.getValues();
+                  updateMutation.mutate(formData);
+                } else {
+                  toast({
+                    title: "No changes to save",
+                    description: "Make some changes first before saving.",
+                  });
+                }
+              }}
+              disabled={updateMutation.isPending}
+              className="gap-2"
+            >
+              {updateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      </div>
 
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
+      <div className="flex-1 container mx-auto p-4">
+        <div className="grid lg:grid-cols-[30%_70%] gap-8">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Customize {isTemplate ? 'Template' : 'Share Page'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
+                    className="space-y-4"
+                  >
                     <FormField
                       control={form.control}
-                      name="backgroundColor"
+                      name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Background Color</FormLabel>
+                          <FormLabel>Title</FormLabel>
                           <FormControl>
-                            <div className="flex gap-2">
-                              <Input
-                                type="color"
-                                {...field}
-                                value={field.value || '#ffffff'}
-                                className="w-12 h-10 p-1"
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="backgroundColor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Background Color</FormLabel>
+                            <FormControl>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="color"
+                                  {...field}
+                                  value={field.value || '#ffffff'}
+                                  className="w-12 h-10 p-1"
+                                />
+                                <Input {...field} value={field.value || '#ffffff'} />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="backgroundColorSecondary"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Secondary Background Color (Optional)</FormLabel>
+                            <FormDescription>
+                              Add a second color to create a vertical gradient background
+                            </FormDescription>
+                            <FormControl>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="color"
+                                  {...field}
+                                  value={field.value || '#ffffff'}
+                                  className="w-12 h-10 p-1"
+                                />
+                                <Input {...field} value={field.value || ''} />
+                                {field.value && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="shrink-0"
+                                    onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="textColor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Text Color</FormLabel>
+                            <FormControl>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="color"
+                                  {...field}
+                                  value={field.value || '#000000'}
+                                  className="w-12 h-10 p-1"
+                                />
+                                <Input {...field} value={field.value || '#000000'} />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="titleFont"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Title Font</FormLabel>
+                            <Select
+                              value={field.value || "Inter"}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a font" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FONT_OPTIONS.map((font) => (
+                                  <SelectItem key={font.value} value={font.value}>
+                                    {font.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="descriptionFont"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description Font</FormLabel>
+                            <Select
+                              value={field.value || "Inter"}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a font" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FONT_OPTIONS.map((font) => (
+                                  <SelectItem key={font.value} value={font.value}>
+                                    {font.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="titleFontSize"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title Font Size</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-4">
+                              <Slider
+                                min={12}
+                                max={48}
+                                step={1}
+                                value={[field.value]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="flex-1"
                               />
-                              <Input {...field} value={field.value || '#ffffff'} />
+                              <span className="w-12 text-right">{field.value}px</span>
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -333,345 +557,193 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                     <FormField
                       control={form.control}
-                      name="backgroundColorSecondary"
+                      name="descriptionFontSize"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Secondary Background Color (Optional)</FormLabel>
-                          <FormDescription>
-                            Add a second color to create a vertical gradient background
-                          </FormDescription>
+                          <FormLabel>Description Font Size</FormLabel>
                           <FormControl>
-                            <div className="flex gap-2">
-                              <Input
-                                type="color"
-                                {...field}
-                                value={field.value || '#ffffff'}
-                                className="w-12 h-10 p-1"
+                            <div className="flex items-center gap-4">
+                              <Slider
+                                min={12}
+                                max={32}
+                                step={1}
+                                value={[field.value]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="flex-1"
                               />
-                              <Input {...field} value={field.value || ''} />
-                              {field.value && (
+                              <span className="w-12 text-right">{field.value}px</span>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+
+                    <Separator className="my-4" />
+
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium">Security Settings</h3>
+
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password Protection</FormLabel>
+                            <FormControl>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="password"
+                                  placeholder="Leave empty for no password"
+                                  {...field}
+                                />
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="icon"
                                   className="shrink-0"
-                                  onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
+                                  onClick={() => form.setValue('password', '')}
+                                  disabled={!field.value}
                                 >
-                                  <X className="h-4 w-4" />
+                                  <Lock className="h-4 w-4" />
                                 </Button>
-                              )}
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="textColor"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Text Color</FormLabel>
-                          <FormControl>
-                            <div className="flex gap-2">
-                              <Input
-                                type="color"
-                                {...field}
-                                value={field.value || '#000000'}
-                                className="w-12 h-10 p-1"
-                              />
-                              <Input {...field} value={field.value || '#000000'} />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="titleFont"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Title Font</FormLabel>
-                          <Select
-                            value={field.value || "Inter"}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a font" />
-                              </SelectTrigger>
+                              </div>
                             </FormControl>
-                            <SelectContent>
-                              {FONT_OPTIONS.map((font) => (
-                                <SelectItem key={font.value} value={font.value}>
-                                  {font.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="descriptionFont"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description Font</FormLabel>
-                          <Select
-                            value={field.value || "Inter"}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a font" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {FONT_OPTIONS.map((font) => (
-                                <SelectItem key={font.value} value={font.value}>
-                                  {font.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="titleFontSize"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title Font Size</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-4">
-                            <Slider
-                              min={12}
-                              max={48}
-                              step={1}
-                              value={[field.value]}
-                              onValueChange={(value) => field.onChange(value[0])}
-                              className="flex-1"
-                            />
-                            <span className="w-12 text-right">{field.value}px</span>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="descriptionFontSize"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description Font Size</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-4">
-                            <Slider
-                              min={12}
-                              max={32}
-                              step={1}
-                              value={[field.value]}
-                              onValueChange={(value) => field.onChange(value[0])}
-                              className="flex-1"
-                            />
-                            <span className="w-12 text-right">{field.value}px</span>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-
-                  <Separator className="my-4" />
-
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Security Settings</h3>
-
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password Protection</FormLabel>
-                          <FormControl>
-                            <div className="flex gap-2">
-                              <Input
-                                type="password"
-                                placeholder="Leave empty for no password"
-                                {...field}
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="shrink-0"
-                                onClick={() => form.setValue('password', '')}
-                                disabled={!field.value}
-                              >
-                                <Lock className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Optional: Add a password to restrict access
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="expiresAt"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Expiration Date</FormLabel>
-                          <FormControl>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? (
-                                    format(new Date(field.value), "PPP")
-                                  ) : (
-                                    <span>No expiration date</span>
-                                  )}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value ? new Date(field.value) : undefined}
-                                  onSelect={(date) =>
-                                    field.onChange(date ? date.toISOString() : undefined)
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </FormControl>
-                          <FormDescription>
-                            Optional: Set when this share page should expire
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={updateMutation.isPending}
-                  >
-                    {updateMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
-                    Save Changes
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Files</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Add files from Dropbox and arrange them in your preferred order
-              </p>
-              <FileList
-                form={form}
-                files={formValues.files}
-                onUpdateFile={handleFileUpdate}
-                onAddFiles={(newFiles) => {
-                  const updatedFiles = [...formValues.files, ...newFiles];
-                  form.setValue('files', updatedFiles, { shouldDirty: true });
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="relative">
-          <div className="sticky top-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Preview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  style={{
-                    backgroundColor: formValues.backgroundColor || "#ffffff",
-                    background: !isTemplate && formValues.backgroundColorSecondary
-                      ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
-                      : formValues.backgroundColor || "#ffffff",
-                    color: formValues.textColor || "#000000",
-                    minHeight: "500px",
-                    padding: "2rem",
-                    borderRadius: "0.5rem",
-                  }}
-                  className="overflow-hidden"
-                >
-                  <div className="text-center mb-8">
-                    <h1
-                      className="text-3xl font-bold mb-4"
-                      style={{
-                        fontFamily: formValues.titleFont || "Inter",
-                        fontSize: `${isTemplate ? 24 : formValues.titleFontSize || 24}px`
-                      }}
-                    >
-                      {formValues.title}
-                    </h1>
-                    {formValues.description && (
-                      <p
-                        className="text-lg opacity-90"
-                        style={{
-                          fontFamily: formValues.descriptionFont || "Inter",
-                          fontSize: `${isTemplate ? 16 : formValues.descriptionFontSize || 16}px`
-                        }}
-                      >
-                        {formValues.description}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="grid gap-8">
-                    {formValues.files.map((file, index) => (
-                      <FilePreview
-                        key={index}
-                        file={file}
-                        textColor={formValues.textColor || "#000000"}
+                            <FormDescription>
+                              Optional: Add a password to restrict access
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    ))}
-                  </div>
-                </div>
+
+                      <FormField
+                        control={form.control}
+                        name="expiresAt"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Expiration Date</FormLabel>
+                            <FormControl>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "w-full justify-start text-left font-normal",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? (
+                                      format(new Date(field.value), "PPP")
+                                    ) : (
+                                      <span>No expiration date</span>
+                                    )}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value ? new Date(field.value) : undefined}
+                                    onSelect={(date) =>
+                                      field.onChange(date ? date.toISOString() : undefined)
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </FormControl>
+                            <FormDescription>
+                              Optional: Set when this share page should expire
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Files</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add files from Dropbox and arrange them in your preferred order
+                </p>
+                <FileList
+                  form={form}
+                  files={formValues.files}
+                  onUpdateFile={handleFileUpdate}
+                  onAddFiles={(newFiles) => {
+                    const updatedFiles = [...formValues.files, ...newFiles];
+                    form.setValue('files', updatedFiles, { shouldDirty: true });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="relative">
+            <div className="sticky top-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    style={{
+                      backgroundColor: formValues.backgroundColor || "#ffffff",
+                      background: !isTemplate && formValues.backgroundColorSecondary
+                        ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
+                        : formValues.backgroundColor || "#ffffff",
+                      color: formValues.textColor || "#000000",
+                      minHeight: "500px",
+                      padding: "2rem",
+                      borderRadius: "0.5rem",
+                    }}
+                    className="overflow-hidden"
+                  >
+                    <div className="text-center mb-8">
+                      <h1
+                        className="text-3xl font-bold mb-4"
+                        style={{
+                          fontFamily: formValues.titleFont || "Inter",
+                          fontSize: `${isTemplate ? 24 : formValues.titleFontSize || 24}px`
+                        }}
+                      >
+                        {formValues.title}
+                      </h1>
+                      {formValues.description && (
+                        <p
+                          className="text-lg opacity-90"
+                          style={{
+                            fontFamily: formValues.descriptionFont || "Inter",
+                            fontSize: `${isTemplate ? 16 : formValues.descriptionFontSize || 16}px`
+                          }}
+                        >
+                          {formValues.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid gap-8">
+                      {formValues.files.map((file, index) => (
+                        <FilePreview
+                          key={index}
+                          file={file}
+                          textColor={formValues.textColor || "#000000"}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
