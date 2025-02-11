@@ -3,14 +3,18 @@ import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
 // Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
-).href;
+if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
 
 interface PDFViewerProps {
   url: string;
   className?: string;
+}
+
+interface ProgressData {
+  loaded: number;
+  total: number;
 }
 
 export function PDFViewer({ url, className = "" }: PDFViewerProps) {
@@ -27,8 +31,34 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         setIsLoading(true);
         setError(null);
 
+        // Convert Dropbox URL if necessary
+        let pdfUrl = url;
+        if (url.includes('dropbox.com')) {
+          pdfUrl = url
+            .replace('?dl=0', '?dl=1')
+            .replace('?raw=1', '?dl=1')
+            .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+
+          if (!pdfUrl.includes('dl=1')) {
+            pdfUrl += pdfUrl.includes('?') ? '&dl=1' : '?dl=1';
+          }
+          console.log('Loading PDF from Dropbox URL:', pdfUrl);
+        }
+
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument(url);
+        const loadingTask = pdfjsLib.getDocument({
+          url: pdfUrl,
+          withCredentials: false,
+        });
+
+        // Add progress callback
+        loadingTask.onProgress = function(progress: ProgressData) {
+          if (progress.total > 0) {
+            const percentage = (progress.loaded / progress.total) * 100;
+            console.log(`Loading PDF: ${Math.round(percentage)}%`);
+          }
+        };
+
         pdfDoc = await loadingTask.promise;
 
         if (!isSubscribed) return;
@@ -65,7 +95,21 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
       } catch (err) {
         if (isSubscribed) {
           console.error('Error loading PDF:', err);
-          setError('Failed to load PDF. Please try again later.');
+          let errorMessage = 'Failed to load PDF. ';
+
+          if (err instanceof Error) {
+            if (err.message.includes('CORS')) {
+              errorMessage += 'CORS error: The PDF cannot be accessed due to security restrictions.';
+            } else if (err.message.includes('Invalid PDF')) {
+              errorMessage += 'The file appears to be corrupted or is not a valid PDF.';
+            } else if (err.message.includes('Missing PDF')) {
+              errorMessage += 'The PDF file could not be found at the specified location.';
+            } else {
+              errorMessage += err.message;
+            }
+          }
+
+          setError(errorMessage);
           setIsLoading(false);
         }
       }

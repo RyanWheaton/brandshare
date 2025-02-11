@@ -82,17 +82,6 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const [guestName, setGuestName] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
 
-  const getDirectUrl = (url: string) => {
-    if (url && url.includes('dropbox.com')) {
-      // Check if the URL already contains dl=0, only then replace it
-      if (url.includes('dl=0')) {
-        return url.replace('dl=0', 'dl=1');
-      }
-      return url;
-    }
-    return url;
-  };
-
   const { data: comments = [], isLoading: isLoadingComments } = useQuery<Annotation[]>({
     queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
     enabled: pageId !== undefined && fileIndex !== undefined,
@@ -157,6 +146,24 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
   const isPDF = fileType === 'pdf';
 
+  const convertDropboxUrl = (url: string): string => {
+    if (!url.includes('dropbox.com')) return url;
+
+    // Replace dl=0 with dl=1 and raw=1 with dl=1
+    let convertedUrl = url
+      .replace('?dl=0', '?dl=1')
+      .replace('?raw=1', '?dl=1')
+      .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+
+    // If no dl parameter exists, add it
+    if (!convertedUrl.includes('dl=1')) {
+      convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
+    }
+
+    console.log('Converted Dropbox URL:', convertedUrl);
+    return convertedUrl;
+  };
+
   const wrapperClass = file.isFullWidth
     ? "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]"
     : containerClassName;
@@ -166,7 +173,7 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
       return (
         <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
           <img
-            src={getDirectUrl(file.preview_url || file.url)}
+            src={convertDropboxUrl(file.preview_url || file.url)}
             alt={file.name}
             className={`w-full ${file.isFullWidth ? 'max-h-[80vh] object-cover' : 'h-full object-contain'}`}
             loading="lazy"
@@ -176,15 +183,16 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     }
 
     if (isVideo) {
+      const videoUrl = convertDropboxUrl(file.preview_url || file.url);
       return (
         <div className={`relative bg-muted ${file.isFullWidth ? '' : 'aspect-video'}`}>
           <video
             controls
             preload="metadata"
             className={`w-full ${file.isFullWidth ? 'max-h-[80vh]' : 'h-full object-contain'}`}
-            src={getDirectUrl(file.preview_url || file.url)}
+            src={videoUrl}
           >
-            <source src={getDirectUrl(file.preview_url || file.url)} type={`video/${fileType}`} />
+            <source src={videoUrl} type={`video/${fileType}`} />
             Your browser does not support video playback.
           </video>
         </div>
@@ -194,8 +202,8 @@ export function FilePreview({ file, textColor, containerClassName = "", pageId, 
     if (isPDF) {
       return (
         <div className={`relative bg-muted ${file.isFullWidth ? 'h-[80vh]' : 'aspect-[3/4]'}`}>
-          <PDFViewer 
-            url={getDirectUrl(file.preview_url || file.url)}
+          <PDFViewer
+            url={convertDropboxUrl(file.preview_url || file.url)}
             className="w-full h-full"
           />
         </div>
@@ -339,10 +347,10 @@ function SharePageSkeleton() {
   );
 }
 
-function PasswordProtectionForm({ 
-  onSubmit, 
-  isLoading 
-}: { 
+function PasswordProtectionForm({
+  onSubmit,
+  isLoading
+}: {
   onSubmit: (password: string) => void;
   isLoading: boolean;
 }) {
@@ -397,7 +405,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   const verifyPasswordMutation = useMutation({
     mutationFn: async (password: string) => {
       const response = await apiRequest(
-        "POST", 
+        "POST",
         `/api/p/${params.slug}/verify`,
         { password }
       );
@@ -466,7 +474,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     <div
       style={{
         backgroundColor: page.backgroundColor || "#ffffff",
-        background: page.backgroundColorSecondary 
+        background: page.backgroundColorSecondary
           ? `linear-gradient(to bottom, ${page.backgroundColor || "#ffffff"}, ${page.backgroundColorSecondary})`
           : page.backgroundColor || "#ffffff",
         color: page.textColor || "#000000",
@@ -477,7 +485,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     >
       <div className="container max-w-4xl mx-auto">
         <header className="text-center mb-12">
-          <h1 
+          <h1
             className="mb-4"
             style={{
               fontFamily: page.titleFont || "Inter",
@@ -488,7 +496,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             {page.title}
           </h1>
           {page.description && (
-            <p 
+            <p
               className="opacity-90 max-w-2xl mx-auto"
               style={{
                 fontFamily: page.descriptionFont || "Inter",
