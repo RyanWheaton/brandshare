@@ -29,24 +29,18 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
       success: (files) => {
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => {
-          let previewUrl = file.link;
-          const isPDF = file.name.toLowerCase().endsWith('.pdf');
+          // Always use dl=1 for all file types to ensure direct download links
+          const downloadUrl = file.link
+            .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+            .replace('?dl=0', '?dl=1');
 
-          // For PDFs, use dl=1 for both preview and download
-          if (isPDF) {
-            previewUrl = file.link.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-            if (!previewUrl.includes('dl=1')) {
-              previewUrl += previewUrl.includes('?') ? '&dl=1' : '?dl=1';
-            }
-          } else {
-            // For other files (images), use raw=1 for preview
-            previewUrl = file.link.replace('?dl=0', '?raw=1');
-          }
+          // For preview URLs, ensure we're using the same format
+          const previewUrl = downloadUrl;
 
           return {
             name: file.name,
             preview_url: previewUrl,
-            url: file.link.replace('?dl=0', '?dl=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com'),
+            url: downloadUrl,
             isFullWidth: false,
           };
         });
@@ -57,7 +51,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
       },
       linkType: "direct", // This ensures we get direct links
       multiselect: true,
-      extensions: ['images', 'documents'], // Allow both image and document files (including PDFs)
+      extensions: ['images', 'pdf'], // Explicitly specify PDF support
     });
   }, [onFilesSelected]);
 
