@@ -30,9 +30,18 @@ export interface FontSelectorProps {
   className?: string;
 }
 
+// System fonts that are always available
+const SYSTEM_FONTS: FontOption[] = [
+  { family: 'Inter', category: 'sans-serif', variants: ['400', '700'] },
+  { family: 'Roboto', category: 'sans-serif', variants: ['400', '700'] },
+  { family: 'Open Sans', category: 'sans-serif', variants: ['400', '700'] },
+  { family: 'Arial', category: 'sans-serif', variants: ['400', '700'] },
+  { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
+];
+
 export function FontSelector({ value, onValueChange, placeholder = "Select font...", className }: FontSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [fonts, setFonts] = useState<FontOption[]>([]);
+  const [fonts, setFonts] = useState<FontOption[]>(SYSTEM_FONTS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,69 +51,38 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
       try {
         const apiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
 
-        // Debug: Check if API key is available and properly formatted
+        // If no API key is available, just use system fonts
         if (!apiKey) {
-          console.error('Google Fonts API key is missing');
-          throw new Error('Google Fonts API key is not configured');
+          console.warn('Google Fonts API key is missing, using system fonts only');
+          setLoading(false);
+          return;
         }
 
-        // Build the URL with proper encoding
         const url = new URL(GOOGLE_FONTS_API);
         url.searchParams.append('key', apiKey);
         url.searchParams.append('sort', 'popularity');
 
-        // Log request details (without exposing the key)
-        console.log('Making request to Google Fonts API:', {
-          url: url.toString().replace(apiKey, '[REDACTED]'),
-          hasApiKey: !!apiKey,
-          keyLength: apiKey.length
-        });
-
         const response = await fetch(url.toString());
-        const contentType = response.headers.get('content-type');
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Google Fonts API Error Response:', {
+          console.error('Failed to fetch Google Fonts:', {
             status: response.status,
-            statusText: response.statusText,
-            contentType,
-            errorBody: errorText
+            statusText: response.statusText
           });
-          throw new Error(`Failed to fetch fonts: ${response.status}`);
+          throw new Error('Failed to load Google Fonts');
         }
 
         const data = await response.json();
 
-        // Validate response structure
         if (!data || !Array.isArray(data.items)) {
-          console.error('Invalid API response structure:', data);
-          throw new Error('Invalid API response format');
+          throw new Error('Invalid response format from Google Fonts API');
         }
 
-        // System fonts as fallback
-        const systemFonts: FontOption[] = [
-          { family: 'Inter', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Roboto', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Open Sans', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Arial', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
-        ];
-
-        setFonts([...systemFonts, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
+        setFonts([...SYSTEM_FONTS, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
         setError(null);
       } catch (error) {
-        console.error('Google Fonts API Error:', error);
-        // Fallback to system fonts if Google Fonts API fails
-        const systemFonts: FontOption[] = [
-          { family: 'Inter', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Roboto', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Open Sans', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Arial', category: 'sans-serif', variants: ['400', '700'] },
-          { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
-        ];
-        setFonts(systemFonts);
-        setError(error instanceof Error ? error.message : 'Could not load Google Fonts. Using system fonts instead.');
+        console.error('Error loading fonts:', error);
+        setError('Could not load Google Fonts. Using system fonts instead.');
       } finally {
         setLoading(false);
       }
