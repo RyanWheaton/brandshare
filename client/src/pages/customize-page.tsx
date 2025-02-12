@@ -31,26 +31,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { DropboxLinkInput } from "@/components/ui/dropbox-link-input";
+import { FontSelect } from "@/components/ui/font-select";
 
-const FONT_OPTIONS = [
-  { value: "Inter", label: "Inter" },
-  { value: "Roboto", label: "Roboto" },
-  { value: "Open Sans", label: "Open Sans" },
-  { value: "Lato", label: "Lato" },
-  { value: "Montserrat", label: "Montserrat" },
-  { value: "Poppins", label: "Poppins" },
-  { value: "Playfair Display", label: "Playfair Display" },
-  { value: "Source Sans Pro", label: "Source Sans Pro" },
-];
 
 function FileItem({ file, onToggleFullWidth, textColor }: {
   file: FileObject;
@@ -494,23 +476,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Title Font</FormLabel>
-                            <Select
-                              value={field.value || "Inter"}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a font" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {FONT_OPTIONS.map((font) => (
-                                  <SelectItem key={font.value} value={font.value}>
-                                    {font.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <FormControl>
+                              <FontSelect
+                                value={field.value || "Inter"}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -522,23 +493,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Description Font</FormLabel>
-                            <Select
-                              value={field.value || "Inter"}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a font" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {FONT_OPTIONS.map((font) => (
-                                  <SelectItem key={font.value} value={font.value}>
-                                    {font.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <FormControl>
+                              <FontSelect
+                                value={field.value || "Inter"}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
