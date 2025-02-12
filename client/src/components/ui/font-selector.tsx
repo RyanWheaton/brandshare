@@ -48,14 +48,19 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
           throw new Error('Google Fonts API key is not configured');
         }
 
+        // Build the URL with proper encoding
+        const url = new URL(GOOGLE_FONTS_API);
+        url.searchParams.append('key', apiKey);
+        url.searchParams.append('sort', 'popularity');
+
         // Log request details (without exposing the key)
         console.log('Making request to Google Fonts API:', {
-          url: GOOGLE_FONTS_API,
+          url: url.toString().replace(apiKey, '[REDACTED]'),
           hasApiKey: !!apiKey,
           keyLength: apiKey.length
         });
 
-        const response = await fetch(`${GOOGLE_FONTS_API}?key=${apiKey}&sort=popularity`);
+        const response = await fetch(url.toString());
         const contentType = response.headers.get('content-type');
 
         if (!response.ok) {
@@ -66,7 +71,7 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
             contentType,
             errorBody: errorText
           });
-          throw new Error(`Failed to fetch fonts: ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch fonts: ${response.status}`);
         }
 
         const data = await response.json();
@@ -76,12 +81,6 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
           console.error('Invalid API response structure:', data);
           throw new Error('Invalid API response format');
         }
-
-        console.log('Google Fonts API Success:', {
-          totalFonts: data.items.length,
-          firstFont: data.items[0]?.family,
-          responseStructure: Object.keys(data)
-        });
 
         // System fonts as fallback
         const systemFonts: FontOption[] = [
