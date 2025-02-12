@@ -35,48 +35,54 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
   const [fonts, setFonts] = useState<FontOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function fetchFonts() {
       try {
         const apiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
-        console.log('API Key available:', !!apiKey); // Debug log
-
         if (!apiKey) {
           throw new Error('Google Fonts API key is not configured');
         }
 
-        console.log('Fetching fonts from Google API...'); // Debug log
         const response = await fetch(`${GOOGLE_FONTS_API}?key=${apiKey}&sort=popularity`);
-
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('API Response:', response.status, errorText); // Debug log
+          console.error('Google Fonts API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          });
           throw new Error(`Failed to fetch fonts: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log('Fonts fetched successfully:', data.items?.length || 0, 'fonts'); // Debug log
+        console.log('Google Fonts API Success:', {
+          totalFonts: data.items?.length || 0
+        });
 
         // Add system fonts at the beginning
         const systemFonts: FontOption[] = [
           { family: 'Inter', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Roboto', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Open Sans', category: 'sans-serif', variants: ['400', '700'] },
+          { family: 'Arial', category: 'sans-serif', variants: ['400', '700'] },
+          { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
         ];
 
         setFonts([...systemFonts, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
         setError(null);
       } catch (error) {
-        console.error('Failed to fetch Google Fonts:', error); // Debug log
+        console.error('Google Fonts API Error:', error);
         // Fallback to system fonts if Google Fonts API fails
-        setFonts([
+        const systemFonts: FontOption[] = [
           { family: 'Inter', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Roboto', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Open Sans', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Arial', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
-        ]);
+        ];
+        setFonts(systemFonts);
         setError(error instanceof Error ? error.message : 'Could not load Google Fonts. Using system fonts instead.');
       } finally {
         setLoading(false);
@@ -86,8 +92,8 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
     fetchFonts();
   }, []);
 
+  // Load the selected font
   useEffect(() => {
-    // Load the selected font
     if (value && !['Arial', 'Helvetica'].includes(value)) {
       const link = document.createElement('link');
       link.href = `https://fonts.googleapis.com/css2?family=${value.replace(' ', '+')}:wght@400;700&display=swap`;
@@ -95,6 +101,10 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
       document.head.appendChild(link);
     }
   }, [value]);
+
+  const filteredFonts = fonts.filter(font => 
+    font.family.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -111,7 +121,11 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0">
         <Command>
-          <CommandInput placeholder="Search fonts..." />
+          <CommandInput 
+            placeholder="Search fonts..."
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+          />
           <CommandEmpty>No font found.</CommandEmpty>
           {loading ? (
             <div className="py-6 text-center text-sm">Loading fonts...</div>
@@ -119,7 +133,7 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
             <div className="py-6 text-center text-sm text-muted-foreground">{error}</div>
           ) : (
             <CommandGroup className="max-h-[300px] overflow-auto">
-              {fonts.map((font) => (
+              {filteredFonts.map((font) => (
                 <CommandItem
                   key={font.family}
                   value={font.family}
