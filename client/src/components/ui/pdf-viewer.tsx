@@ -28,6 +28,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const [numPages, setNumPages] = useState(0);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [scale, setScale] = useState(1);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Function to calculate optimal scale
   const calculateOptimalScale = (viewport: { width: number; height: number }) => {
@@ -36,12 +37,26 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
 
-    // Calculate scales that would fit width and height
     const scaleX = (containerWidth - 40) / viewport.width; // 40px padding
     const scaleY = (containerHeight - 80) / viewport.height; // 80px for controls
 
-    // Return the smaller scale to ensure PDF fits in both dimensions
     return Math.min(scaleX, scaleY, 2); // Cap at 2x to prevent excessive scaling
+  };
+
+  // Function to convert Dropbox URL to direct download link
+  const convertDropboxUrl = (originalUrl: string): string => {
+    if (!originalUrl.includes('dropbox.com')) return originalUrl;
+
+    let convertedUrl = originalUrl
+      .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+      .replace(/\?dl=0$/, '?dl=1')
+      .replace(/\?raw=1$/, '?dl=1');
+
+    if (!convertedUrl.includes('dl=1')) {
+      convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
+    }
+
+    return convertedUrl;
   };
 
   // Function to render a specific page
@@ -100,25 +115,14 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         setLoadingProgress(0);
         setCurrentPage(1);
 
-        // Convert Dropbox URL if necessary
-        let pdfUrl = url;
-        if (url.includes('dropbox.com')) {
-          console.log('Original Dropbox URL:', url);
-          pdfUrl = url
-            .replace('dl=0', 'dl=1')
-            .replace('raw=1', 'dl=1')
-            .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-
-          if (!pdfUrl.includes('dl=1')) {
-            pdfUrl += pdfUrl.includes('?') ? '&dl=1' : '?dl=1';
-          }
-          console.log('Converted Dropbox URL:', pdfUrl);
-        }
-
+        const pdfUrl = convertDropboxUrl(url);
         console.log('Loading PDF from URL:', pdfUrl);
+
         const loadingTask = getDocument({
           url: pdfUrl,
           withCredentials: false,
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
+          cMapPacked: true,
         });
 
         loadingTask.onProgress = function(progress: ProgressData) {
@@ -126,41 +130,40 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
             const percentage = (progress.loaded / progress.total) * 100;
             if (isSubscribed) {
               setLoadingProgress(Math.round(percentage));
-              console.log('Loading progress:', Math.round(percentage) + '%');
             }
           }
         };
 
         const doc = await loadingTask.promise;
-        console.log('PDF loaded successfully');
 
         if (!isSubscribed) return;
 
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setIsLoading(false);
+        setRetryCount(0);
 
-        // Render the first page
         if (canvasRef.current) {
           await renderPage(1);
         }
       } catch (err) {
         console.error('PDF loading error:', err);
         if (isSubscribed) {
-          let errorMessage = 'Could not load PDF: ';
-
-          if (err instanceof Error) {
-            console.error('Error details:', {
-              message: err.message,
-              stack: err.stack
-            });
-            errorMessage += err.message;
-          } else {
-            errorMessage += 'An unknown error occurred';
-          }
-
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load PDF';
           setError(errorMessage);
           setIsLoading(false);
+
+          // Implement retry logic for specific errors
+          if (retryCount < 3 && (
+            errorMessage.includes('Failed to fetch') ||
+            errorMessage.includes('network') ||
+            errorMessage.includes('403')
+          )) {
+            setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+              loadPDF();
+            }, 1000 * (retryCount + 1)); // Exponential backoff
+          }
         }
       }
     }
@@ -173,7 +176,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         pdfDoc.destroy();
       }
     };
-  }, [url]);
+  }, [url, retryCount]);
 
   // Effect for handling page changes
   useEffect(() => {
@@ -209,7 +212,10 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
       )}
       {error && (
         <div className="flex items-center justify-center w-full h-full bg-muted p-4">
-          <p className="text-sm text-red-500 text-center">{error}</p>
+          <p className="text-sm text-red-500 text-center">
+            {error}
+            {retryCount > 0 && ` (Retry ${retryCount}/3)`}
+          </p>
         </div>
       )}
       <div className="flex-1 overflow-auto w-full flex items-center justify-center">
