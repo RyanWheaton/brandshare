@@ -15,7 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const GOOGLE_FONTS_API = 'https://www.googleapis.com/webfonts/v1/webfonts';
+const GOOGLE_FONTS_API = 'https://webfonts.googleapis.com/v1/webfonts';
 
 interface FontOption {
   family: string;
@@ -45,12 +45,18 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
           throw new Error('Google Fonts API key is not configured');
         }
 
+        // Log the request URL (without the API key)
+        console.log('Fetching fonts from:', GOOGLE_FONTS_API);
+
         const response = await fetch(`${GOOGLE_FONTS_API}?key=${apiKey}&sort=popularity`);
+        const contentType = response.headers.get('content-type');
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Google Fonts API Error:', {
             status: response.status,
             statusText: response.statusText,
+            contentType,
             error: errorText
           });
           throw new Error(`Failed to fetch fonts: ${response.status} ${response.statusText}`);
@@ -58,10 +64,11 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
 
         const data = await response.json();
         console.log('Google Fonts API Success:', {
-          totalFonts: data.items?.length || 0
+          totalFonts: data.items?.length || 0,
+          firstFont: data.items?.[0]?.family
         });
 
-        // Add system fonts at the beginning
+        // System fonts as fallback
         const systemFonts: FontOption[] = [
           { family: 'Inter', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Roboto', category: 'sans-serif', variants: ['400', '700'] },
@@ -70,7 +77,13 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
           { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
         ];
 
-        setFonts([...systemFonts, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
+        if (data.items && Array.isArray(data.items)) {
+          setFonts([...systemFonts, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
+        } else {
+          console.error('Invalid API response format:', data);
+          throw new Error('Invalid API response format');
+        }
+
         setError(null);
       } catch (error) {
         console.error('Google Fonts API Error:', error);
