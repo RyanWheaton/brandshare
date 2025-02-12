@@ -92,16 +92,6 @@ export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick(
   descriptionFont: z.string().min(1, "Description font is required"),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  email: true,
-  username: true,
-  password: true,
-}).extend({
-  email: z.string().email("Please enter a valid email address"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
 export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   title: true,
   description: true,
@@ -124,6 +114,16 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   descriptionFont: z.string().min(1, "Description font is required"),
   titleFontSize: z.number().min(12).max(48),
   descriptionFontSize: z.number().min(12).max(32),
+});
+
+export const insertUserSchema = createInsertSchema(users).pick({
+  email: true,
+  username: true,
+  password: true,
+}).extend({
+  email: z.string().email("Please enter a valid email address"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({

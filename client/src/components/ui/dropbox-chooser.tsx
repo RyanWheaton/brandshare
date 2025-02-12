@@ -20,9 +20,10 @@ declare global {
 interface DropboxChooserProps {
   onFilesSelected: (files: FileObject[]) => void;
   disabled?: boolean;
+  className?: string;
 }
 
-export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProps) {
+export function DropboxChooser({ onFilesSelected, disabled, className }: DropboxChooserProps) {
   const handleDropboxSelect = React.useCallback(() => {
     window.Dropbox?.choose({
       success: (files) => {
@@ -66,6 +67,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
       disabled={disabled}
       variant="outline"
       size="sm"
+      className={className}
     >
       <Plus className="mr-2 h-4 w-4" />
       Add Files from Dropbox
