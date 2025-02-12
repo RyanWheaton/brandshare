@@ -5,10 +5,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Set worker source path and configure worker
-if (typeof window !== 'undefined') {
-  GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-}
+// Configure PDF.js worker with a reliable CDN
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   url: string;
@@ -45,23 +43,35 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     return Math.min(scaleX, scaleY, 2);
   };
 
-  // Function to convert Dropbox URL to direct download link
+  // Enhanced Dropbox URL conversion with better error handling
   const convertDropboxUrl = (originalUrl: string): string => {
     if (!originalUrl.includes('dropbox.com')) return originalUrl;
 
-    // Handle different Dropbox URL formats
-    const url = new URL(originalUrl);
-    const path = url.pathname;
+    try {
+      // Convert shared link format
+      let convertedUrl = originalUrl
+        .replace('www.dropbox.com/s/', 'dl.dropboxusercontent.com/s/')
+        .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
 
-    // Convert to dl.dropboxusercontent.com format
-    let convertedUrl = `https://dl.dropboxusercontent.com${path}`;
+      // Add or update necessary parameters
+      const urlObj = new URL(convertedUrl);
+      const params = new URLSearchParams(urlObj.search);
 
-    // Add or update query parameters
-    const params = new URLSearchParams(url.search);
-    params.set('dl', '1');
-    if (params.has('raw')) params.delete('raw');
+      // Remove any existing dl or raw parameters
+      params.delete('dl');
+      params.delete('raw');
 
-    return `${convertedUrl}?${params.toString()}`;
+      // Add new parameters
+      params.set('raw', '1');
+
+      // Reconstruct the URL
+      urlObj.search = params.toString();
+      console.log('Converted Dropbox URL:', urlObj.toString());
+      return urlObj.toString();
+    } catch (err) {
+      console.error('Error converting Dropbox URL:', err);
+      return originalUrl;
+    }
   };
 
   // Function to render a specific page
@@ -96,23 +106,15 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     }
   };
 
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
-    }
-  };
-
-  const goToNextPage = () => {
-    if (currentPage < numPages) {
-      setCurrentPage(prev => prev + 1);
-    }
-  };
-
   // Effect for loading the PDF
   useEffect(() => {
     let isSubscribed = true;
 
     async function loadPDF() {
+      if (pdfDoc) {
+        pdfDoc.destroy();
+      }
+
       try {
         setIsLoading(true);
         setError(null);
@@ -127,8 +129,12 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           withCredentials: false,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
           cMapPacked: true,
-          enableXfa: true,
-          useSystemFonts: true,
+          httpHeaders: {
+            'Accept': '*/*',
+            'Cache-Control': 'no-cache',
+          },
+          disableRange: true,
+          disableStream: true,
         });
 
         loadingTask.onProgress = function(progress: ProgressData) {
@@ -159,16 +165,17 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           setError(errorMessage);
           setIsLoading(false);
 
-          // Retry logic for specific errors
+          // Enhanced retry logic for specific errors
           if (retryCount < 3 && (
             errorMessage.includes('Failed to fetch') ||
             errorMessage.includes('network') ||
-            errorMessage.includes('403')
+            errorMessage.includes('403') ||
+            errorMessage.includes('Unexpected server response')
           )) {
             setTimeout(() => {
               setRetryCount(prev => prev + 1);
               loadPDF();
-            }, Math.min(1000 * Math.pow(2, retryCount), 8000)); // Exponential backoff with 8s max
+            }, Math.min(1000 * Math.pow(2, retryCount), 8000));
           }
         }
       }
@@ -233,7 +240,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={goToPreviousPage}
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage <= 1}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -244,7 +251,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={goToNextPage}
+            onClick={() => setCurrentPage(prev => Math.min(numPages, prev + 1))}
             disabled={currentPage >= numPages}
           >
             <ChevronRight className="h-4 w-4" />
