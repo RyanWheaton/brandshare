@@ -33,6 +33,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { FontSelect } from "@/components/ui/font-select";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle } from "lucide-react";
 
 // Add this function at the top level
 function loadGoogleFont(fontFamily: string) {
@@ -167,8 +169,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   });
 
   const formValues = form.watch();
+  const hasUnsavedChanges = form.formState.isDirty || Object.keys(form.formState.dirtyFields).length > 0;
 
-  // Add useEffect to load fonts when they change
   useEffect(() => {
     if (formValues.titleFont) {
       loadGoogleFont(formValues.titleFont);
@@ -178,7 +180,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     }
   }, [formValues.titleFont, formValues.descriptionFont]);
 
-  // Update the mutation function to properly handle the data
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSharePage | InsertTemplate) => {
       const response = await apiRequest("PATCH", apiEndpoint, {
@@ -200,7 +201,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         title: "Changes saved",
         description: `Your ${isTemplate ? 'template' : 'share page'} has been updated successfully.`,
       });
-      // Reset form state after successful save
       form.reset(form.getValues());
     },
   });
@@ -213,7 +213,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     }
   }, [formValues.files, form]);
 
-  // Add keyboard shortcut handler with improved dirty state check
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
@@ -287,7 +286,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Fixed Header */}
       <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex items-center justify-between h-16 gap-4">
           <div className="flex items-center gap-4">
@@ -300,9 +298,17 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               <ChevronLeft className="h-4 w-4" />
               <span className="sr-only">Back to Dashboard</span>
             </Button>
-            <h1 className="font-semibold">
-              Customize {isTemplate ? 'Template' : 'Share Page'}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-semibold">
+                Customize {isTemplate ? 'Template' : 'Share Page'}
+              </h1>
+              {hasUnsavedChanges && (
+                <Badge variant="outline" className="gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Unsaved Changes
+                </Badge>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -331,10 +337,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               type="button"
               onClick={() => {
                 const formData = form.getValues();
-                const hasChanges = form.formState.isDirty ||
-                  Object.keys(form.formState.dirtyFields).length > 0;
-
-                if (hasChanges) {
+                if (hasUnsavedChanges) {
                   updateMutation.mutate(formData);
                 } else {
                   toast({
@@ -344,7 +347,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 }
               }}
               disabled={updateMutation.isPending}
-              className="gap-2"
+              className={cn(
+                "gap-2",
+                hasUnsavedChanges && "bg-primary hover:bg-primary/90"
+              )}
             >
               {updateMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -375,7 +381,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Title</FormLabel>
+                          <FormLabel className={cn(
+                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                          )}>Title</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -389,7 +397,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description</FormLabel>
+                          <FormLabel className={cn(
+                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                          )}>Description</FormLabel>
                           <FormControl>
                             <Textarea {...field} value={field.value || ''} />
                           </FormControl>
@@ -404,7 +414,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         name="backgroundColor"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Background Color</FormLabel>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Background Color</FormLabel>
                             <FormControl>
                               <div className="flex gap-2">
                                 <Input
@@ -426,7 +438,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         name="backgroundColorSecondary"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Secondary Background Color (Optional)</FormLabel>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Secondary Background Color (Optional)</FormLabel>
                             <FormDescription>
                               Add a second color to create a vertical gradient background
                             </FormDescription>
@@ -461,7 +475,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         name="textColor"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Text Color</FormLabel>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Text Color</FormLabel>
                             <FormControl>
                               <div className="flex gap-2">
                                 <Input
@@ -485,7 +501,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         name="titleFont"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Title Font</FormLabel>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Title Font</FormLabel>
                             <FormControl>
                               <FontSelect
                                 value={field.value || "Inter"}
@@ -502,7 +520,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         name="descriptionFont"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Description Font</FormLabel>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Description Font</FormLabel>
                             <FormControl>
                               <FontSelect
                                 value={field.value || "Inter"}
@@ -520,7 +540,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       name="titleFontSize"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Title Font Size</FormLabel>
+                          <FormLabel className={cn(
+                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                          )}>Title Font Size</FormLabel>
                           <FormControl>
                             <div className="flex items-center gap-4">
                               <Slider
@@ -544,7 +566,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       name="descriptionFontSize"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description Font Size</FormLabel>
+                          <FormLabel className={cn(
+                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                          )}>Description Font Size</FormLabel>
                           <FormControl>
                             <div className="flex items-center gap-4">
                               <Slider
@@ -574,7 +598,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password Protection</FormLabel>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Password Protection</FormLabel>
                             <FormControl>
                               <div className="flex gap-2">
                                 <Input
@@ -607,7 +633,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         name="expiresAt"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Expiration Date</FormLabel>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Expiration Date</FormLabel>
                             <FormControl>
                               <Popover>
                                 <PopoverTrigger asChild>
