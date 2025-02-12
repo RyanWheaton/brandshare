@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
+import fontsRouter from "./routes/fonts";
 
 // Set development mode explicitly if not set
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
@@ -56,6 +57,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Mount fonts router
+app.use('/api/fonts', fontsRouter);
+
 (async () => {
   try {
     const server = registerRoutes(app);
@@ -78,9 +82,9 @@ app.use((req, res, next) => {
     }
 
     // Use port 5000 by default or process.env.PORT if set
-    const PORT = process.env.PORT || 5000;
+    const PORT = Number(process.env.PORT) || 5000;
 
-    server.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, () => {
       log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
     });
 
