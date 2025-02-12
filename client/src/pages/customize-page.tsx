@@ -178,6 +178,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     }
   }, [formValues.titleFont, formValues.descriptionFont]);
 
+  // Update the mutation function to properly handle the data
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSharePage | InsertTemplate) => {
       const response = await apiRequest("PATCH", apiEndpoint, {
@@ -199,6 +200,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         title: "Changes saved",
         description: `Your ${isTemplate ? 'template' : 'share page'} has been updated successfully.`,
       });
+      // Reset form state after successful save
+      form.reset(form.getValues());
     },
   });
 
@@ -210,14 +213,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     }
   }, [formValues.files, form]);
 
-  // Add keyboard shortcut handler
+  // Add keyboard shortcut handler with improved dirty state check
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        // Only trigger save if the form is dirty
-        if (form.formState.isDirty) {
-          const formData = form.getValues();
+        const formData = form.getValues();
+        const hasChanges = form.formState.isDirty ||
+          Object.keys(form.formState.dirtyFields).length > 0;
+
+        if (hasChanges) {
           updateMutation.mutate(formData);
         } else {
           toast({
@@ -325,8 +330,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             <Button
               type="button"
               onClick={() => {
-                if (form.formState.isDirty) {
-                  const formData = form.getValues();
+                const formData = form.getValues();
+                const hasChanges = form.formState.isDirty ||
+                  Object.keys(form.formState.dirtyFields).length > 0;
+
+                if (hasChanges) {
                   updateMutation.mutate(formData);
                 } else {
                   toast({

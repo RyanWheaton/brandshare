@@ -90,6 +90,9 @@ export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick(
   files: z.array(fileSchema),
   titleFont: z.string().min(1, "Title font is required"),
   descriptionFont: z.string().min(1, "Description font is required"),
+  titleFontSize: z.number().min(12).max(48).optional(),
+  descriptionFontSize: z.number().min(12).max(32).optional(),
+  backgroundColorSecondary: z.string().optional(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
