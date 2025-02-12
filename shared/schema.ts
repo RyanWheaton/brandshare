@@ -120,26 +120,8 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   password: z.string().optional(),
   expiresAt: z.string().optional(),
   backgroundColorSecondary: z.string().optional(),
-  titleFont: z.string().min(1, "Title font is required")
-    .refine(async (font) => {
-      try {
-        const response = await fetch('/api/fonts');
-        const fonts = await response.json();
-        return fonts.some((f: any) => f.family === font);
-      } catch {
-        return true; // Fail open if API is unavailable
-      }
-    }, "Selected font must be available in Google Fonts"),
-  descriptionFont: z.string().min(1, "Description font is required")
-    .refine(async (font) => {
-      try {
-        const response = await fetch('/api/fonts');
-        const fonts = await response.json();
-        return fonts.some((f: any) => f.family === font);
-      } catch {
-        return true; // Fail open if API is unavailable
-      }
-    }, "Selected font must be available in Google Fonts"),
+  titleFont: z.string().min(1, "Title font is required"),
+  descriptionFont: z.string().min(1, "Description font is required"),
   titleFontSize: z.number().min(12).max(48),
   descriptionFontSize: z.number().min(12).max(32),
 });

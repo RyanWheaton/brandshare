@@ -71,6 +71,17 @@ async function checkSharePageAccess(req: CustomRequest, res: Response, next: Nex
   });
 }
 
+// Add this function at the top of the file
+async function validateFont(font: string): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/fonts/search?q=${encodeURIComponent(font)}`);
+    const fonts = await response.json();
+    return fonts.some((f: any) => f.family === font);
+  } catch {
+    return true; // Fail open if API is unavailable
+  }
+}
+
 // Add Dropbox URL validation schema
 const dropboxUrlSchema = z.object({
   dropboxUrl: z.string().url().refine(url => url.includes('dropbox.com'), {
@@ -224,6 +235,25 @@ export function registerRoutes(app: Express): Server {
     if (!page || page.userId !== req.user!.id) return res.sendStatus(404);
 
     try {
+      // Validate fonts if they are being updated
+      if (parsed.data.titleFont) {
+        const isValidFont = await validateFont(parsed.data.titleFont);
+        if (!isValidFont) {
+          return res.status(400).json({
+            error: "Selected title font must be available in Google Fonts"
+          });
+        }
+      }
+
+      if (parsed.data.descriptionFont) {
+        const isValidFont = await validateFont(parsed.data.descriptionFont);
+        if (!isValidFont) {
+          return res.status(400).json({
+            error: "Selected description font must be available in Google Fonts"
+          });
+        }
+      }
+
       // Validate expiration date if provided
       if (parsed.data.expiresAt) {
         const expirationDate = new Date(parsed.data.expiresAt);
