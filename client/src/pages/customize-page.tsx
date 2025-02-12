@@ -349,7 +349,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               disabled={updateMutation.isPending}
               className={cn(
                 "gap-2",
-                hasUnsavedChanges && "bg-primary hover:bg-primary/90"
+                hasUnsavedChanges 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               )}
             >
               {updateMutation.isPending ? (
