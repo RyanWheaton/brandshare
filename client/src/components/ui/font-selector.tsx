@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/popover";
 
 const GOOGLE_FONTS_API = 'https://www.googleapis.com/webfonts/v1/webfonts';
-const API_KEY = 'AIzaSyAOkdDlx9HLXwDDIXp_d6f6HJpKzh9wS8I'; // This is a public API key for Google Fonts
 
 interface FontOption {
   family: string;
@@ -40,7 +39,12 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
   useEffect(() => {
     async function fetchFonts() {
       try {
-        const response = await fetch(`${GOOGLE_FONTS_API}?key=${API_KEY}&sort=popularity`);
+        const apiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
+        if (!apiKey) {
+          throw new Error('Google Fonts API key is not configured');
+        }
+
+        const response = await fetch(`${GOOGLE_FONTS_API}?key=${apiKey}&sort=popularity`);
         if (!response.ok) {
           throw new Error(`Failed to fetch fonts: ${response.statusText}`);
         }
