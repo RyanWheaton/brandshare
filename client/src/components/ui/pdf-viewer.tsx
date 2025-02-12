@@ -5,8 +5,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
-// Set worker source path
-GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set worker source path and configure worker
+if (typeof window !== 'undefined') {
+  GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
 
 interface PDFViewerProps {
   url: string;
@@ -37,26 +39,29 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
 
-    const scaleX = (containerWidth - 40) / viewport.width; // 40px padding
-    const scaleY = (containerHeight - 80) / viewport.height; // 80px for controls
+    const scaleX = (containerWidth - 40) / viewport.width;
+    const scaleY = (containerHeight - 80) / viewport.height;
 
-    return Math.min(scaleX, scaleY, 2); // Cap at 2x to prevent excessive scaling
+    return Math.min(scaleX, scaleY, 2);
   };
 
   // Function to convert Dropbox URL to direct download link
   const convertDropboxUrl = (originalUrl: string): string => {
     if (!originalUrl.includes('dropbox.com')) return originalUrl;
 
-    let convertedUrl = originalUrl
-      .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-      .replace(/\?dl=0$/, '?dl=1')
-      .replace(/\?raw=1$/, '?dl=1');
+    // Handle different Dropbox URL formats
+    const url = new URL(originalUrl);
+    const path = url.pathname;
 
-    if (!convertedUrl.includes('dl=1')) {
-      convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
-    }
+    // Convert to dl.dropboxusercontent.com format
+    let convertedUrl = `https://dl.dropboxusercontent.com${path}`;
 
-    return convertedUrl;
+    // Add or update query parameters
+    const params = new URLSearchParams(url.search);
+    params.set('dl', '1');
+    if (params.has('raw')) params.delete('raw');
+
+    return `${convertedUrl}?${params.toString()}`;
   };
 
   // Function to render a specific page
@@ -91,7 +96,6 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     }
   };
 
-  // Navigation handlers
   const goToPreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
@@ -123,6 +127,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           withCredentials: false,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
           cMapPacked: true,
+          enableXfa: true,
+          useSystemFonts: true,
         });
 
         loadingTask.onProgress = function(progress: ProgressData) {
@@ -153,7 +159,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           setError(errorMessage);
           setIsLoading(false);
 
-          // Implement retry logic for specific errors
+          // Retry logic for specific errors
           if (retryCount < 3 && (
             errorMessage.includes('Failed to fetch') ||
             errorMessage.includes('network') ||
@@ -162,7 +168,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
             setTimeout(() => {
               setRetryCount(prev => prev + 1);
               loadPDF();
-            }, 1000 * (retryCount + 1)); // Exponential backoff
+            }, Math.min(1000 * Math.pow(2, retryCount), 8000)); // Exponential backoff with 8s max
           }
         }
       }
