@@ -6,11 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { FileObject } from "@shared/schema";
-import { cn } from "@/lib/utils";
 
 interface DropboxLinkInputProps {
   onSuccess?: (file: FileObject) => void;
-  className?: string;
 }
 
 const SUPPORTED_FILE_TYPES = [
@@ -50,7 +48,7 @@ function validateFileType(filename: string): boolean {
   return SUPPORTED_FILE_TYPES.includes(extension);
 }
 
-export function DropboxLinkInput({ onSuccess, className }: DropboxLinkInputProps) {
+export function DropboxLinkInput({ onSuccess }: DropboxLinkInputProps) {
   const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
 
@@ -112,7 +110,7 @@ export function DropboxLinkInput({ onSuccess, className }: DropboxLinkInputProps
   };
 
   return (
-    <form onSubmit={handleSubmit} className={cn("flex gap-2", className)}>
+    <form onSubmit={handleSubmit} className="flex gap-2">
       <Input
         type="text"
         placeholder="Paste Dropbox share link here..."

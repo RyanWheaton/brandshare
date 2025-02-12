@@ -20,27 +20,32 @@ declare global {
 interface DropboxChooserProps {
   onFilesSelected: (files: FileObject[]) => void;
   disabled?: boolean;
-  className?: string;
 }
 
-export function DropboxChooser({ onFilesSelected, disabled, className }: DropboxChooserProps) {
+export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProps) {
   const handleDropboxSelect = React.useCallback(() => {
     window.Dropbox?.choose({
       success: (files) => {
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => {
-          // Always use dl=1 for all file types to ensure direct download links
-          const downloadUrl = file.link
-            .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-            .replace('?dl=0', '?dl=1');
+          let previewUrl = file.link;
+          const isPDF = file.name.toLowerCase().endsWith('.pdf');
 
-          // For preview URLs, ensure we're using the same format
-          const previewUrl = downloadUrl;
+          // For PDFs, use dl=1 for both preview and download
+          if (isPDF) {
+            previewUrl = file.link.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+            if (!previewUrl.includes('dl=1')) {
+              previewUrl += previewUrl.includes('?') ? '&dl=1' : '?dl=1';
+            }
+          } else {
+            // For other files (images), use raw=1 for preview
+            previewUrl = file.link.replace('?dl=0', '?raw=1');
+          }
 
           return {
             name: file.name,
             preview_url: previewUrl,
-            url: downloadUrl,
+            url: file.link.replace('?dl=0', '?dl=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com'),
             isFullWidth: false,
           };
         });
@@ -51,7 +56,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
       },
       linkType: "direct", // This ensures we get direct links
       multiselect: true,
-      extensions: ['images', 'pdf'], // Explicitly specify PDF support
+      extensions: ['images', 'documents'], // Allow both image and document files (including PDFs)
     });
   }, [onFilesSelected]);
 
@@ -61,7 +66,6 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
       disabled={disabled}
       variant="outline"
       size="sm"
-      className={className}
     >
       <Plus className="mr-2 h-4 w-4" />
       Add Files from Dropbox
