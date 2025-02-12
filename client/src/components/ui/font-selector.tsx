@@ -40,15 +40,23 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
     async function fetchFonts() {
       try {
         const apiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
+        console.log('API Key available:', !!apiKey); // Debug log
+
         if (!apiKey) {
           throw new Error('Google Fonts API key is not configured');
         }
 
+        console.log('Fetching fonts from Google API...'); // Debug log
         const response = await fetch(`${GOOGLE_FONTS_API}?key=${apiKey}&sort=popularity`);
+
         if (!response.ok) {
-          throw new Error(`Failed to fetch fonts: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('API Response:', response.status, errorText); // Debug log
+          throw new Error(`Failed to fetch fonts: ${response.status} ${response.statusText}`);
         }
+
         const data = await response.json();
+        console.log('Fonts fetched successfully:', data.items?.length || 0, 'fonts'); // Debug log
 
         // Add system fonts at the beginning
         const systemFonts: FontOption[] = [
@@ -60,7 +68,7 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
         setFonts([...systemFonts, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
         setError(null);
       } catch (error) {
-        console.error('Failed to fetch Google Fonts:', error);
+        console.error('Failed to fetch Google Fonts:', error); // Debug log
         // Fallback to system fonts if Google Fonts API fails
         setFonts([
           { family: 'Inter', category: 'sans-serif', variants: ['400', '700'] },
@@ -69,7 +77,7 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
           { family: 'Arial', category: 'sans-serif', variants: ['400', '700'] },
           { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
         ]);
-        setError('Could not load Google Fonts. Using system fonts instead.');
+        setError(error instanceof Error ? error.message : 'Could not load Google Fonts. Using system fonts instead.');
       } finally {
         setLoading(false);
       }
