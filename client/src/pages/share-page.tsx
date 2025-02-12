@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
 import {
@@ -93,6 +93,13 @@ function CommentsSkeleton() {
 }
 
 type ViewMode = 'grid' | 'large' | 'gallery';
+
+function loadGoogleFont(fontFamily: string) {
+  const link = document.createElement('link');
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}&display=swap`;
+  link.rel = 'stylesheet';
+  document.head.appendChild(link);
+}
 
 export function FilePreview({
   file,
@@ -501,6 +508,15 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       });
     },
   });
+
+  useEffect(() => {
+    if (page?.titleFont) {
+      loadGoogleFont(page.titleFont);
+    }
+    if (page?.descriptionFont) {
+      loadGoogleFont(page.descriptionFont);
+    }
+  }, [page?.titleFont, page?.descriptionFont]);
 
   if (isLoading) {
     return <SharePageSkeleton />;

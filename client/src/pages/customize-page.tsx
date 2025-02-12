@@ -34,6 +34,14 @@ import { cn } from "@/lib/utils";
 import { FontSelect } from "@/components/ui/font-select";
 import { Slider } from "@/components/ui/slider";
 
+// Add this function at the top level
+function loadGoogleFont(fontFamily: string) {
+  const link = document.createElement('link');
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}&display=swap`;
+  link.rel = 'stylesheet';
+  document.head.appendChild(link);
+}
+
 function FileItem({ file, onToggleFullWidth, textColor }: {
   file: FileObject;
   onToggleFullWidth: (isFullWidth: boolean) => void;
@@ -159,6 +167,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   });
 
   const formValues = form.watch();
+
+  // Add useEffect to load fonts when they change
+  useEffect(() => {
+    if (formValues.titleFont) {
+      loadGoogleFont(formValues.titleFont);
+    }
+    if (formValues.descriptionFont) {
+      loadGoogleFont(formValues.descriptionFont);
+    }
+  }, [formValues.titleFont, formValues.descriptionFont]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSharePage | InsertTemplate) => {
