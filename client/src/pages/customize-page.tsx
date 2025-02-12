@@ -751,6 +751,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           key={index}
                           file={file}
                           textColor={formValues.textColor || "#000000"}
+                          viewMode="preview"
                         />
                       ))}
                     </div>

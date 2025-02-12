@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from "./button";
 import { Plus } from "lucide-react";
 import type { FileObject } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -20,9 +21,10 @@ declare global {
 interface DropboxChooserProps {
   onFilesSelected: (files: FileObject[]) => void;
   disabled?: boolean;
+  className?: string;
 }
 
-export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProps) {
+export function DropboxChooser({ onFilesSelected, disabled, className }: DropboxChooserProps) {
   const handleDropboxSelect = React.useCallback(() => {
     window.Dropbox?.choose({
       success: (files) => {
@@ -56,7 +58,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
       },
       linkType: "direct", // This ensures we get direct links
       multiselect: true,
-      extensions: ['images', 'documents'], // Allow both image and document files (including PDFs)
+      extensions: ['images', 'pdf'], // Allow both image and PDF files
     });
   }, [onFilesSelected]);
 
@@ -66,6 +68,7 @@ export function DropboxChooser({ onFilesSelected, disabled }: DropboxChooserProp
       disabled={disabled}
       variant="outline"
       size="sm"
+      className={cn(className)}
     >
       <Plus className="mr-2 h-4 w-4" />
       Add Files from Dropbox
