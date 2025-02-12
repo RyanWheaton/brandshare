@@ -15,7 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const GOOGLE_FONTS_API = 'https://webfonts.googleapis.com/v1/webfonts';
+const GOOGLE_FONTS_API = 'https://www.googleapis.com/webfonts/v1/webfonts';
 
 interface FontOption {
   family: string;
@@ -41,31 +41,46 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
     async function fetchFonts() {
       try {
         const apiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
+
+        // Debug: Check if API key is available and properly formatted
         if (!apiKey) {
+          console.error('Google Fonts API key is missing');
           throw new Error('Google Fonts API key is not configured');
         }
 
-        // Log the request URL (without the API key)
-        console.log('Fetching fonts from:', GOOGLE_FONTS_API);
+        // Log request details (without exposing the key)
+        console.log('Making request to Google Fonts API:', {
+          url: GOOGLE_FONTS_API,
+          hasApiKey: !!apiKey,
+          keyLength: apiKey.length
+        });
 
         const response = await fetch(`${GOOGLE_FONTS_API}?key=${apiKey}&sort=popularity`);
         const contentType = response.headers.get('content-type');
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Google Fonts API Error:', {
+          console.error('Google Fonts API Error Response:', {
             status: response.status,
             statusText: response.statusText,
             contentType,
-            error: errorText
+            errorBody: errorText
           });
           throw new Error(`Failed to fetch fonts: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
+
+        // Validate response structure
+        if (!data || !Array.isArray(data.items)) {
+          console.error('Invalid API response structure:', data);
+          throw new Error('Invalid API response format');
+        }
+
         console.log('Google Fonts API Success:', {
-          totalFonts: data.items?.length || 0,
-          firstFont: data.items?.[0]?.family
+          totalFonts: data.items.length,
+          firstFont: data.items[0]?.family,
+          responseStructure: Object.keys(data)
         });
 
         // System fonts as fallback
@@ -77,13 +92,7 @@ export function FontSelector({ value, onValueChange, placeholder = "Select font.
           { family: 'Helvetica', category: 'sans-serif', variants: ['400', '700'] },
         ];
 
-        if (data.items && Array.isArray(data.items)) {
-          setFonts([...systemFonts, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
-        } else {
-          console.error('Invalid API response format:', data);
-          throw new Error('Invalid API response format');
-        }
-
+        setFonts([...systemFonts, ...data.items.slice(0, 100)]); // Get system fonts + top 100 Google fonts
         setError(null);
       } catch (error) {
         console.error('Google Fonts API Error:', error);
