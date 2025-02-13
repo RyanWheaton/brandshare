@@ -10,6 +10,11 @@
     "primary": "#4e57a9",
     "card": "#262626",
     "muted": "#404040",
-    "accent": "#333333"
+    "border": "#333333",
+    "accent": "#333333",
+    "input": "#262626",
+    "ring": "#4e57a9",
+    "popover": "#262626",
+    "secondary": "#2a2a2a"
   }
 }
