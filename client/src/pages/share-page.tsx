@@ -225,10 +225,10 @@ export function FilePreview({
         <div
           className={`relative ${
             viewMode === 'grid'
-              ? 'aspect-square bg-muted cursor-pointer'
+              ? 'aspect-square bg-gray-100 cursor-pointer'
               : viewMode === 'gallery'
               ? 'max-h-[90vh]'
-              : `aspect-video bg-muted ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`
+              : `aspect-video bg-gray-100 ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`
           }`}
           onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}
         >
@@ -248,7 +248,7 @@ export function FilePreview({
     if (isPDF) {
       return (
         <div
-          className={`relative bg-muted w-full ${
+          className={`relative bg-gray-100 w-full ${
             viewMode === 'grid'
               ? 'aspect-square cursor-pointer'
               : viewMode === 'gallery'
@@ -280,7 +280,7 @@ export function FilePreview({
           viewMode === 'grid'
             ? 'aspect-square'
             : 'aspect-video'
-        } flex items-center justify-center bg-muted ${
+        } flex items-center justify-center bg-gray-100 ${
           viewMode !== 'grid' && !file.isFullWidth ? 'max-w-4xl mx-auto' : ''
         }`}
         onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}
@@ -308,14 +308,14 @@ export function FilePreview({
 
   return (
     <div className={containerClassName}>
-      <Card className={`overflow-hidden border-0 shadow-none bg-white ${
+      <Card className={`overflow-hidden border-0 shadow-none !bg-white ${
         file.isFullWidth ? '!bg-transparent' : ''
       } ${file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
         <CardContent className="p-0">
           {renderContent()}
-          <div className={`border-t bg-white ${
+          <div className={`border-t !bg-white ${
             file.isFullWidth ? 'max-w-4xl mx-auto' : ''
-          } ${viewMode === 'grid' ? 'p-2' : 'p-4'}`}>
+          } p-4`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
@@ -328,7 +328,7 @@ export function FilePreview({
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2"
+                className="gap-2 hover:bg-gray-100 !text-gray-900"
                 onClick={() => setIsCommenting(!isCommenting)}
               >
                 <MessageCircle className="w-4 h-4" />
@@ -338,7 +338,7 @@ export function FilePreview({
           </div>
 
           {isCommenting && (
-            <div className="px-4 pb-4 bg-white">
+            <div className="px-4 pb-4 !bg-white">
               <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
                 {!user && (
                   <Input
@@ -346,7 +346,7 @@ export function FilePreview({
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Your name (optional)"
-                    className="bg-white text-gray-900"
+                    className="!bg-white !text-gray-900 !border-gray-300"
                   />
                 )}
                 <div className="flex gap-2">
@@ -355,11 +355,12 @@ export function FilePreview({
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
                     placeholder="Add a comment..."
-                    className="bg-white text-gray-900"
+                    className="!bg-white !text-gray-900 !border-gray-300"
                   />
                   <Button
                     type="submit"
                     disabled={createCommentMutation.isPending}
+                    className="!bg-blue-600 !text-white hover:!bg-blue-700"
                   >
                     {createCommentMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -618,35 +619,6 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           )}
         </header>
 
-        {/* View mode switcher */}
-        <div className="flex justify-center mb-8">
-          <ButtonGroup>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-            >
-              <LayoutGrid className="w-4 h-4 mr-2" />
-              Grid
-            </Button>
-            <Button
-              variant={viewMode === 'large' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('large')}
-            >
-              <Image className="w-4 h-4 mr-2" />
-              Large
-            </Button>
-            <Button
-              variant={viewMode === 'gallery' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('gallery')}
-            >
-              <Maximize className="w-4 h-4 mr-2" />
-              Gallery
-            </Button>
-          </ButtonGroup>
-        </div>
 
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-8'}>
           {(page.files as FileObject[])?.map((file, index) => (
@@ -663,29 +635,28 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           ))}
         </div>
 
-        {/* Gallery/Lightbox View */}
         <AnimatePresence>
           {galleryIndex !== null && page.files && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 !bg-black !bg-opacity-90 z-50 flex items-center justify-center"
+              className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
               onClick={handleGalleryClose}
             >
               <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-black/20"
                   onClick={handleGalleryPrev}
                 >
                   <ChevronLeft className="w-8 h-8" />
                 </Button>
-                <div className="max-w-[90vw] max-h-[90vh]">
+                <div className="max-w-[90vw] max-h-[90vh] bg-white rounded-lg shadow-xl">
                   <FilePreview
                     file={(page.files as FileObject[])[galleryIndex]}
-                    textColor="#ffffff"
+                    textColor="#000000"
                     pageId={page.id}
                     fileIndex={galleryIndex}
                     viewMode="gallery"
@@ -695,7 +666,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-black/20"
                   onClick={handleGalleryNext}
                 >
                   <ChevronRight className="w-8 h-8" />
@@ -703,7 +674,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-4 text-white"
+                  className="absolute right-4 top-4 text-white hover:bg-black/20"
                   onClick={handleGalleryClose}
                 >
                   <X className="w-6 h-6" />
