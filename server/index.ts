@@ -4,9 +4,35 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
 import fontsRouter from "./routes/fonts";
+import { createServer } from "net";
 
 // Set development mode explicitly if not set
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Function to find an available port
+async function findAvailablePort(startPort: number): Promise<number> {
+  const isPortAvailable = (port: number): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const server = createServer()
+        .listen(port, () => {
+          server.close();
+          resolve(true);
+        })
+        .on('error', () => {
+          resolve(false);
+        });
+    });
+  };
+
+  let port = startPort;
+  while (!(await isPortAvailable(port))) {
+    port++;
+    if (port > startPort + 100) { // Don't search indefinitely
+      throw new Error('No available ports found');
+    }
+  }
+  return port;
+}
 
 const app = express();
 app.use(express.json());
@@ -81,21 +107,37 @@ app.use('/api/fonts', fontsRouter);
       serveStatic(app);
     }
 
-    // Use port 5000 by default or process.env.PORT if set
-    const PORT = Number(process.env.PORT) || 5000;
+    // Find an available port starting from 5000
+    const preferredPort = Number(process.env.PORT) || 5000;
+    const port = await findAvailablePort(preferredPort);
 
-    server.listen(PORT, () => {
-      log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
+    server.listen(port, '0.0.0.0', () => {
+      log(`Server started successfully and is serving on port ${port} in ${process.env.NODE_ENV} mode`);
+      // Store the active port for future reference
+      process.env.ACTIVE_PORT = port.toString();
     });
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
-      if (error.code === 'EADDRINUSE') {
-        log(`Port ${PORT} is already in use. Please try again.`);
-      } else {
-        log(`Server error: ${error.message}`);
-      }
+      log(`Server error: ${error.message}`);
       process.exit(1);
+    });
+
+    // Cleanup on process termination
+    process.on('SIGTERM', () => {
+      log('Received SIGTERM signal. Closing server...');
+      server.close(() => {
+        log('Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', () => {
+      log('Received SIGINT signal. Closing server...');
+      server.close(() => {
+        log('Server closed');
+        process.exit(0);
+      });
     });
 
   } catch (error) {

@@ -38,13 +38,13 @@ function Comment({ annotation, onDelete, currentUserId }: CommentProps) {
   const formattedDate = format(new Date(annotation.createdAt), 'MMM d, yyyy h:mm a');
 
   return (
-    <div className="flex gap-3 py-3 border-t">
+    <div className="flex gap-3 py-3 border-t bg-white">
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-medium">{displayName}</div>
-          <div className="text-xs text-muted-foreground">{formattedDate}</div>
+          <div className="text-sm font-medium text-gray-900">{displayName}</div>
+          <div className="text-xs text-gray-500">{formattedDate}</div>
         </div>
-        <p className="mt-1 text-sm">{annotation.content}</p>
+        <p className="mt-1 text-sm text-gray-700">{annotation.content}</p>
       </div>
       {currentUserId === annotation.userId && onDelete && (
         <Button
@@ -101,7 +101,7 @@ function loadGoogleFont(fontFamily: string) {
   document.head.appendChild(link);
 }
 
-function FilePreview({
+export function FilePreview({
   file,
   textColor,
   containerClassName = "",
@@ -308,10 +308,14 @@ function FilePreview({
 
   return (
     <div className={containerClassName}>
-      <Card className={`overflow-hidden border-0 shadow-none ${file.isFullWidth ? '!bg-transparent' : '!bg-white dark:!bg-white'} ${file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
+      <Card className={`overflow-hidden border-0 shadow-none bg-white ${
+        file.isFullWidth ? '!bg-transparent' : ''
+      } ${file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
         <CardContent className="p-0">
           {renderContent()}
-          <div className={`border-t ${file.isFullWidth ? 'max-w-4xl mx-auto !bg-white dark:!bg-white' : ''} ${viewMode === 'grid' ? 'p-2' : 'p-4'}`}>
+          <div className={`border-t bg-white ${
+            file.isFullWidth ? 'max-w-4xl mx-auto' : ''
+          } ${viewMode === 'grid' ? 'p-2' : 'p-4'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
@@ -334,7 +338,7 @@ function FilePreview({
           </div>
 
           {isCommenting && (
-            <div className="px-4 pb-4 !bg-white dark:!bg-white">
+            <div className="px-4 pb-4 bg-white">
               <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
                 {!user && (
                   <Input
@@ -342,6 +346,7 @@ function FilePreview({
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Your name (optional)"
+                    className="bg-white text-gray-900"
                   />
                 )}
                 <div className="flex gap-2">
@@ -350,6 +355,7 @@ function FilePreview({
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
                     placeholder="Add a comment..."
+                    className="bg-white text-gray-900"
                   />
                   <Button
                     type="submit"
@@ -381,7 +387,7 @@ function FilePreview({
                     />
                   ))}
                   {comments.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p className="text-sm text-gray-500 text-center py-4">
                       No comments yet. Be the first to comment!
                     </p>
                   )}
