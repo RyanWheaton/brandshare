@@ -101,7 +101,7 @@ function loadGoogleFont(fontFamily: string) {
   document.head.appendChild(link);
 }
 
-export function FilePreview({
+function FilePreview({
   file,
   textColor,
   containerClassName = "",
@@ -298,8 +298,8 @@ export function FilePreview({
   // Don't show comments in grid or gallery mode
   if (viewMode === 'grid' || viewMode === 'gallery') {
     return (
-      <div className={containerClassName}>
-        <Card className="overflow-hidden border-0 shadow-none bg-transparent">
+      <div className={containerClassName} style={{ backgroundColor: 'transparent' }}>
+        <Card className="overflow-hidden border-0 shadow-none !bg-transparent">
           <CardContent className="p-0">{renderContent()}</CardContent>
         </Card>
       </div>
@@ -308,10 +308,10 @@ export function FilePreview({
 
   return (
     <div className={containerClassName}>
-      <Card className={`overflow-hidden border-0 shadow-none ${file.isFullWidth ? 'bg-transparent' : 'bg-card max-w-4xl mx-auto'}`}>
+      <Card className={`overflow-hidden border-0 shadow-none ${file.isFullWidth ? '!bg-transparent' : '!bg-white dark:!bg-white'} ${file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
         <CardContent className="p-0">
           {renderContent()}
-          <div className={`border-t ${file.isFullWidth ? 'max-w-4xl mx-auto bg-card' : ''} ${viewMode === 'grid' ? 'p-2' : 'p-4'}`}>
+          <div className={`border-t ${file.isFullWidth ? 'max-w-4xl mx-auto !bg-white dark:!bg-white' : ''} ${viewMode === 'grid' ? 'p-2' : 'p-4'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
@@ -334,7 +334,7 @@ export function FilePreview({
           </div>
 
           {isCommenting && (
-            <div className="px-4 pb-4 bg-card">
+            <div className="px-4 pb-4 !bg-white dark:!bg-white">
               <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
                 {!user && (
                   <Input
@@ -585,7 +585,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         color: page.textColor || "#000000",
         minHeight: "100vh",
       }}
-      className="min-h-screen relative"
+      className="min-h-screen relative isolate"
     >
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <header className="text-center mb-12">
@@ -664,7 +664,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+              className="fixed inset-0 !bg-black !bg-opacity-90 z-50 flex items-center justify-center"
               onClick={handleGalleryClose}
             >
               <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
