@@ -14,7 +14,7 @@ async function findAvailablePort(startPort: number): Promise<number> {
   const isPortAvailable = (port: number): Promise<boolean> => {
     return new Promise((resolve) => {
       const server = createServer()
-        .listen(port, () => {
+        .listen(port, '0.0.0.0', () => {
           server.close();
           resolve(true);
         })
@@ -27,8 +27,8 @@ async function findAvailablePort(startPort: number): Promise<number> {
   let port = startPort;
   while (!(await isPortAvailable(port))) {
     port++;
-    if (port > startPort + 100) { // Don't search indefinitely
-      throw new Error('No available ports found');
+    if (port > startPort + 100) {
+      throw new Error('No available ports found in range');
     }
   }
   return port;
@@ -98,7 +98,6 @@ app.use('/api/fonts', fontsRouter);
       res.status(status).json({ message });
     });
 
-    // In development mode, always use Vite's dev server
     if (process.env.NODE_ENV === "development") {
       log("Starting in development mode with Vite dev server");
       await setupVite(app, server);
@@ -107,8 +106,8 @@ app.use('/api/fonts', fontsRouter);
       serveStatic(app);
     }
 
-    // Find an available port starting from 5000
-    const preferredPort = Number(process.env.PORT) || 5000;
+    // Find an available port starting from the preferred port
+    const preferredPort = Number(process.env.PORT) || 5001; // Default to 5001 for Replit
     const port = await findAvailablePort(preferredPort);
 
     server.listen(port, '0.0.0.0', () => {
@@ -119,26 +118,25 @@ app.use('/api/fonts', fontsRouter);
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
-      log(`Server error: ${error.message}`);
-      process.exit(1);
+      if (error.code === 'EADDRINUSE') {
+        log(`Port ${port} is already in use. Trying another port...`);
+      } else {
+        log(`Server error: ${error.message}`);
+        process.exit(1);
+      }
     });
 
-    // Cleanup on process termination
-    process.on('SIGTERM', () => {
-      log('Received SIGTERM signal. Closing server...');
+    // Enhanced cleanup on process termination
+    const cleanup = () => {
+      log('Closing server...');
       server.close(() => {
         log('Server closed');
         process.exit(0);
       });
-    });
+    };
 
-    process.on('SIGINT', () => {
-      log('Received SIGINT signal. Closing server...');
-      server.close(() => {
-        log('Server closed');
-        process.exit(0);
-      });
-    });
+    process.on('SIGTERM', cleanup);
+    process.on('SIGINT', cleanup);
 
   } catch (error) {
     console.error('Failed to start server:', error);
