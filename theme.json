@@ -3,5 +3,13 @@
   "primary": "#202a71",
   "background": "#f9f6f0",
   "appearance": "system",
-  "radius": 0.5
+  "radius": 0.5,
+  "darkMode": {
+    "background": "#1a1a1a",
+    "foreground": "#ffffff",
+    "primary": "#4e57a9",
+    "card": "#262626",
+    "muted": "#404040",
+    "accent": "#333333"
+  }
 }
