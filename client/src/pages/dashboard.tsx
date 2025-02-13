@@ -38,6 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { DropboxLinkInput } from "@/components/ui/dropbox-link-input";
 import { PageThumbnail } from "@/components/ui/page-thumbnail";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 
 
 // Dummy files for testing
@@ -393,6 +394,7 @@ export default function Dashboard() {
             )}
             Logout
           </Button>
+          <ThemeSwitcher />
         </div>
         <div className="flex gap-2">
           <Button
