@@ -78,12 +78,12 @@ function CommentsSkeleton() {
         <div key={i} className="flex gap-3 py-3 border-t">
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <div className="w-24 h-4 bg-muted rounded animate-pulse" />
-              <div className="w-32 h-3 bg-muted rounded animate-pulse" />
+              <div className="w-24 h-4 bg-gray-200 rounded animate-pulse" />
+              <div className="w-32 h-3 bg-gray-200 rounded animate-pulse" />
             </div>
             <div className="mt-2 space-y-2">
-              <div className="w-full h-4 bg-muted rounded animate-pulse" />
-              <div className="w-2/3 h-4 bg-muted rounded animate-pulse" />
+              <div className="w-full h-4 bg-gray-200 rounded animate-pulse" />
+              <div className="w-2/3 h-4 bg-gray-200 rounded animate-pulse" />
             </div>
           </div>
         </div>
@@ -406,22 +406,21 @@ function SharePageSkeleton() {
     <div className="min-h-screen p-8">
       <div className="container max-w-4xl mx-auto">
         <div className="text-center mb-12 space-y-4">
-          <div className="h-12 w-3/4 mx-auto bg-muted animate-pulse rounded-lg" />
-          <div className="h-6 w-1/2 mx-auto bg-muted animate-pulse rounded-lg" />
+          <div className="h-12 w-3/4 mx-auto bg-gray-200 animate-pulse rounded-lg" />
+          <div className="h-6 w-1/2 mx-auto bg-gray-200 animate-pulse rounded-lg" />
         </div>
-
         <div className="space-y-8">
           {[1, 2].map((i) => (
-            <Card key={i} className="overflow-hidden">
+            <Card key={i} className="overflow-hidden bg-white">
               <CardContent className="p-0">
-                <div className="aspect-video bg-muted animate-pulse" />
+                <div className="aspect-video bg-gray-200 animate-pulse" />
                 <div className="border-t">
                   <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-muted rounded animate-pulse" />
-                      <div className="w-40 h-4 bg-muted rounded animate-pulse" />
+                      <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+                      <div className="w-40 h-4 bg-gray-200 rounded animate-pulse" />
                     </div>
-                    <div className="w-20 h-8 bg-muted rounded animate-pulse" />
+                    <div className="w-20 h-8 bg-gray-200 rounded animate-pulse" />
                   </div>
                 </div>
               </CardContent>
@@ -448,10 +447,10 @@ function PasswordProtectionForm({
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <Card className="w-full max-w-md">
+    <div className="flex items-center justify-center min-h-screen bg-white">
+      <Card className="w-full max-w-md bg-white">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900">
             <Lock className="w-5 h-5" />
             Password Protected
           </CardTitle>
@@ -464,6 +463,7 @@ function PasswordProtectionForm({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
+              className="bg-white text-gray-900 border-gray-300"
             />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
