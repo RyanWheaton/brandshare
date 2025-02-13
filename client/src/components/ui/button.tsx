@@ -39,12 +39,17 @@ export interface ButtonProps
   asChild?: boolean
 }
 
+// Create a separate motion button component
+const MotionButton = motion.button
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const buttonClassName = cn(buttonVariants({ variant, size, className }))
+
     if (asChild) {
       return (
         <Slot
-          className={cn(buttonVariants({ variant, size, className }))}
+          className={buttonClassName}
           ref={ref}
           {...props}
         />
@@ -52,11 +57,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
 
     return (
-      <motion.button
-        className={cn(buttonVariants({ variant, size, className }))}
+      <MotionButton
+        className={buttonClassName}
         ref={ref}
         {...props}
-        initial={false}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.1 }}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
+import { type SharePage as UnprotectedSharePage, type FileObject, type Annotation, type ProtectedPageResponse } from "@shared/schema";
 import {
   Loader2,
   FileText,
@@ -100,6 +100,21 @@ function loadGoogleFont(fontFamily: string) {
   link.rel = 'stylesheet';
   document.head.appendChild(link);
 }
+
+type SharePage = UnprotectedSharePage | ProtectedPageResponse;
+
+// Helper type to make code more readable
+
+// Helper function to type check the page type
+function isProtectedPage(page: SharePage): page is ProtectedPageResponse {
+  return 'isPasswordProtected' in page;
+}
+
+// Helper function to type check the unprotected page
+function isUnprotectedPage(page: SharePage): page is UnprotectedSharePage {
+  return !('isPasswordProtected' in page);
+}
+
 
 export function FilePreview({
   file,
@@ -517,13 +532,15 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   });
 
   useEffect(() => {
-    if (page?.titleFont) {
-      loadGoogleFont(page.titleFont);
+    if (page && isUnprotectedPage(page)) {
+      if (page.titleFont) {
+        loadGoogleFont(page.titleFont);
+      }
+      if (page.descriptionFont) {
+        loadGoogleFont(page.descriptionFont);
+      }
     }
-    if (page?.descriptionFont) {
-      loadGoogleFont(page.descriptionFont);
-    }
-  }, [page?.titleFont, page?.descriptionFont]);
+  }, [page]);
 
   if (isLoading) {
     return <SharePageSkeleton />;
@@ -559,7 +576,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     );
   }
 
-  if (page.isPasswordProtected && !page.files) {
+  if (page && isProtectedPage(page)) {
     return (
       <PasswordProtectionForm
         onSubmit={(password) => verifyPasswordMutation.mutate(password)}
@@ -567,6 +584,9 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       />
     );
   }
+
+  // We can now safely use page as UnprotectedSharePage
+  if (!page || !isUnprotectedPage(page)) return null;
 
   const handleGalleryClose = () => {
     setGalleryIndex(null);
@@ -636,7 +656,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         </div>
 
         <AnimatePresence>
-          {galleryIndex !== null && page.files && (
+          {galleryIndex !== null && (page.files as FileObject[]) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
