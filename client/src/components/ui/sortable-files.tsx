@@ -19,6 +19,7 @@ import { FileText, Image as ImageIcon, Film, GripVertical, Trash2, Maximize2, Mi
 import { Card, CardContent } from "./card";
 import { Button } from "./button";
 import { Input } from "./input";
+import { Textarea } from "./textarea";
 import { cn } from "@/lib/utils";
 import type { FileObject } from "@shared/schema";
 import { useState } from "react";
@@ -125,7 +126,7 @@ function SortableFile({ id, file, onRemove, onToggleFullWidth, onUpdateMetadata 
           </div>
 
           {isExpanded && onUpdateMetadata && (
-            <div className="mt-3 space-y-2 pt-3 border-t">
+            <div className="mt-3 space-y-4 pt-3 border-t">
               <div>
                 <label htmlFor={`title-${id}`} className="text-sm font-medium block mb-1">
                   Title
@@ -142,12 +143,12 @@ function SortableFile({ id, file, onRemove, onToggleFullWidth, onUpdateMetadata 
                 <label htmlFor={`description-${id}`} className="text-sm font-medium block mb-1">
                   Description
                 </label>
-                <Input
+                <Textarea
                   id={`description-${id}`}
                   placeholder="Add a description..."
                   value={file.description || ''}
                   onChange={(e) => onUpdateMetadata({ description: e.target.value })}
-                  className="text-sm"
+                  className="text-sm min-h-[80px]"
                 />
               </div>
             </div>
@@ -163,7 +164,7 @@ interface SortableFilesProps {
   onReorder: (newFiles: FileObject[]) => void;
   onRemove?: (index: number) => void;
   onToggleFullWidth?: (index: number) => void;
-  onUpdateFile?: (index: number, updates: Partial<FileObject>) => void;
+  onUpdateMetadata?: (index: number, updates: Partial<FileObject>) => void;
 }
 
 export function SortableFiles({
@@ -171,7 +172,7 @@ export function SortableFiles({
   onReorder,
   onRemove,
   onToggleFullWidth,
-  onUpdateFile
+  onUpdateMetadata
 }: SortableFilesProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -209,7 +210,7 @@ export function SortableFiles({
             file={file}
             onRemove={onRemove ? () => onRemove(index) : undefined}
             onToggleFullWidth={onToggleFullWidth ? () => onToggleFullWidth(index) : undefined}
-            onUpdateMetadata={onUpdateFile ? (updates) => onUpdateFile(index, updates) : undefined}
+            onUpdateMetadata={onUpdateMetadata ? (updates) => onUpdateMetadata(index, updates) : undefined}
           />
         ))}
       </SortableContext>

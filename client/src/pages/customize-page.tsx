@@ -105,6 +105,9 @@ function FileList({
         onToggleFullWidth={(index) => {
           onUpdateFile(index, { isFullWidth: !files[index].isFullWidth });
         }}
+        onUpdateMetadata={(index, updates) => {
+          onUpdateFile(index, updates);
+        }}
       />
     </div>
   );
@@ -349,7 +352,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               disabled={updateMutation.isPending}
               className={cn(
                 "gap-2",
-                hasUnsavedChanges 
+                hasUnsavedChanges
                   ? "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               )}
