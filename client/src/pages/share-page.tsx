@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type SharePage as UnprotectedSharePage, type FileObject, type Annotation, type ProtectedPageResponse } from "@shared/schema";
+import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
 import {
   Loader2,
   FileText,
@@ -38,13 +38,13 @@ function Comment({ annotation, onDelete, currentUserId }: CommentProps) {
   const formattedDate = format(new Date(annotation.createdAt), 'MMM d, yyyy h:mm a');
 
   return (
-    <div className="flex gap-3 py-3 border-t bg-white">
+    <div className="flex gap-3 py-3 border-t">
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-gray-900">{displayName}</div>
-          <div className="text-xs text-gray-500">{formattedDate}</div>
+          <div className="text-sm font-medium">{displayName}</div>
+          <div className="text-xs text-muted-foreground">{formattedDate}</div>
         </div>
-        <p className="mt-1 text-sm text-gray-700">{annotation.content}</p>
+        <p className="mt-1 text-sm">{annotation.content}</p>
       </div>
       {currentUserId === annotation.userId && onDelete && (
         <Button
@@ -78,12 +78,12 @@ function CommentsSkeleton() {
         <div key={i} className="flex gap-3 py-3 border-t">
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <div className="w-24 h-4 bg-gray-200 rounded animate-pulse" />
-              <div className="w-32 h-3 bg-gray-200 rounded animate-pulse" />
+              <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+              <div className="w-32 h-3 bg-muted rounded animate-pulse" />
             </div>
             <div className="mt-2 space-y-2">
-              <div className="w-full h-4 bg-gray-200 rounded animate-pulse" />
-              <div className="w-2/3 h-4 bg-gray-200 rounded animate-pulse" />
+              <div className="w-full h-4 bg-muted rounded animate-pulse" />
+              <div className="w-2/3 h-4 bg-muted rounded animate-pulse" />
             </div>
           </div>
         </div>
@@ -100,21 +100,6 @@ function loadGoogleFont(fontFamily: string) {
   link.rel = 'stylesheet';
   document.head.appendChild(link);
 }
-
-type SharePage = UnprotectedSharePage | ProtectedPageResponse;
-
-// Helper type to make code more readable
-
-// Helper function to type check the page type
-function isProtectedPage(page: SharePage): page is ProtectedPageResponse {
-  return 'isPasswordProtected' in page;
-}
-
-// Helper function to type check the unprotected page
-function isUnprotectedPage(page: SharePage): page is UnprotectedSharePage {
-  return !('isPasswordProtected' in page);
-}
-
 
 export function FilePreview({
   file,
@@ -240,10 +225,10 @@ export function FilePreview({
         <div
           className={`relative ${
             viewMode === 'grid'
-              ? 'aspect-square bg-gray-100 cursor-pointer'
+              ? 'aspect-square bg-muted cursor-pointer'
               : viewMode === 'gallery'
               ? 'max-h-[90vh]'
-              : `aspect-video bg-gray-100 ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`
+              : `aspect-video bg-muted ${!file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`
           }`}
           onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}
         >
@@ -263,7 +248,7 @@ export function FilePreview({
     if (isPDF) {
       return (
         <div
-          className={`relative bg-gray-100 w-full ${
+          className={`relative bg-muted w-full ${
             viewMode === 'grid'
               ? 'aspect-square cursor-pointer'
               : viewMode === 'gallery'
@@ -295,7 +280,7 @@ export function FilePreview({
           viewMode === 'grid'
             ? 'aspect-square'
             : 'aspect-video'
-        } flex items-center justify-center bg-gray-100 ${
+        } flex items-center justify-center bg-muted ${
           viewMode !== 'grid' && !file.isFullWidth ? 'max-w-4xl mx-auto' : ''
         }`}
         onClick={viewMode !== 'gallery' && onGalleryOpen ? onGalleryOpen : undefined}
@@ -313,8 +298,8 @@ export function FilePreview({
   // Don't show comments in grid or gallery mode
   if (viewMode === 'grid' || viewMode === 'gallery') {
     return (
-      <div className={containerClassName} style={{ backgroundColor: 'transparent' }}>
-        <Card className="overflow-hidden border-0 shadow-none !bg-transparent">
+      <div className={containerClassName}>
+        <Card className="overflow-hidden border-0 shadow-none bg-transparent">
           <CardContent className="p-0">{renderContent()}</CardContent>
         </Card>
       </div>
@@ -323,14 +308,10 @@ export function FilePreview({
 
   return (
     <div className={containerClassName}>
-      <Card className={`overflow-hidden border-0 shadow-none !bg-white ${
-        file.isFullWidth ? '!bg-transparent' : ''
-      } ${file.isFullWidth ? 'max-w-4xl mx-auto' : ''}`}>
+      <Card className={`overflow-hidden border-0 shadow-none ${file.isFullWidth ? 'bg-transparent' : 'bg-card max-w-4xl mx-auto'}`}>
         <CardContent className="p-0">
           {renderContent()}
-          <div className={`border-t !bg-white ${
-            file.isFullWidth ? 'max-w-4xl mx-auto' : ''
-          } p-4`}>
+          <div className={`border-t ${file.isFullWidth ? 'max-w-4xl mx-auto bg-card' : ''} ${viewMode === 'grid' ? 'p-2' : 'p-4'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isImage && <ImageIcon className="w-4 h-4" style={{ color: textColor }} />}
@@ -343,7 +324,7 @@ export function FilePreview({
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 hover:bg-gray-100 !text-gray-900"
+                className="gap-2"
                 onClick={() => setIsCommenting(!isCommenting)}
               >
                 <MessageCircle className="w-4 h-4" />
@@ -353,7 +334,7 @@ export function FilePreview({
           </div>
 
           {isCommenting && (
-            <div className="px-4 pb-4 !bg-white">
+            <div className="px-4 pb-4 bg-card">
               <form onSubmit={handleCommentSubmit} className="space-y-3 mb-4">
                 {!user && (
                   <Input
@@ -361,7 +342,6 @@ export function FilePreview({
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Your name (optional)"
-                    className="!bg-white !text-gray-900 !border-gray-300"
                   />
                 )}
                 <div className="flex gap-2">
@@ -370,12 +350,10 @@ export function FilePreview({
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
                     placeholder="Add a comment..."
-                    className="!bg-white !text-gray-900 !border-gray-300"
                   />
                   <Button
                     type="submit"
                     disabled={createCommentMutation.isPending}
-                    className="!bg-blue-600 !text-white hover:!bg-blue-700"
                   >
                     {createCommentMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -403,7 +381,7 @@ export function FilePreview({
                     />
                   ))}
                   {comments.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-4">
+                    <p className="text-sm text-muted-foreground text-center py-4">
                       No comments yet. Be the first to comment!
                     </p>
                   )}
@@ -422,21 +400,22 @@ function SharePageSkeleton() {
     <div className="min-h-screen p-8">
       <div className="container max-w-4xl mx-auto">
         <div className="text-center mb-12 space-y-4">
-          <div className="h-12 w-3/4 mx-auto bg-gray-200 animate-pulse rounded-lg" />
-          <div className="h-6 w-1/2 mx-auto bg-gray-200 animate-pulse rounded-lg" />
+          <div className="h-12 w-3/4 mx-auto bg-muted animate-pulse rounded-lg" />
+          <div className="h-6 w-1/2 mx-auto bg-muted animate-pulse rounded-lg" />
         </div>
+
         <div className="space-y-8">
           {[1, 2].map((i) => (
-            <Card key={i} className="overflow-hidden bg-white">
+            <Card key={i} className="overflow-hidden">
               <CardContent className="p-0">
-                <div className="aspect-video bg-gray-200 animate-pulse" />
+                <div className="aspect-video bg-muted animate-pulse" />
                 <div className="border-t">
                   <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
-                      <div className="w-40 h-4 bg-gray-200 rounded animate-pulse" />
+                      <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+                      <div className="w-40 h-4 bg-muted rounded animate-pulse" />
                     </div>
-                    <div className="w-20 h-8 bg-gray-200 rounded animate-pulse" />
+                    <div className="w-20 h-8 bg-muted rounded animate-pulse" />
                   </div>
                 </div>
               </CardContent>
@@ -463,10 +442,10 @@ function PasswordProtectionForm({
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-white">
-      <Card className="w-full max-w-md bg-white">
+    <div className="flex items-center justify-center min-h-screen">
+      <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-900">
+          <CardTitle className="flex items-center gap-2">
             <Lock className="w-5 h-5" />
             Password Protected
           </CardTitle>
@@ -479,7 +458,6 @@ function PasswordProtectionForm({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              className="bg-white text-gray-900 border-gray-300"
             />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
@@ -532,15 +510,13 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   });
 
   useEffect(() => {
-    if (page && isUnprotectedPage(page)) {
-      if (page.titleFont) {
-        loadGoogleFont(page.titleFont);
-      }
-      if (page.descriptionFont) {
-        loadGoogleFont(page.descriptionFont);
-      }
+    if (page?.titleFont) {
+      loadGoogleFont(page.titleFont);
     }
-  }, [page]);
+    if (page?.descriptionFont) {
+      loadGoogleFont(page.descriptionFont);
+    }
+  }, [page?.titleFont, page?.descriptionFont]);
 
   if (isLoading) {
     return <SharePageSkeleton />;
@@ -576,7 +552,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     );
   }
 
-  if (page && isProtectedPage(page)) {
+  if (page.isPasswordProtected && !page.files) {
     return (
       <PasswordProtectionForm
         onSubmit={(password) => verifyPasswordMutation.mutate(password)}
@@ -584,9 +560,6 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       />
     );
   }
-
-  // We can now safely use page as UnprotectedSharePage
-  if (!page || !isUnprotectedPage(page)) return null;
 
   const handleGalleryClose = () => {
     setGalleryIndex(null);
@@ -612,7 +585,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         color: page.textColor || "#000000",
         minHeight: "100vh",
       }}
-      className="min-h-screen relative isolate"
+      className="min-h-screen relative"
     >
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <header className="text-center mb-12">
@@ -639,6 +612,35 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           )}
         </header>
 
+        {/* View mode switcher */}
+        <div className="flex justify-center mb-8">
+          <ButtonGroup>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'large' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('large')}
+            >
+              <Image className="w-4 h-4 mr-2" />
+              Large
+            </Button>
+            <Button
+              variant={viewMode === 'gallery' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('gallery')}
+            >
+              <Maximize className="w-4 h-4 mr-2" />
+              Gallery
+            </Button>
+          </ButtonGroup>
+        </div>
 
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-8'}>
           {(page.files as FileObject[])?.map((file, index) => (
@@ -655,8 +657,9 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           ))}
         </div>
 
+        {/* Gallery/Lightbox View */}
         <AnimatePresence>
-          {galleryIndex !== null && (page.files as FileObject[]) && (
+          {galleryIndex !== null && page.files && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -668,15 +671,15 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-black/20"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white"
                   onClick={handleGalleryPrev}
                 >
                   <ChevronLeft className="w-8 h-8" />
                 </Button>
-                <div className="max-w-[90vw] max-h-[90vh] bg-white rounded-lg shadow-xl">
+                <div className="max-w-[90vw] max-h-[90vh]">
                   <FilePreview
                     file={(page.files as FileObject[])[galleryIndex]}
-                    textColor="#000000"
+                    textColor="#ffffff"
                     pageId={page.id}
                     fileIndex={galleryIndex}
                     viewMode="gallery"
@@ -686,7 +689,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-black/20"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white"
                   onClick={handleGalleryNext}
                 >
                   <ChevronRight className="w-8 h-8" />
@@ -694,7 +697,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-4 text-white hover:bg-black/20"
+                  className="absolute right-4 top-4 text-white"
                   onClick={handleGalleryClose}
                 >
                   <X className="w-6 h-6" />

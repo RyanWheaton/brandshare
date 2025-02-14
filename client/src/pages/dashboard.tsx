@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SharePage, SharePageTemplate, FileObject, changePasswordSchema } from "@shared/schema";
+import { SharePage, SharePageTemplate, changePasswordSchema } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -373,13 +373,11 @@ export default function Dashboard() {
   return (
     <motion.div
       className="container max-w-4xl mx-auto p-4"
-      initial="initial"
-      animate="animate"
-      variants={fadeIn}
+      {...fadeIn}
     >
       <motion.div
         className="flex items-center justify-between mb-8"
-        variants={slideIn}
+        {...slideIn}
       >
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
@@ -428,7 +426,7 @@ export default function Dashboard() {
       {/* Add Dropbox Link Section */}
       <motion.div
         className="mb-8"
-        variants={fadeIn}
+        {...fadeIn}
         transition={{ delay: 0.1 }}
       >
         <AnimatedCard
@@ -458,7 +456,7 @@ export default function Dashboard() {
       {/* Templates Section */}
       <motion.div
         className="mb-8"
-        variants={fadeIn}
+        {...fadeIn}
         transition={{ delay: 0.2 }}
       >
         <h2 className="text-2xl font-bold mb-4">Templates</h2>
@@ -472,7 +470,6 @@ export default function Dashboard() {
             <motion.div
               key={template.id}
               variants={fadeIn}
-              custom={index}
               transition={{ delay: index * 0.1 }}
             >
               <AnimatedCard
@@ -573,7 +570,7 @@ export default function Dashboard() {
       {/* Share Pages Section */}
       <motion.div
         className="mb-8"
-        variants={fadeIn}
+        {...fadeIn}
         transition={{ delay: 0.3 }}
       >
         <h2 className="text-2xl font-bold mb-4">Share Pages</h2>
@@ -680,7 +677,7 @@ export default function Dashboard() {
 
       <motion.div
         className="mt-8"
-        variants={fadeIn}
+        {...fadeIn}
         transition={{ delay: 0.4 }}
       >
         <AnimatedCard
@@ -693,3 +690,11 @@ export default function Dashboard() {
     </motion.div>
   );
 }
+
+// Type definition -  You'll need to adapt this to your actual FileObject type.
+type FileObject = {
+  name: string;
+  preview_url?: string;
+  url: string;
+  isFullWidth: boolean;
+};

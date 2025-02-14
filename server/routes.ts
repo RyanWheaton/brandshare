@@ -15,7 +15,6 @@ declare module 'express-session' {
   }
 }
 
-// Update CustomRequest to extend Request properly
 interface CustomRequest extends Request {
   user?: User;
   sharePage?: any;
@@ -27,13 +26,8 @@ type TypedRequestHandler<P = {}, ResBody = any, ReqBody = any> = (
   next?: NextFunction
 ) => Promise<void | Response>;
 
-// Update middleware type signature
-const checkSharePageAccess: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const customReq = req as CustomRequest;
+// Middleware to check password protection
+async function checkSharePageAccess(req: CustomRequest, res: Response, next: NextFunction) {
   const page = await storage.getSharePageBySlug(req.params.slug);
   if (!page) return res.sendStatus(404);
 
@@ -52,7 +46,7 @@ const checkSharePageAccess: RequestHandler = async (
 
   // If page has no password, or user is already authorized, proceed
   if (!page.password || req.session.authorizedPages.includes(page.id)) {
-    customReq.sharePage = page;
+    req.sharePage = page;
     return next();
   }
 
@@ -67,7 +61,7 @@ const checkSharePageAccess: RequestHandler = async (
 
   if (providedPassword === page.password) {
     req.session.authorizedPages.push(page.id);
-    customReq.sharePage = page;
+    req.sharePage = page;
     return next();
   }
 
@@ -75,8 +69,9 @@ const checkSharePageAccess: RequestHandler = async (
     error: "Incorrect password",
     isPasswordProtected: true
   });
-};
+}
 
+// Add this function at the top of the file
 async function validateFont(font: string): Promise<boolean> {
   try {
     const response = await fetch(`/api/fonts/search?q=${encodeURIComponent(font)}`);
@@ -195,17 +190,13 @@ export function registerRoutes(app: Express): Server {
   }) as RequestHandler);
 
   // Password verification endpoint
-  app.post("/api/p/:slug/verify", checkSharePageAccess, (async (req: Request, res: Response) => {
-    const customReq = req as CustomRequest;
-    if (!customReq.sharePage) {
-      return res.status(404).json({ error: "Page not found" });
-    }
-    const stats = await storage.getPageStats(customReq.sharePage.id);
-    res.json({ ...customReq.sharePage, stats });
+  app.post("/api/p/:slug/verify", checkSharePageAccess, (async (req: CustomRequest, res: Response) => {
+    const stats = await storage.getPageStats(req.sharePage!.id);
+    res.json({ ...req.sharePage, stats });
   }) as RequestHandler);
 
   // Public share page endpoint
-  app.get("/api/p/:slug", (async (req: Request, res: Response) => {
+  app.get("/api/p/:slug", (async (req: CustomRequest, res: Response) => {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
 
@@ -219,8 +210,7 @@ export function registerRoutes(app: Express): Server {
       return res.json({
         id: page.id,
         title: page.title,
-        isPasswordProtected: true,
-        expiresAt: page.expiresAt
+        isPasswordProtected: true
       });
     }
 

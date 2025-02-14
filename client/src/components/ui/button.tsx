@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
-export const buttonVariants = cva(
+const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
@@ -39,24 +39,12 @@ export interface ButtonProps
   asChild?: boolean
 }
 
-const MotionButton = motion.create(
-  React.forwardRef<HTMLButtonElement, React.PropsWithChildren<ButtonProps>>(
-    ({ children, className, ...props }, ref) => (
-      <button ref={ref} className={className} {...props}>
-        {children}
-      </button>
-    )
-  )
-)
-
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const buttonClassName = cn(buttonVariants({ variant, size, className }))
-
     if (asChild) {
       return (
         <Slot
-          className={buttonClassName}
+          className={cn(buttonVariants({ variant, size, className }))}
           ref={ref}
           {...props}
         />
@@ -64,10 +52,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
 
     return (
-      <MotionButton
-        className={buttonClassName}
+      <motion.button
+        className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
+        initial={false}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.1 }}
@@ -75,5 +64,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     )
   }
 )
-
 Button.displayName = "Button"
+
+export { Button, buttonVariants }

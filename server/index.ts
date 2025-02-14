@@ -4,35 +4,9 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
 import fontsRouter from "./routes/fonts";
-import { createServer } from "net";
 
 // Set development mode explicitly if not set
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-
-// Function to find an available port
-async function findAvailablePort(startPort: number): Promise<number> {
-  const isPortAvailable = (port: number): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const server = createServer()
-        .listen(port, '0.0.0.0', () => {
-          server.close();
-          resolve(true);
-        })
-        .on('error', () => {
-          resolve(false);
-        });
-    });
-  };
-
-  let port = startPort;
-  while (!(await isPortAvailable(port))) {
-    port++;
-    if (port > startPort + 100) {
-      throw new Error('No available ports found in range');
-    }
-  }
-  return port;
-}
 
 const app = express();
 app.use(express.json());
@@ -98,6 +72,7 @@ app.use('/api/fonts', fontsRouter);
       res.status(status).json({ message });
     });
 
+    // In development mode, always use Vite's dev server
     if (process.env.NODE_ENV === "development") {
       log("Starting in development mode with Vite dev server");
       await setupVite(app, server);
@@ -106,37 +81,22 @@ app.use('/api/fonts', fontsRouter);
       serveStatic(app);
     }
 
-    // Find an available port starting from the preferred port
-    const preferredPort = Number(process.env.PORT) || 5001; // Default to 5001 for Replit
-    const port = await findAvailablePort(preferredPort);
+    // Use port 5000 by default or process.env.PORT if set
+    const PORT = Number(process.env.PORT) || 5000;
 
-    server.listen(port, '0.0.0.0', () => {
-      log(`Server started successfully and is serving on port ${port} in ${process.env.NODE_ENV} mode`);
-      // Store the active port for future reference
-      process.env.ACTIVE_PORT = port.toString();
+    server.listen(PORT, () => {
+      log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
     });
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
       if (error.code === 'EADDRINUSE') {
-        log(`Port ${port} is already in use. Trying another port...`);
+        log(`Port ${PORT} is already in use. Please try again.`);
       } else {
         log(`Server error: ${error.message}`);
-        process.exit(1);
       }
+      process.exit(1);
     });
-
-    // Enhanced cleanup on process termination
-    const cleanup = () => {
-      log('Closing server...');
-      server.close(() => {
-        log('Server closed');
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGTERM', cleanup);
-    process.on('SIGINT', cleanup);
 
   } catch (error) {
     console.error('Failed to start server:', error);

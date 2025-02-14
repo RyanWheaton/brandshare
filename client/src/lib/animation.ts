@@ -1,27 +1,29 @@
-import { type Variants } from "framer-motion";
+import { type MotionProps } from "framer-motion";
 
 // Shared animation variants
-export const fadeIn: Variants = {
+export const fadeIn: MotionProps = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
-  exit: { opacity: 0 }
+  exit: { opacity: 0 },
+  transition: { duration: 0.2 }
 };
 
-export const slideIn: Variants = {
+export const slideIn: MotionProps = {
   initial: { x: 20, opacity: 0 },
   animate: { x: 0, opacity: 1 },
-  exit: { x: -20, opacity: 0 }
+  exit: { x: -20, opacity: 0 },
+  transition: { duration: 0.2 }
 };
 
-export const scaleIn: Variants = {
+export const scaleIn: MotionProps = {
   initial: { scale: 0.95, opacity: 0 },
   animate: { scale: 1, opacity: 1 },
-  exit: { scale: 0.95, opacity: 0 }
+  exit: { scale: 0.95, opacity: 0 },
+  transition: { duration: 0.1 }
 };
 
 // Stagger children animations
-export const staggerContainer: Variants = {
-  initial: {},
+export const staggerContainer = {
   animate: {
     transition: {
       staggerChildren: 0.05
@@ -29,15 +31,14 @@ export const staggerContainer: Variants = {
   }
 };
 
-// Hover animations (for use with whileHover)
+// Hover animations
 export const buttonHover = {
   scale: 0.98,
   transition: { duration: 0.1 }
 };
 
 // Loading spinner animation
-export const spinAnimation: Variants = {
-  initial: { rotate: 0 },
+export const spinAnimation = {
   animate: {
     rotate: 360,
     transition: {

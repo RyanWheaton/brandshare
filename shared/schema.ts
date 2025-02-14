@@ -17,7 +17,7 @@ export const users = pgTable("users", {
 
 export const fileSchema = z.object({
   name: z.string(),
-  preview_url: z.string().min(1, "Preview URL is required"),
+  preview_url: z.string(),
   url: z.string(),
   isFullWidth: z.boolean().default(false),
 });
@@ -151,14 +151,6 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(6, "New password must be at least 6 characters"),
 });
 
-export const protectedPageResponseSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  isPasswordProtected: z.literal(true),
-  expiresAt: z.date().nullable(),
-});
-
-export type ProtectedPageResponse = z.infer<typeof protectedPageResponseSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type SharePage = typeof sharePages.$inferSelect;
