@@ -127,7 +127,11 @@ function SortableFile({ id, file, onRemove, onToggleFullWidth, onUpdateMetadata 
           {isExpanded && onUpdateMetadata && (
             <div className="mt-3 space-y-2 pt-3 border-t">
               <div>
+                <label htmlFor={`title-${id}`} className="text-sm font-medium block mb-1">
+                  Title
+                </label>
                 <Input
+                  id={`title-${id}`}
                   placeholder="Add a title..."
                   value={file.title || ''}
                   onChange={(e) => onUpdateMetadata({ title: e.target.value })}
@@ -135,7 +139,11 @@ function SortableFile({ id, file, onRemove, onToggleFullWidth, onUpdateMetadata 
                 />
               </div>
               <div>
+                <label htmlFor={`description-${id}`} className="text-sm font-medium block mb-1">
+                  Description
+                </label>
                 <Input
+                  id={`description-${id}`}
                   placeholder="Add a description..."
                   value={file.description || ''}
                   onChange={(e) => onUpdateMetadata({ description: e.target.value })}
@@ -179,10 +187,7 @@ export function SortableFiles({
       const oldIndex = files.findIndex((_, i) => i === active.id);
       const newIndex = files.findIndex((_, i) => i === over.id);
 
-      const newFiles = [...files];
-      const [movedFile] = newFiles.splice(oldIndex, 1);
-      newFiles.splice(newIndex, 0, movedFile);
-
+      const newFiles = arrayMove(files, oldIndex, newIndex);
       onReorder(newFiles);
     }
   }
