@@ -13,8 +13,7 @@ import {
   Image,
   ChevronLeft,
   ChevronRight,
-  X,
-  Download
+  X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -333,6 +332,7 @@ export function FilePreview({
               </Button>
             </div>
 
+            {/* Add file title and description section */}
             {(file.title || file.description) && (
               <div className="mt-4 space-y-2">
                 {file.title && (
@@ -603,29 +603,21 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       }}
       className="min-h-screen relative"
     >
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        {/* Logo Section */}
-        <div className="flex justify-center py-8">
-          <img
-            src="/logo.png"
-            alt="Company Logo"
-            className="h-16 w-auto"
-          />
-        </div>
-
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <header className="text-center mb-12">
           <h1
-            className="text-4xl font-bold mb-4"
+            className="mb-4"
             style={{
               fontFamily: page.titleFont || "Inter",
               fontSize: `${page.titleFontSize || 24}px`,
+              fontWeight: "bold",
             }}
           >
             {page.title}
           </h1>
           {page.description && (
             <p
-              className="text-lg opacity-90 max-w-2xl mx-auto"
+              className="opacity-90 max-w-2xl mx-auto"
               style={{
                 fontFamily: page.descriptionFont || "Inter",
                 fontSize: `${page.descriptionFontSize || 16}px`,
@@ -668,41 +660,16 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
 
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-8'}>
           {(page.files as FileObject[])?.map((file, index) => (
-            <div key={index} className={`${viewMode === 'grid' ? '' : 'w-full'} bg-background rounded-lg overflow-hidden`}>
-              <FilePreview
-                file={file}
-                textColor={page.textColor || "#000000"}
-                pageId={page.id}
-                fileIndex={index}
-                viewMode={viewMode}
-                onGalleryOpen={() => setGalleryIndex(index)}
-              />
-
-              {/* File Actions */}
-              <div className="flex justify-end gap-2 p-4 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(file.url, '_blank')}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const filePreview = document.getElementById(`file-${index}`);
-                    if (filePreview) {
-                      filePreview.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Comments
-                </Button>
-              </div>
-            </div>
+            <FilePreview
+              key={index}
+              file={file}
+              textColor={page.textColor || "#000000"}
+              pageId={page.id}
+              fileIndex={index}
+              containerClassName={viewMode === 'grid' ? '' : 'w-full'}
+              viewMode={viewMode}
+              onGalleryOpen={() => setGalleryIndex(index)}
+            />
           ))}
         </div>
 
