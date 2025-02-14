@@ -331,6 +331,22 @@ export function FilePreview({
                 <span>{comments.length}</span>
               </Button>
             </div>
+
+            {/* Add file title and description section */}
+            {(file.title || file.description) && (
+              <div className="mt-4 space-y-2">
+                {file.title && (
+                  <h3 className="text-lg font-semibold" style={{ color: textColor }}>
+                    {file.title}
+                  </h3>
+                )}
+                {file.description && (
+                  <p className="text-sm opacity-90" style={{ color: textColor }}>
+                    {file.description}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {isCommenting && (
