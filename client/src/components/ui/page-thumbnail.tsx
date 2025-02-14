@@ -23,11 +23,18 @@ function FilePreviewThumb({ file }: { file: FileObject }) {
   const isVideo = fileType ? /\.(mp4|mov)$/i.test(file.name) : false;
 
   return (
-    <div className="flex items-center gap-2 p-1 bg-muted/50 rounded text-[8px]">
-      {isImage && <ImageIcon className="w-2 h-2" />}
-      {isVideo && <Film className="w-2 h-2" />}
-      {!isImage && !isVideo && <FileText className="w-2 h-2" />}
-      <span className="truncate">{file.name}</span>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 p-1 bg-muted/50 rounded text-[8px]">
+        {isImage && <ImageIcon className="w-2 h-2" />}
+        {isVideo && <Film className="w-2 h-2" />}
+        {!isImage && !isVideo && <FileText className="w-2 h-2" />}
+        <span className="truncate">{file.title || file.name}</span>
+      </div>
+      {file.description && (
+        <p className="text-[6px] px-1 opacity-75 truncate">
+          {file.description}
+        </p>
+      )}
     </div>
   );
 }

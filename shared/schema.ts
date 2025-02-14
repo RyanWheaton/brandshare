@@ -17,9 +17,11 @@ export const users = pgTable("users", {
 
 export const fileSchema = z.object({
   name: z.string(),
-  preview_url: z.string(),
+  preview_url: z.string().optional().default(""),
   url: z.string(),
   isFullWidth: z.boolean().default(false),
+  title: z.string().optional(),
+  description: z.string().optional(),
 });
 
 export const sharePageTemplates = pgTable("share_page_templates", {

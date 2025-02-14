@@ -3,10 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, changePasswordSchema } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { fadeIn, slideIn, staggerContainer } from "@/lib/animation";
-import {
-  ExternalLink,
+import { motion, Variants } from "framer-motion";
+import {  ExternalLink,
   Copy,
   Trash2,
   Palette,
@@ -230,6 +228,25 @@ function ChangePasswordCard() {
 // Wrap Card component with motion
 const AnimatedCard = motion(Card);
 
+// Define proper animation variants
+const fadeInVariant: Variants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 }
+};
+
+const slideInVariant: Variants = {
+  initial: { x: -20, opacity: 0 },
+  animate: { x: 0, opacity: 1 }
+};
+
+const staggerContainerVariant: Variants = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
@@ -373,11 +390,15 @@ export default function Dashboard() {
   return (
     <motion.div
       className="container max-w-4xl mx-auto p-4"
-      {...fadeIn}
+      variants={fadeInVariant}
+      initial="initial"
+      animate="animate"
     >
       <motion.div
         className="flex items-center justify-between mb-8"
-        {...slideIn}
+        variants={slideInVariant}
+        initial="initial"
+        animate="animate"
       >
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
@@ -426,8 +447,9 @@ export default function Dashboard() {
       {/* Add Dropbox Link Section */}
       <motion.div
         className="mb-8"
-        {...fadeIn}
-        transition={{ delay: 0.1 }}
+        variants={fadeInVariant}
+        initial="initial"
+        animate="animate"
       >
         <AnimatedCard
           whileHover={{ scale: 1.01 }}
@@ -456,21 +478,23 @@ export default function Dashboard() {
       {/* Templates Section */}
       <motion.div
         className="mb-8"
-        {...fadeIn}
-        transition={{ delay: 0.2 }}
+        variants={fadeInVariant}
+        initial="initial"
+        animate="animate"
       >
         <h2 className="text-2xl font-bold mb-4">Templates</h2>
         <motion.div
           className="grid gap-4"
-          variants={staggerContainer}
+          variants={staggerContainerVariant}
           initial="initial"
           animate="animate"
         >
           {templates.map((template, index) => (
             <motion.div
               key={template.id}
-              variants={fadeIn}
-              transition={{ delay: index * 0.1 }}
+              variants={fadeInVariant}
+              initial="initial"
+              animate="animate"
             >
               <AnimatedCard
                 whileHover={{ scale: 1.01 }}
@@ -553,7 +577,7 @@ export default function Dashboard() {
           ))}
 
           {templates.length === 0 && (
-            <motion.div variants={fadeIn}>
+            <motion.div variants={fadeInVariant} initial="initial" animate="animate">
               <AnimatedCard>
                 <CardContent className="p-8 text-center text-muted-foreground">
                   <p>You haven't created any templates yet.</p>
@@ -570,21 +594,23 @@ export default function Dashboard() {
       {/* Share Pages Section */}
       <motion.div
         className="mb-8"
-        {...fadeIn}
-        transition={{ delay: 0.3 }}
+        variants={fadeInVariant}
+        initial="initial"
+        animate="animate"
       >
         <h2 className="text-2xl font-bold mb-4">Share Pages</h2>
         <motion.div
           className="grid gap-4"
-          variants={staggerContainer}
+          variants={staggerContainerVariant}
           initial="initial"
           animate="animate"
         >
           {pages.map((page, index) => (
             <motion.div
               key={page.id}
-              variants={fadeIn}
-              transition={{ delay: index * 0.1 }}
+              variants={fadeInVariant}
+              initial="initial"
+              animate="animate"
             >
               <AnimatedCard
                 whileHover={{ scale: 1.01 }}
@@ -661,7 +687,7 @@ export default function Dashboard() {
           ))}
 
           {pages.length === 0 && (
-            <motion.div variants={fadeIn}>
+            <motion.div variants={fadeInVariant} initial="initial" animate="animate">
               <AnimatedCard>
                 <CardContent className="p-8 text-center text-muted-foreground">
                   <p>You haven't created any share pages yet.</p>
@@ -677,8 +703,9 @@ export default function Dashboard() {
 
       <motion.div
         className="mt-8"
-        {...fadeIn}
-        transition={{ delay: 0.4 }}
+        variants={fadeInVariant}
+        initial="initial"
+        animate="animate"
       >
         <AnimatedCard
           whileHover={{ scale: 1.01 }}
