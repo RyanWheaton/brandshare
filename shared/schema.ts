@@ -55,6 +55,7 @@ export const sharePages = pgTable("share_pages", {
   lastViewedAt: timestamp("last_viewed_at"),
   password: text("password"),
   expiresAt: timestamp("expires_at"),
+  logoUrl: text("logo_url"),
 });
 
 export const annotations = pgTable("annotations", {
@@ -120,6 +121,7 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   files: true,
   password: true,
   expiresAt: true,
+  logoUrl: true,
 }).extend({
   files: z.array(fileSchema),
   password: z.string().optional(),
@@ -129,6 +131,7 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   descriptionFont: z.string().min(1, "Description font is required"),
   titleFontSize: z.number().min(12).max(48),
   descriptionFontSize: z.number().min(12).max(32),
+  logoUrl: z.string().optional(),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({

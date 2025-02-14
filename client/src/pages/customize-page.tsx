@@ -16,14 +16,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { FilePreview } from "@/pages/share-page";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon, Film, FileText } from "lucide-react";
+import { Film, FileText } from "lucide-react";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
 import { SortableFiles } from "@/components/ui/sortable-files";
 import { Calendar } from "@/components/ui/calendar";
@@ -118,6 +118,8 @@ type CustomizePageProps = {
   isTemplate?: boolean;
 };
 
+type FormData = SharePage | SharePageTemplate;
+
 export default function CustomizePage({ params, isTemplate = false }: CustomizePageProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -135,9 +137,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     queryKey: [apiEndpoint],
   });
 
-  const form = useForm<InsertSharePage | InsertTemplate>({
+  const form = useForm<FormData>({
     resolver: zodResolver(isTemplate ? insertTemplateSchema : insertSharePageSchema),
     defaultValues: {
+      logoUrl: "",
       title: "",
       description: "",
       backgroundColor: "#ffffff",
@@ -152,23 +155,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         password: "",
         expiresAt: undefined,
       }),
-    },
+    } as FormData,
     values: item ? {
-      title: item.title,
-      description: item.description || "",
-      backgroundColor: item.backgroundColor || "#ffffff",
-      backgroundColorSecondary: isTemplate ? undefined : (item as SharePage).backgroundColorSecondary || "",
-      textColor: item.textColor || "#000000",
-      titleFont: item.titleFont || "Inter",
-      descriptionFont: item.descriptionFont || "Inter",
-      titleFontSize: isTemplate ? 24 : (item as SharePage).titleFontSize || 24,
-      descriptionFontSize: isTemplate ? 16 : (item as SharePage).descriptionFontSize || 16,
-      files: item.files as FileObject[],
-      ...(isTemplate ? {} : {
-        password: (item as SharePage).password || "",
-        expiresAt: (item as SharePage).expiresAt || undefined,
-      }),
-    } : undefined,
+      ...item,
+      logoUrl: isTemplate ? undefined : (item as SharePage).logoUrl || "",
+    } as FormData : undefined,
   });
 
   const formValues = form.watch();
@@ -381,6 +372,71 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
                     className="space-y-4"
                   >
+                    {!isTemplate && (
+                      <FormField
+                        control={form.control}
+                        name="logoUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Logo Image</FormLabel>
+                            <FormDescription>
+                              Upload a logo to display at the top of your share page
+                            </FormDescription>
+                            <div className="flex items-start gap-4">
+                              {field.value && (
+                                <div className="relative w-32 h-12">
+                                  <img
+                                    src={field.value}
+                                    alt="Logo preview"
+                                    className="w-full h-full object-contain"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="absolute -top-2 -right-2 h-6 w-6"
+                                    onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <div className="w-full">
+                                  <DropboxChooser
+                                    onFilesSelected={(files) => {
+                                      if (files.length > 0) {
+                                        const file = files[0];
+                                        const isImage = /\.(jpg|jpeg|png|gif)$/i.test(file.name);
+                                        if (isImage) {
+                                          form.setValue('logoUrl', file.url, { shouldDirty: true });
+                                        } else {
+                                          toast({
+                                            title: "Invalid file type",
+                                            description: "Please select an image file (JPG, PNG, or GIF)",
+                                            variant: "destructive",
+                                          });
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className="w-full gap-2"
+                                    >
+                                      <ImageIcon className="h-4 w-4" />
+                                      {field.value ? "Change Logo" : "Upload Logo"}
+                                    </Button>
+                                  </DropboxChooser>
+                                </div>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                     <FormField
                       control={form.control}
                       name="title"
@@ -554,7 +610,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 min={12}
                                 max={48}
                                 step={1}
-                                value={[field.value]}
+                                value={[field.value as number]}
                                 onValueChange={(value) => field.onChange(value[0])}
                                 className="flex-1"
                               />
@@ -580,7 +636,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 min={12}
                                 max={32}
                                 step={1}
-                                value={[field.value]}
+                                value={[field.value as number]}
                                 onValueChange={(value) => field.onChange(value[0])}
                                 className="flex-1"
                               />
@@ -725,6 +781,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     }}
                     className="overflow-hidden"
                   >
+                    {formValues.logoUrl && (
+                      <div className="mb-8">
+                        <img
+                          src={formValues.logoUrl}
+                          alt="Logo"
+                          className="h-12 w-auto mx-auto"
+                        />
+                      </div>
+                    )}
                     <div className="text-center mb-8">
                       <h1
                         className="text-3xl font-bold mb-4"
