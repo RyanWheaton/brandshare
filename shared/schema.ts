@@ -57,6 +57,9 @@ export const sharePages = pgTable("share_pages", {
   lastViewedAt: timestamp("last_viewed_at"),
   password: text("password"),
   expiresAt: timestamp("expires_at"),
+  footerBackgroundColor: text("footer_background_color").default("#f3f4f6"),
+  footerText: text("footer_text"),
+  footerTextColor: text("footer_text_color").default("#000000"),
 });
 
 export const annotations = pgTable("annotations", {
@@ -124,6 +127,9 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   files: true,
   password: true,
   expiresAt: true,
+  footerBackgroundColor: true,
+  footerText: true,
+  footerTextColor: true,
 }).extend({
   files: z.array(fileSchema),
   password: z.string().optional(),
@@ -135,6 +141,9 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   titleFontSize: z.number().min(12).max(48),
   descriptionFontSize: z.number().min(12).max(32),
   logoSize: z.number().min(50).max(800).default(200),
+  footerText: z.string().optional(),
+  footerBackgroundColor: z.string().optional(),
+  footerTextColor: z.string().optional(),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({

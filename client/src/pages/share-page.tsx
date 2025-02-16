@@ -564,6 +564,24 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           ))}
         </div>
       </div>
+
+      {(page.footerText || page.footerBackgroundColor) && (
+        <footer
+          className="w-full py-6 px-4 mt-8"
+          style={{
+            backgroundColor: page.footerBackgroundColor || "#f3f4f6",
+            color: page.footerTextColor || "#000000",
+          }}
+        >
+          <div className="max-w-4xl mx-auto text-center">
+            {page.footerText && (
+              <p style={{ color: page.footerTextColor || "#000000" }}>
+                {page.footerText}
+              </p>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
