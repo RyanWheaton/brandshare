@@ -576,15 +576,33 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           <div className="max-w-4xl mx-auto">
             {page.footerLogoUrl && (
               <div className="mb-6 flex justify-center">
-                <img
-                  src={convertDropboxUrl(page.footerLogoUrl)}
-                  alt="Footer Logo"
-                  className="mx-auto object-contain"
-                  style={{
-                    maxWidth: page.footerLogoSize || 150,
-                    maxHeight: page.footerLogoSize || 150
-                  }}
-                />
+                {page.footerLogoLink ? (
+                  <a 
+                    href={page.footerLogoLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img
+                      src={convertDropboxUrl(page.footerLogoUrl)}
+                      alt="Footer Logo"
+                      className="mx-auto object-contain"
+                      style={{
+                        maxWidth: page.footerLogoSize || 150,
+                        maxHeight: page.footerLogoSize || 150
+                      }}
+                    />
+                  </a>
+                ) : (
+                  <img
+                    src={convertDropboxUrl(page.footerLogoUrl)}
+                    alt="Footer Logo"
+                    className="mx-auto object-contain"
+                    style={{
+                      maxWidth: page.footerLogoSize || 150,
+                      maxHeight: page.footerLogoSize || 150
+                    }}
+                  />
+                )}
               </div>
             )}
             {page.footerText && (

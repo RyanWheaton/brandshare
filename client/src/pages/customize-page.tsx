@@ -37,7 +37,6 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import { TipTapEditor } from "@/components/ui/tiptap-editor";
 
-// Add this function at the top level
 function convertDropboxUrl(url: string): string {
   if (!url.includes('dropbox.com')) return url;
   let convertedUrl = url
@@ -50,7 +49,6 @@ function convertDropboxUrl(url: string): string {
   return convertedUrl;
 }
 
-// Add this function at the top level
 function loadGoogleFont(fontFamily: string) {
   const link = document.createElement('link');
   link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}&display=swap`;
@@ -201,6 +199,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       showFooter: true,
       footerLogoUrl: "",
       footerLogoSize: 150,
+      footerLogoLink: "",
       ...(isTemplate ? {} : {
         password: "",
         expiresAt: undefined,
@@ -225,6 +224,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       showFooter: (item as SharePage).showFooter ?? true,
       footerLogoUrl: (item as SharePage).footerLogoUrl || "",
       footerLogoSize: (item as SharePage).footerLogoSize || 150,
+      footerLogoLink: (item as SharePage).footerLogoLink || "",
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
         expiresAt: (item as SharePage).expiresAt || undefined,
@@ -817,6 +817,25 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                       <FormField
                         control={form.control}
+                        name="footerLogoLink"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Footer Logo Link</FormLabel>
+                            <FormDescription>
+                              Add a URL to make the footer logo clickable (optional)
+                            </FormDescription>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter URL (e.g., https://example.com)" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
                         name="footerLogoSize"
                         render={({ field }) => (
                           <FormItem>
@@ -1104,15 +1123,33 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           <div className="max-w-4xl mx-auto">
                             {formValues.footerLogoUrl && (
                               <div className="mb-4 flex justify-center">
-                                <img
-                                  src={convertDropboxUrl(formValues.footerLogoUrl)}
-                                  alt="Footer Logo"
-                                  className="mx-auto object-contain"
-                                  style={{
-                                    maxWidth: formValues.footerLogoSize || 150,
-                                    maxHeight: formValues.footerLogoSize || 150
-                                  }}
-                                />
+                                {formValues.footerLogoLink ? (
+                                  <a
+                                    href={formValues.footerLogoLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <img
+                                      src={convertDropboxUrl(formValues.footerLogoUrl)}
+                                      alt="Footer Logo"
+                                      className="mx-auto object-contain"
+                                      style={{
+                                        maxWidth: formValues.footerLogoSize || 150,
+                                        maxHeight: formValues.footerLogoSize || 150
+                                      }}
+                                    />
+                                  </a>
+                                ) : (
+                                  <img
+                                    src={convertDropboxUrl(formValues.footerLogoUrl)}
+                                    alt="Footer Logo"
+                                    className="mx-auto object-contain"
+                                    style={{
+                                      maxWidth: formValues.footerLogoSize || 150,
+                                      maxHeight: formValues.footerLogoSize || 150
+                                    }}
+                                  />
+                                )}
                               </div>
                             )}
                             {formValues.footerText && (
