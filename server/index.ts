@@ -81,31 +81,22 @@ app.use('/api/fonts', fontsRouter);
       serveStatic(app);
     }
 
-    // Use port 3000 as default
-    const PORT = Number(process.env.PORT) || 3000;
+    // Use port 5000 as specified in .replit
+    const PORT = 5000;
 
-    const startServer = async (port: number): Promise<void> => {
-      try {
-        await new Promise<void>((resolve, reject) => {
-          server.listen(port, '0.0.0.0', () => {
-            log(`Server started successfully and is serving on port ${port} in ${process.env.NODE_ENV} mode`);
-            resolve();
-          }).on('error', (error: NodeJS.ErrnoException) => {
-            if (error.code === 'EADDRINUSE') {
-              log(`Port ${port} is already in use, trying next port...`);
-              resolve(startServer(port + 1));
-            } else {
-              reject(error);
-            }
-          });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.listen(PORT, '0.0.0.0', () => {
+          log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
+          resolve();
+        }).on('error', (error: NodeJS.ErrnoException) => {
+          reject(error);
         });
-      } catch (error) {
-        log(`Failed to start server: ${error}`);
-        process.exit(1);
-      }
-    };
-
-    await startServer(PORT);
+      });
+    } catch (error) {
+      log(`Failed to start server: ${error}`);
+      process.exit(1);
+    }
 
   } catch (error) {
     console.error('Failed to start server:', error);
