@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -150,6 +150,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       logoWidth: 200,
       logoHeight: 200,
       files: [],
+      logoUrl: "", // Add default value for logoUrl
       ...(isTemplate ? {} : {
         password: "",
         expiresAt: undefined,
@@ -385,6 +386,122 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
                     className="space-y-4"
                   >
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium">Logo Settings</h3>
+                      <FormField
+                        control={form.control}
+                        name="logoUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Upload Logo</FormLabel>
+                            <FormDescription>
+                              Upload your logo to display above the title
+                            </FormDescription>
+                            <FormControl>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Input {...field} placeholder="Enter logo URL or use Dropbox" />
+                                  <DropboxChooser
+                                    onFilesSelected={(files) => {
+                                      if (files.length > 0) {
+                                        form.setValue('logoUrl', files[0].url, { shouldDirty: true });
+                                      }
+                                    }}
+                                    className="shrink-0"
+                                  >
+                                    <Button type="button" variant="outline" size="icon">
+                                      <Upload className="h-4 w-4" />
+                                    </Button>
+                                  </DropboxChooser>
+                                  {field.value && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                {field.value && (
+                                  <div className="relative w-full h-40 border rounded-lg overflow-hidden">
+                                    <img
+                                      src={field.value}
+                                      alt="Logo Preview"
+                                      className="w-full h-full object-contain"
+                                      style={{
+                                        maxWidth: formValues.logoWidth,
+                                        maxHeight: formValues.logoHeight
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+
+                      <FormField
+                        control={form.control}
+                        name="logoWidth"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Logo Width</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-4">
+                                <Slider
+                                  min={50}
+                                  max={800}
+                                  step={10}
+                                  value={[field.value ?? 200]}
+                                  onValueChange={(value) => field.onChange(value[0])}
+                                  className="flex-1"
+                                />
+                                <span className="w-12 text-right">{field.value ?? 200}px</span>
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Set the width of your logo (50-800px)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="logoHeight"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Logo Height</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-4">
+                                <Slider
+                                  min={50}
+                                  max={800}
+                                  step={10}
+                                  value={[field.value ?? 200]}
+                                  onValueChange={(value) => field.onChange(value[0])}
+                                  className="flex-1"
+                                />
+                                <span className="w-12 text-right">{field.value ?? 200}px</span>
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Set the height of your logo (50-800px)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="title"
@@ -596,7 +713,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       )}
                     />
 
-                    {/* Updated Slider components to handle undefined values */}
+
                     <FormField
                       control={form.control}
                       name="logoWidth"
@@ -785,6 +902,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     className="overflow-hidden"
                   >
                     <div className="text-center mb-8">
+                      {formValues.logoUrl && (
+                        <div className="mb-6">
+                          <img
+                            src={formValues.logoUrl}
+                            alt="Logo"
+                            style={{
+                              maxWidth: formValues.logoWidth || 200,
+                              maxHeight: formValues.logoHeight || 200,
+                              margin: '0 auto'
+                            }}
+                            className="object-contain"
+                          />
+                        </div>
+                      )}
                       <h1
                         className="text-3xl font-bold mb-4"
                         style={{
@@ -794,8 +925,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       >
                         {formValues.title}
                       </h1>
-                      {formValues.description && (
-                        <p
+                      {formValues.description && (                        <p
                           className="text-lg opacity-90"
                           style={{
                             fontFamily: formValues.descriptionFont || "Inter",

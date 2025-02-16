@@ -514,16 +514,21 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       className="min-h-screen relative"
     >
       <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Logo placeholder - You'll need to add the actual logo */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="h-12 w-auto"
-          />
-        </div>
-
         <header className="max-w-4xl mx-auto text-center mb-12">
+          {page.logoUrl && (
+            <div className="mb-8">
+              <img
+                src={page.logoUrl}
+                alt="Logo"
+                style={{
+                  maxWidth: page.logoWidth || 200,
+                  maxHeight: page.logoHeight || 200,
+                  margin: '0 auto'
+                }}
+                className="mx-auto object-contain"
+              />
+            </div>
+          )}
           <h1
             className="mb-4"
             style={{
