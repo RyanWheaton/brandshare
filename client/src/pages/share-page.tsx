@@ -565,7 +565,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         </div>
       </div>
 
-      {(page.footerText || page.footerBackgroundColor) && (
+      {page.showFooter && (page.footerText || page.footerBackgroundColor) && (
         <footer
           className="w-full py-6 px-4 mt-8"
           style={{
