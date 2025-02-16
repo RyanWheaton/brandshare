@@ -117,13 +117,25 @@ function FileList({
 function LogoPreview({ url, size }: { url: string; size: number }) {
   const [aspectRatio, setAspectRatio] = useState(1);
 
+  const convertDropboxUrl = (url: string): string => {
+    if (!url.includes('dropbox.com')) return url;
+    let convertedUrl = url
+      .replace('?dl=0', '?dl=1')
+      .replace('?raw=1', '?dl=1')
+      .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+    if (!convertedUrl.includes('dl=1')) {
+      convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
+    }
+    return convertedUrl;
+  };
+
   useEffect(() => {
     if (url) {
       const imgElement = document.createElement('img');
       imgElement.onload = () => {
         setAspectRatio(imgElement.width / imgElement.height);
       };
-      imgElement.src = url;
+      imgElement.src = convertDropboxUrl(url);
     }
   }, [url]);
 
@@ -133,7 +145,7 @@ function LogoPreview({ url, size }: { url: string; size: number }) {
   return (
     <div className="relative w-full h-40 border rounded-lg overflow-hidden">
       <img
-        src={url}
+        src={convertDropboxUrl(url)}
         alt="Logo Preview"
         className="w-full h-full object-contain"
         style={{
@@ -484,6 +496,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           </FormItem>
                         )}
                       />
+
 
 
                       <FormField
@@ -890,7 +903,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     type="color"
                                     {...field}
                                     value={field.value || '#000000'}
-                                    className="w-12 h-10 p-1"
+                    className="w-12 h-10 p-1"
                                   />
                                   <Input {...field} value={field.value || '#000000'} />
                                 </div>
@@ -1091,7 +1104,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             {formValues.footerLogoUrl && (
                               <div className="mb-4 flex justify-center">
                                 <img
-                                  src={formValues.footerLogoUrl}
+                                  src={convertDropboxUrl(formValues.footerLogoUrl)}
                                   alt="Footer Logo"
                                   className="mx-auto object-contain"
                                   style={{

@@ -577,7 +577,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             {page.footerLogoUrl && (
               <div className="mb-6 flex justify-center">
                 <img
-                  src={page.footerLogoUrl}
+                  src={convertDropboxUrl(page.footerLogoUrl)}
                   alt="Footer Logo"
                   className="mx-auto object-contain"
                   style={{
