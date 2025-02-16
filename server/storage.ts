@@ -105,6 +105,8 @@ export class DatabaseStorage implements IStorage {
         descriptionFont: page.descriptionFont ?? "Inter",
         titleFontSize: page.titleFontSize ?? 24,
         descriptionFontSize: page.descriptionFontSize ?? 16,
+        logoUrl: page.logoUrl ?? null,
+        logoSize: page.logoSize ?? 200,
         password: page.password || null,
         expiresAt: page.expiresAt ? new Date(page.expiresAt) : null,
       })
@@ -148,6 +150,8 @@ export class DatabaseStorage implements IStorage {
         descriptionFont: updates.descriptionFont ? updates.descriptionFont : "Inter",
         titleFontSize: typeof updates.titleFontSize === 'number' ? updates.titleFontSize : 24,
         descriptionFontSize: typeof updates.descriptionFontSize === 'number' ? updates.descriptionFontSize : 16,
+        logoUrl: updates.logoUrl ?? undefined,
+        logoSize: typeof updates.logoSize === 'number' ? updates.logoSize : undefined,
         password: updates.password ?? undefined,
         expiresAt: updates.expiresAt ? new Date(updates.expiresAt) : undefined,
       })
