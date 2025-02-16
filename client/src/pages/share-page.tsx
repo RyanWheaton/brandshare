@@ -565,7 +565,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         </div>
       </div>
 
-      {page.showFooter && (page.footerText || page.footerBackgroundColor) && (
+      {page.showFooter && (page.footerText || page.footerBackgroundColor || page.footerLogoUrl) && (
         <footer
           className="w-full py-6 px-4 mt-8"
           style={{
@@ -574,6 +574,19 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           }}
         >
           <div className="max-w-4xl mx-auto">
+            {page.footerLogoUrl && (
+              <div className="mb-6 flex justify-center">
+                <img
+                  src={page.footerLogoUrl}
+                  alt="Footer Logo"
+                  className="mx-auto object-contain"
+                  style={{
+                    maxWidth: page.footerLogoSize || 150,
+                    maxHeight: page.footerLogoSize || 150
+                  }}
+                />
+              </div>
+            )}
             {page.footerText && (
               <div
                 className="prose prose-sm max-w-none"
