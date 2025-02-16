@@ -520,12 +520,11 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
               <img
                 src={page.logoUrl}
                 alt="Logo"
-                style={{
-                  maxWidth: page.logoWidth || 200,
-                  maxHeight: page.logoHeight || 200,
-                  margin: '0 auto'
-                }}
                 className="mx-auto object-contain"
+                style={{
+                  maxWidth: page.logoSize || 200,
+                  maxHeight: page.logoSize || 200
+                }}
               />
             </div>
           )}

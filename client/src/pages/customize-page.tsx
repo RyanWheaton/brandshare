@@ -113,6 +113,37 @@ function FileList({
   );
 }
 
+function LogoPreview({ url, size }: { url: string; size: number }) {
+  const [aspectRatio, setAspectRatio] = useState(1);
+
+  useEffect(() => {
+    if (url) {
+      const img = new Image();
+      img.onload = () => {
+        setAspectRatio(img.width / img.height);
+      };
+      img.src = url;
+    }
+  }, [url]);
+
+  const width = size;
+  const height = Math.round(size / aspectRatio);
+
+  return (
+    <div className="relative w-full h-40 border rounded-lg overflow-hidden">
+      <img
+        src={url}
+        alt="Logo Preview"
+        className="w-full h-full object-contain"
+        style={{
+          maxWidth: width,
+          maxHeight: height
+        }}
+      />
+    </div>
+  );
+}
+
 type CustomizePageProps = {
   params: { id: string };
   isTemplate?: boolean;
@@ -147,10 +178,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       descriptionFont: "Inter",
       titleFontSize: 24,
       descriptionFontSize: 16,
-      logoWidth: 200,
-      logoHeight: 200,
+      logoSize: 200,
       files: [],
-      logoUrl: "", // Add default value for logoUrl
+      logoUrl: "",
       ...(isTemplate ? {} : {
         password: "",
         expiresAt: undefined,
@@ -166,8 +196,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       descriptionFont: item.descriptionFont || "Inter",
       titleFontSize: isTemplate ? 24 : (item as SharePage).titleFontSize || 24,
       descriptionFontSize: isTemplate ? 16 : (item as SharePage).descriptionFontSize || 16,
-      logoWidth: isTemplate ? 200 : (item as SharePage).logoWidth || 200,
-      logoHeight: isTemplate ? 200 : (item as SharePage).logoHeight || 200,
+      logoSize: isTemplate ? 200 : (item as SharePage).logoWidth || 200,
       files: item.files as FileObject[],
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
@@ -427,17 +456,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   )}
                                 </div>
                                 {field.value && (
-                                  <div className="relative w-full h-40 border rounded-lg overflow-hidden">
-                                    <img
-                                      src={field.value}
-                                      alt="Logo Preview"
-                                      className="w-full h-full object-contain"
-                                      style={{
-                                        maxWidth: formValues.logoWidth,
-                                        maxHeight: formValues.logoHeight
-                                      }}
-                                    />
-                                  </div>
+                                  <LogoPreview url={field.value} size={formValues.logoSize || 200} />
                                 )}
                               </div>
                             </FormControl>
@@ -449,10 +468,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                       <FormField
                         control={form.control}
-                        name="logoWidth"
+                        name="logoSize"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Logo Width</FormLabel>
+                            <FormLabel>Logo Size</FormLabel>
                             <FormControl>
                               <div className="flex items-center gap-4">
                                 <Slider
@@ -467,34 +486,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               </div>
                             </FormControl>
                             <FormDescription>
-                              Set the width of your logo (50-800px)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="logoHeight"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Logo Height</FormLabel>
-                            <FormControl>
-                              <div className="flex items-center gap-4">
-                                <Slider
-                                  min={50}
-                                  max={800}
-                                  step={10}
-                                  value={[field.value ?? 200]}
-                                  onValueChange={(value) => field.onChange(value[0])}
-                                  className="flex-1"
-                                />
-                                <span className="w-12 text-right">{field.value ?? 200}px</span>
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Set the height of your logo (50-800px)
+                              Adjust logo size (maintains aspect ratio)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -714,61 +706,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     />
 
 
-                    <FormField
-                      control={form.control}
-                      name="logoWidth"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Logo Width</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-4">
-                              <Slider
-                                min={50}
-                                max={800}
-                                step={10}
-                                value={[field.value ?? 200]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                                className="flex-1"
-                              />
-                              <span className="w-12 text-right">{field.value ?? 200}px</span>
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Set the width of your logo (50-800px)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="logoHeight"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Logo Height</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-4">
-                              <Slider
-                                min={50}
-                                max={800}
-                                step={10}
-                                value={[field.value ?? 200]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                                className="flex-1"
-                              />
-                              <span className="w-12 text-right">{field.value ?? 200}px</span>
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Set the height of your logo (50-800px)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-
                     <Separator className="my-4" />
 
                     <div className="space-y-4">
@@ -908,8 +845,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             src={formValues.logoUrl}
                             alt="Logo"
                             style={{
-                              maxWidth: formValues.logoWidth || 200,
-                              maxHeight: formValues.logoHeight || 200,
+                              maxWidth: formValues.logoSize || 200,
+                              maxHeight: Math.round((formValues.logoSize || 200) / (formValues.logoAspectRatio || 1)),
                               margin: '0 auto'
                             }}
                             className="object-contain"
@@ -925,7 +862,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       >
                         {formValues.title}
                       </h1>
-                      {formValues.description && (                        <p
+                      {formValues.description && (
+                        <p
                           className="text-lg opacity-90"
                           style={{
                             fontFamily: formValues.descriptionFont || "Inter",

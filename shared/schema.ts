@@ -52,8 +52,7 @@ export const sharePages = pgTable("share_pages", {
   titleFontSize: integer("title_font_size").default(24).notNull(),
   descriptionFontSize: integer("description_font_size").default(16).notNull(),
   logoUrl: text("logo_url"),
-  logoWidth: integer("logo_width").default(200),
-  logoHeight: integer("logo_height").default(200),
+  logoSize: integer("logo_size").default(200),
   files: jsonb("files").notNull(),
   lastViewedAt: timestamp("last_viewed_at"),
   password: text("password"),
@@ -121,8 +120,7 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   titleFontSize: true,
   descriptionFontSize: true,
   logoUrl: true,
-  logoWidth: true,
-  logoHeight: true,
+  logoSize: true,
   files: true,
   password: true,
   expiresAt: true,
@@ -136,8 +134,7 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   descriptionFont: z.string().min(1, "Description font is required"),
   titleFontSize: z.number().min(12).max(48),
   descriptionFontSize: z.number().min(12).max(32),
-  logoWidth: z.number().min(50).max(800).default(200),
-  logoHeight: z.number().min(50).max(800).default(200),
+  logoSize: z.number().min(50).max(800).default(200),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({
