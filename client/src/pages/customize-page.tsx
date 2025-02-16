@@ -36,18 +36,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import { TipTapEditor } from "@/components/ui/tiptap-editor";
-
-function convertDropboxUrl(url: string): string {
-  if (!url.includes('dropbox.com')) return url;
-  let convertedUrl = url
-    .replace('?dl=0', '?dl=1')
-    .replace('?raw=1', '?dl=1')
-    .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-  if (!convertedUrl.includes('dl=1')) {
-    convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
-  }
-  return convertedUrl;
-}
+import { convertDropboxUrl } from "@/lib/utils";
 
 function loadGoogleFont(fontFamily: string) {
   const link = document.createElement('link');
@@ -922,7 +911,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   <Input
                                     type="color"
                                     {...field}
-                                    value={field.value || '#000000'}
+                                    value={field.value || '#0000'}
                                     className="w-12 h-10 p1"
                                   />
                                   <Input {...field} value={field.value || '#000000'} />

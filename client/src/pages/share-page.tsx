@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import React from 'react';
+import { convertDropboxUrl } from "@/lib/utils";
 
 type CommentProps = {
   annotation: Annotation;
@@ -162,17 +163,6 @@ export function FilePreview({
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
   const isPDF = fileType === 'pdf';
 
-  const convertDropboxUrl = (url: string): string => {
-    if (!url.includes('dropbox.com')) return url;
-    let convertedUrl = url
-      .replace('?dl=0', '?dl=1')
-      .replace('?raw=1', '?dl=1')
-      .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-    if (!convertedUrl.includes('dl=1')) {
-      convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
-    }
-    return convertedUrl;
-  };
 
   const renderContent = () => {
     if (isImage) {
@@ -577,7 +567,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             {page.footerLogoUrl && (
               <div className="mb-6 flex justify-center">
                 {page.footerLogoLink ? (
-                  <a 
+                  <a
                     href={page.footerLogoLink}
                     target="_blank"
                     rel="noopener noreferrer"
