@@ -118,11 +118,11 @@ function LogoPreview({ url, size }: { url: string; size: number }) {
 
   useEffect(() => {
     if (url) {
-      const img = new Image();
-      img.onload = () => {
-        setAspectRatio(img.width / img.height);
+      const imgElement = document.createElement('img');
+      imgElement.onload = () => {
+        setAspectRatio(imgElement.width / imgElement.height);
       };
-      img.src = url;
+      imgElement.src = url;
     }
   }, [url]);
 
@@ -846,7 +846,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             alt="Logo"
                             style={{
                               maxWidth: formValues.logoSize || 200,
-                              maxHeight: Math.round((formValues.logoSize || 200) / (formValues.logoAspectRatio || 1)),
+                              maxHeight: formValues.logoSize || 200,
                               margin: '0 auto'
                             }}
                             className="object-contain"
