@@ -904,81 +904,77 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
           <div className="relative">
             <div className="sticky top-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Preview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div
-                    style={{
-                      backgroundColor: formValues.backgroundColor || "#ffffff",
-                      background: !isTemplate && formValues.backgroundColorSecondary
-                        ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
-                        : formValues.backgroundColor || "#ffffff",
-                      color: formValues.textColor || "#000000",
-                      minHeight: "500px",
-                      padding: "2rem",
-                      borderRadius: "0.5rem",
-                    }}
-                    className="overflow-hidden"
-                  >
+              <Card className="w-full h-[calc(100vh-13rem)] overflow-y-auto">
+                <CardContent className="p-4">
+                  <div className="relative">
+                    {formValues.logoUrl && (
+                      <div className="mb-8 flex justify-center">
+                        <img
+                          src={formValues.logoUrl}
+                          alt="Logo"
+                          className="mx-auto object-contain"
+                          style={{
+                            maxWidth: formValues.logoSize || 200,
+                            maxHeight: formValues.logoSize || 200
+                          }}
+                        />
+                      </div>                    )}
                     <div className="text-center mb-8">
-                      {formValues.logoUrl && (
-                        <div className="mb-6">
-                          <img
-                            src={formValues.logoUrl}
-                            alt="Logo"
-                            style={{
-                              maxWidth: formValues.logoSize || 200,
-                              maxHeight: formValues.logoSize || 200,
-                              margin: '0 auto'
-                            }}
-                            className="object-contain"
-                          />
-                        </div>
-                      )}
                       <h1
-                        className="text-3xl font-bold mb-4"
+                        className="mb-4 font-bold"
                         style={{
                           fontFamily: formValues.titleFont || "Inter",
-                          fontSize: `${isTemplate ? 24 : formValues.titleFontSize || 24}px`
+                          fontSize: `${formValues.titleFontSize || 24}px`,
+                          color: formValues.textColor
                         }}
                       >
-                        {formValues.title}
+                        {formValues.title || "Untitled Share Page"}
                       </h1>
                       {formValues.description && (
                         <p
-                          className="text-lg opacity-90"
+                          className="opacity-90"
                           style={{
                             fontFamily: formValues.descriptionFont || "Inter",
-                            fontSize: `${isTemplate ? 16 : formValues.descriptionFontSize || 16}px`
+                            fontSize: `${formValues.descriptionFontSize || 16}px`,
+                            color: formValues.textColor
                           }}
                         >
                           {formValues.description}
                         </p>
                       )}
                     </div>
-
-                    <div className="grid gap-8">
-                      {formValues.files.map((file, index) => (
+                    <div className="space-y-4">
+                      {(formValues.files as FileObject[])?.map((file, index) => (
                         <FilePreview
                           key={index}
                           file={file}
                           textColor={formValues.textColor}
+                          containerClassName={cn(
+                            "w-full",
+                            file.isFullWidth ? "" : "max-w-4xl mx-auto"
+                          )}
                         />
                       ))}
                     </div>
-                    <div
-                      style={{
-                        backgroundColor: formValues.footerBackgroundColor || "#f3f4f6",
-                        color: formValues.footerTextColor || "#000000",
-                        padding: "1rem",
-                        marginTop: "2rem",
-                        textAlign: "center"
-                      }}
-                    >
-                      {formValues.footerText}
-                    </div>
+                    {(formValues.footerText || formValues.footerBackgroundColor) && (
+                      <div className="absolute bottom-0 left-0 right-0 w-full">
+                        <div
+                          className="w-full py-6 px-4"
+                          style={{
+                            backgroundColor: formValues.footerBackgroundColor || "#f3f4f6",
+                            color: formValues.footerTextColor || "#000000",
+                          }}
+                        >
+                          <div className="max-w-4xl mx-auto text-center">
+                            {formValues.footerText && (
+                              <p style={{ color: formValues.footerTextColor || "#000000" }}>
+                                {formValues.footerText}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
