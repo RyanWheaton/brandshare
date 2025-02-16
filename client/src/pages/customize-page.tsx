@@ -186,6 +186,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       footerBackgroundColor: "#f3f4f6",
       footerTextColor: "#000000",
       showFooter: true,
+      footerLogoUrl: "",
+      footerLogoSize: 150,
       ...(isTemplate ? {} : {
         password: "",
         expiresAt: undefined,
@@ -208,6 +210,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       footerBackgroundColor: (item as SharePage).footerBackgroundColor || "#f3f4f6",
       footerTextColor: (item as SharePage).footerTextColor || "#000000",
       showFooter: (item as SharePage).showFooter ?? true,
+      footerLogoUrl: (item as SharePage).footerLogoUrl || "",
+      footerLogoSize: (item as SharePage).footerLogoSize || 150,
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
         expiresAt: (item as SharePage).expiresAt || undefined,
@@ -240,7 +244,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           footerText: data.footerText || "",
           footerBackgroundColor: data.footerBackgroundColor || "#f3f4f6",
           footerTextColor: data.footerTextColor || "#000000",
-          showFooter: data.showFooter ?? true
+          showFooter: data.showFooter ?? true,
+          footerLogoUrl: data.footerLogoUrl || "",
+          footerLogoSize: data.footerLogoSize || 150,
         })
       });
       return response;
@@ -478,7 +484,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           </FormItem>
                         )}
                       />
-
 
 
                       <FormField
@@ -750,6 +755,81 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                       <FormField
                         control={form.control}
+                        name="footerLogoUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Footer Logo</FormLabel>
+                            <FormDescription>
+                              Upload a logo to display above the footer text
+                            </FormDescription>
+                            <FormControl>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Input {...field} placeholder="Enter logo URL or use Dropbox" />
+                                  <DropboxChooser
+                                    onFilesSelected={(files) => {
+                                      if (files.length > 0) {
+                                        form.setValue('footerLogoUrl', files[0].url, { shouldDirty: true });
+                                      }
+                                    }}
+                                    className="shrink-0"
+                                  >
+                                    <Button type="button" variant="outline" size="icon">
+                                      <Upload className="h-4 w-4" />
+                                    </Button>
+                                  </DropboxChooser>
+                                  {field.value && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => form.setValue('footerLogoUrl', '', { shouldDirty: true })}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                {field.value && (
+                                  <LogoPreview url={field.value} size={formValues.footerLogoSize || 150} />
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="footerLogoSize"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Footer Logo Size</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-4">
+                                <Slider
+                                  min={50}
+                                  max={800}
+                                  step={10}
+                                  value={[field.value ?? 150]}
+                                  onValueChange={(value) => field.onChange(value[0])}
+                                  className="flex-1"
+                                />
+                                <span className="w-12 text-right">{field.value ?? 150}px</span>
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Adjust footer logo size (maintains aspect ratio)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
                         name="footerText"
                         render={({ field }) => (
                           <FormItem>
@@ -998,7 +1078,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         ))}
                       </div>
                     </div>
-                    {formValues.showFooter && (formValues.footerText || formValues.footerBackgroundColor) && (
+                    {formValues.showFooter && (formValues.footerText || formValues.footerBackgroundColor || formValues.footerLogoUrl) && (
                       <footer className="w-full mt-8">
                         <div
                           className="w-full py-6 px-4"
@@ -1008,6 +1088,19 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           }}
                         >
                           <div className="max-w-4xl mx-auto">
+                            {formValues.footerLogoUrl && (
+                              <div className="mb-4 flex justify-center">
+                                <img
+                                  src={formValues.footerLogoUrl}
+                                  alt="Footer Logo"
+                                  className="mx-auto object-contain"
+                                  style={{
+                                    maxWidth: formValues.footerLogoSize || 150,
+                                    maxHeight: formValues.footerLogoSize || 150
+                                  }}
+                                />
+                              </div>
+                            )}
                             {formValues.footerText && (
                               <div
                                 className="prose prose-sm max-w-none"
