@@ -903,7 +903,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           </div>
 
           <div className="relative h-[calc(100vh-5rem)]">
-            <div className="sticky top-4 h-full">
+            <div className="h-full">
               <Card className="w-full h-full overflow-hidden">
                 <CardContent className="p-0 relative h-full">
                   <div
@@ -915,7 +915,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         : formValues.backgroundColor || "#ffffff",
                     }}
                   >
-                    <div className="p-8 min-h-full pb-32">
+                    <div className="p-8 min-h-full">
                       {formValues.logoUrl && (
                         <div className="mb-8 flex justify-center">
                           <img
@@ -969,7 +969,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     </div>
 
                     {(formValues.footerText || formValues.footerBackgroundColor) && (
-                      <footer className="sticky bottom-0 left-0 right-0 w-full">
+                      <footer className="w-full mt-8">
                         <div
                           className="w-full py-6 px-4"
                           style={{
