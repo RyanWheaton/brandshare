@@ -196,7 +196,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       descriptionFont: item.descriptionFont || "Inter",
       titleFontSize: isTemplate ? 24 : (item as SharePage).titleFontSize || 24,
       descriptionFontSize: isTemplate ? 16 : (item as SharePage).descriptionFontSize || 16,
-      logoSize: isTemplate ? 200 : (item as SharePage).logoWidth || 200,
+      logoSize: isTemplate ? 200 : (item as SharePage).logoSize || 200,
+      logoUrl: (item as SharePage).logoUrl || "",
       files: item.files as FileObject[],
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
