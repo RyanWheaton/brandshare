@@ -184,7 +184,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       footerText: "",
       footerBackgroundColor: "#f3f4f6",
       footerTextColor: "#000000",
-      showFooter: true, 
+      showFooter: true,
       ...(isTemplate ? {} : {
         password: "",
         expiresAt: undefined,
@@ -203,10 +203,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       logoSize: isTemplate ? 200 : (item as SharePage).logoSize || 200,
       logoUrl: (item as SharePage).logoUrl || "",
       files: item.files as FileObject[],
-      footerText: (item as SharePage).footerText || "", 
+      footerText: (item as SharePage).footerText || "",
       footerBackgroundColor: (item as SharePage).footerBackgroundColor || "#f3f4f6",
       footerTextColor: (item as SharePage).footerTextColor || "#000000",
-      showFooter: (item as SharePage).showFooter ?? true, 
+      showFooter: (item as SharePage).showFooter ?? true,
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
         expiresAt: (item as SharePage).expiresAt || undefined,
@@ -239,7 +239,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           footerText: data.footerText || "",
           footerBackgroundColor: data.footerBackgroundColor || "#f3f4f6",
           footerTextColor: data.footerTextColor || "#000000",
-          showFooter: data.showFooter ?? true 
+          showFooter: data.showFooter ?? true
         })
       });
       return response;
@@ -477,7 +477,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           </FormItem>
                         )}
                       />
-
 
 
                       <FormField
@@ -726,6 +725,29 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                       <FormField
                         control={form.control}
+                        name="showFooter"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className={cn(
+                                form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                              )}>Show Footer</FormLabel>
+                              <FormDescription>
+                                Toggle footer visibility on the share page
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
                         name="footerText"
                         render={({ field }) => (
                           <FormItem>
@@ -792,29 +814,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           )}
                         />
                       </div>
-                      {/* Add this to the Footer Settings section, after the footerTextColor field */}
-                      <FormField
-                        control={form.control}
-                        name="showFooter"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className={cn(
-                                form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                              )}>Show Footer</FormLabel>
-                              <FormDescription>
-                                Toggle footer visibility on the share page
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
                     </div>
 
                     <Separator className="my-4" />
@@ -928,7 +927,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               </CardContent>
             </Card>
           </div>
-
           <div className="relative h-[calc(100vh-5rem)]">
             <div className="h-full">
               <Card className="w-full h-full overflow-hidden">
