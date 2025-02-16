@@ -38,6 +38,19 @@ import { AlertCircle } from "lucide-react";
 import { TipTapEditor } from "@/components/ui/tiptap-editor";
 
 // Add this function at the top level
+function convertDropboxUrl(url: string): string {
+  if (!url.includes('dropbox.com')) return url;
+  let convertedUrl = url
+    .replace('?dl=0', '?dl=1')
+    .replace('?raw=1', '?dl=1')
+    .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+  if (!convertedUrl.includes('dl=1')) {
+    convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
+  }
+  return convertedUrl;
+}
+
+// Add this function at the top level
 function loadGoogleFont(fontFamily: string) {
   const link = document.createElement('link');
   link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}&display=swap`;
@@ -116,18 +129,6 @@ function FileList({
 
 function LogoPreview({ url, size }: { url: string; size: number }) {
   const [aspectRatio, setAspectRatio] = useState(1);
-
-  const convertDropboxUrl = (url: string): string => {
-    if (!url.includes('dropbox.com')) return url;
-    let convertedUrl = url
-      .replace('?dl=0', '?dl=1')
-      .replace('?raw=1', '?dl=1')
-      .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-    if (!convertedUrl.includes('dl=1')) {
-      convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
-    }
-    return convertedUrl;
-  };
 
   useEffect(() => {
     if (url) {
@@ -903,7 +904,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     type="color"
                                     {...field}
                                     value={field.value || '#000000'}
-                    className="w-12 h-10 p-1"
+                                    className="w-12 h-10 p1"
                                   />
                                   <Input {...field} value={field.value || '#000000'} />
                                 </div>
