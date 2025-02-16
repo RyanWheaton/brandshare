@@ -181,6 +181,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       logoSize: 200,
       files: [],
       logoUrl: "",
+      footerText: "",
+      footerBackgroundColor: "#f3f4f6",
+      footerTextColor: "#000000",
       ...(isTemplate ? {} : {
         password: "",
         expiresAt: undefined,
@@ -199,6 +202,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       logoSize: isTemplate ? 200 : (item as SharePage).logoSize || 200,
       logoUrl: (item as SharePage).logoUrl || "",
       files: item.files as FileObject[],
+      footerText: (item as SharePage).footerText || "", // Assuming these fields exist
+      footerBackgroundColor: (item as SharePage).footerBackgroundColor || "#f3f4f6",
+      footerTextColor: (item as SharePage).footerTextColor || "#000000",
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
         expiresAt: (item as SharePage).expiresAt || undefined,
@@ -227,7 +233,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         ...(isTemplate ? {} : {
           titleFontSize: data.titleFontSize || 24,
           descriptionFontSize: data.descriptionFontSize || 16,
-          backgroundColorSecondary: data.backgroundColorSecondary || undefined
+          backgroundColorSecondary: data.backgroundColorSecondary || undefined,
+          footerText: data.footerText || "",
+          footerBackgroundColor: data.footerBackgroundColor || "#f3f4f6",
+          footerTextColor: data.footerTextColor || "#000000"
         })
       });
       return response;
@@ -706,6 +715,80 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       )}
                     />
 
+                    <Separator className="my-4" />
+
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium">Footer Settings</h3>
+
+                      <FormField
+                        control={form.control}
+                        name="footerText"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className={cn(
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Footer Text</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} value={field.value || ''} placeholder="Enter footer text (optional)" />
+                            </FormControl>
+                            <FormDescription>
+                              Add text to be displayed in the footer
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="footerBackgroundColor"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className={cn(
+                                form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                              )}>Footer Background Color</FormLabel>
+                              <FormControl>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="color"
+                                    {...field}
+                                    value={field.value || '#f3f4f6'}
+                                    className="w-12 h-10 p-1"
+                                  />
+                                  <Input {...field} value={field.value || '#f3f4f6'} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="footerTextColor"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className={cn(
+                                form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                              )}>Footer Text Color</FormLabel>
+                              <FormControl>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="color"
+                                    {...field}
+                                    value={field.value || '#000000'}
+                                    className="w-12 h-10 p-1"
+                                  />
+                                  <Input {...field} value={field.value || '#000000'} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
 
                     <Separator className="my-4" />
 
@@ -884,6 +967,17 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           textColor={formValues.textColor}
                         />
                       ))}
+                    </div>
+                    <div
+                      style={{
+                        backgroundColor: formValues.footerBackgroundColor || "#f3f4f6",
+                        color: formValues.footerTextColor || "#000000",
+                        padding: "1rem",
+                        marginTop: "2rem",
+                        textAlign: "center"
+                      }}
+                    >
+                      {formValues.footerText}
                     </div>
                   </div>
                 </CardContent>
