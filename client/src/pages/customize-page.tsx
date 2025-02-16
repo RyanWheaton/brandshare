@@ -902,21 +902,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             </Card>
           </div>
 
-          <div className="relative">
-            <div className="sticky top-4">
-              <Card className="w-full h-[calc(100vh-13rem)] overflow-y-auto">
-                <CardContent className="p-0">
+          <div className="relative h-[calc(100vh-5rem)]">
+            <div className="sticky top-4 h-full">
+              <Card className="w-full h-full overflow-hidden">
+                <CardContent className="p-0 relative h-full">
                   <div
+                    className="absolute inset-0 overflow-y-auto"
                     style={{
                       backgroundColor: formValues.backgroundColor || "#ffffff",
                       background: formValues.backgroundColorSecondary
                         ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
                         : formValues.backgroundColor || "#ffffff",
-                      minHeight: "100%",
-                      position: "relative",
                     }}
                   >
-                    <div className="p-8">
+                    <div className="p-8 min-h-full pb-32">
                       {formValues.logoUrl && (
                         <div className="mb-8 flex justify-center">
                           <img
@@ -970,7 +969,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     </div>
 
                     {(formValues.footerText || formValues.footerBackgroundColor) && (
-                      <footer className="w-full mt-8">
+                      <footer className="sticky bottom-0 left-0 right-0 w-full">
                         <div
                           className="w-full py-6 px-4"
                           style={{
@@ -991,10 +990,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                   </div>
                 </CardContent>
               </Card>
-
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
