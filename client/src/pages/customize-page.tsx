@@ -1007,11 +1007,13 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             color: formValues.footerTextColor || "#000000",
                           }}
                         >
-                          <div className="max-w-4xl mx-auto text-center">
+                          <div className="max-w-4xl mx-auto">
                             {formValues.footerText && (
-                              <p style={{ color: formValues.footerTextColor || "#000000" }}>
-                                {formValues.footerText}
-                              </p>
+                              <div
+                                className="prose prose-sm max-w-none"
+                                style={{ color: formValues.footerTextColor || "#000000" }}
+                                dangerouslySetInnerHTML={{ __html: formValues.footerText }}
+                              />
                             )}
                           </div>
                         </div>
