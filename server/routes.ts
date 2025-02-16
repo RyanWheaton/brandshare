@@ -2,10 +2,9 @@ import type { Express, Request, Response, NextFunction, RequestHandler } from "e
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, fileSchema } from "@shared/schema";
+import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, fileSchema, User } from "@shared/schema";
 import { setupDropbox } from "./dropbox";
 import session from "express-session";
-import { User } from "@shared/schema";
 import { z } from "zod";
 
 // Extend Express Request type to include our custom properties
@@ -16,7 +15,7 @@ declare module 'express-session' {
 }
 
 interface CustomRequest extends Request {
-  user?: User;
+  user?: User;  // Now properly typed with the User type from schema.ts
   sharePage?: any;
 }
 

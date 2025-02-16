@@ -147,6 +147,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       descriptionFont: "Inter",
       titleFontSize: 24,
       descriptionFontSize: 16,
+      logoWidth: 200,
+      logoHeight: 200,
       files: [],
       ...(isTemplate ? {} : {
         password: "",
@@ -163,6 +165,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       descriptionFont: item.descriptionFont || "Inter",
       titleFontSize: isTemplate ? 24 : (item as SharePage).titleFontSize || 24,
       descriptionFontSize: isTemplate ? 16 : (item as SharePage).descriptionFontSize || 16,
+      logoWidth: isTemplate ? 200 : (item as SharePage).logoWidth || 200,
+      logoHeight: isTemplate ? 200 : (item as SharePage).logoHeight || 200,
       files: item.files as FileObject[],
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
@@ -592,6 +596,61 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       )}
                     />
 
+                    {/* Updated Slider components to handle undefined values */}
+                    <FormField
+                      control={form.control}
+                      name="logoWidth"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Logo Width</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-4">
+                              <Slider
+                                min={50}
+                                max={800}
+                                step={10}
+                                value={[field.value ?? 200]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="flex-1"
+                              />
+                              <span className="w-12 text-right">{field.value ?? 200}px</span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Set the width of your logo (50-800px)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="logoHeight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Logo Height</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-4">
+                              <Slider
+                                min={50}
+                                max={800}
+                                step={10}
+                                value={[field.value ?? 200]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="flex-1"
+                              />
+                              <span className="w-12 text-right">{field.value ?? 200}px</span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Set the height of your logo (50-800px)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
 
                     <Separator className="my-4" />
 
@@ -753,8 +812,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <FilePreview
                           key={index}
                           file={file}
-                          textColor={formValues.textColor || "#000000"}
-                          viewMode="preview"
+                          textColor={formValues.textColor}
                         />
                       ))}
                     </div>
