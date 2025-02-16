@@ -905,59 +905,72 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           <div className="relative">
             <div className="sticky top-4">
               <Card className="w-full h-[calc(100vh-13rem)] overflow-y-auto">
-                <CardContent className="p-4">
-                  <div className="relative">
-                    {formValues.logoUrl && (
-                      <div className="mb-8 flex justify-center">
-                        <img
-                          src={formValues.logoUrl}
-                          alt="Logo"
-                          className="mx-auto object-contain"
+                <CardContent className="p-0">
+                  <div
+                    style={{
+                      backgroundColor: formValues.backgroundColor || "#ffffff",
+                      background: formValues.backgroundColorSecondary
+                        ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
+                        : formValues.backgroundColor || "#ffffff",
+                      minHeight: "100%",
+                      position: "relative",
+                    }}
+                  >
+                    <div className="p-8">
+                      {formValues.logoUrl && (
+                        <div className="mb-8 flex justify-center">
+                          <img
+                            src={formValues.logoUrl}
+                            alt="Logo"
+                            className="mx-auto object-contain"
+                            style={{
+                              maxWidth: formValues.logoSize || 200,
+                              maxHeight: formValues.logoSize || 200
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="text-center mb-8">
+                        <h1
+                          className="mb-4 font-bold"
                           style={{
-                            maxWidth: formValues.logoSize || 200,
-                            maxHeight: formValues.logoSize || 200
-                          }}
-                        />
-                      </div>                    )}
-                    <div className="text-center mb-8">
-                      <h1
-                        className="mb-4 font-bold"
-                        style={{
-                          fontFamily: formValues.titleFont || "Inter",
-                          fontSize: `${formValues.titleFontSize || 24}px`,
-                          color: formValues.textColor
-                        }}
-                      >
-                        {formValues.title || "Untitled Share Page"}
-                      </h1>
-                      {formValues.description && (
-                        <p
-                          className="opacity-90"
-                          style={{
-                            fontFamily: formValues.descriptionFont || "Inter",
-                            fontSize: `${formValues.descriptionFontSize || 16}px`,
+                            fontFamily: formValues.titleFont || "Inter",
+                            fontSize: `${formValues.titleFontSize || 24}px`,
                             color: formValues.textColor
                           }}
                         >
-                          {formValues.description}
-                        </p>
-                      )}
+                          {formValues.title || "Untitled Share Page"}
+                        </h1>
+                        {formValues.description && (
+                          <p
+                            className="opacity-90"
+                            style={{
+                              fontFamily: formValues.descriptionFont || "Inter",
+                              fontSize: `${formValues.descriptionFontSize || 16}px`,
+                              color: formValues.textColor
+                            }}
+                          >
+                            {formValues.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-4">
+                        {(formValues.files as FileObject[])?.map((file, index) => (
+                          <FilePreview
+                            key={index}
+                            file={file}
+                            textColor={formValues.textColor}
+                            containerClassName={cn(
+                              "w-full",
+                              file.isFullWidth ? "" : "max-w-4xl mx-auto"
+                            )}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-4">
-                      {(formValues.files as FileObject[])?.map((file, index) => (
-                        <FilePreview
-                          key={index}
-                          file={file}
-                          textColor={formValues.textColor}
-                          containerClassName={cn(
-                            "w-full",
-                            file.isFullWidth ? "" : "max-w-4xl mx-auto"
-                          )}
-                        />
-                      ))}
-                    </div>
+
                     {(formValues.footerText || formValues.footerBackgroundColor) && (
-                      <div className="absolute bottom-0 left-0 right-0 w-full">
+                      <footer className="w-full mt-8">
                         <div
                           className="w-full py-6 px-4"
                           style={{
@@ -973,11 +986,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             )}
                           </div>
                         </div>
-                      </div>
+                      </footer>
                     )}
                   </div>
                 </CardContent>
               </Card>
+
             </div>
           </div>
         </div>
