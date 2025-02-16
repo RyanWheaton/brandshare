@@ -573,11 +573,13 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             color: page.footerTextColor || "#000000",
           }}
         >
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="max-w-4xl mx-auto">
             {page.footerText && (
-              <p style={{ color: page.footerTextColor || "#000000" }}>
-                {page.footerText}
-              </p>
+              <div
+                className="prose prose-sm max-w-none"
+                style={{ color: page.footerTextColor || "#000000" }}
+                dangerouslySetInnerHTML={{ __html: page.footerText }}
+              />
             )}
           </div>
         </footer>

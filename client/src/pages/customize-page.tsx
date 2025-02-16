@@ -35,6 +35,7 @@ import { FontSelect } from "@/components/ui/font-select";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
+import { TipTapEditor } from "@/components/ui/tiptap-editor";
 
 // Add this function at the top level
 function loadGoogleFont(fontFamily: string) {
@@ -479,6 +480,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       />
 
 
+
                       <FormField
                         control={form.control}
                         name="logoSize"
@@ -754,12 +756,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             <FormLabel className={cn(
                               form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                             )}>Footer Text</FormLabel>
-                            <FormControl>
-                              <Textarea {...field} value={field.value || ''} placeholder="Enter footer text (optional)" />
-                            </FormControl>
                             <FormDescription>
-                              Add text to be displayed in the footer
+                              Add formatted text to be displayed in the footer
                             </FormDescription>
+                            <FormControl>
+                              <TipTapEditor
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                className="min-h-[150px]"
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
