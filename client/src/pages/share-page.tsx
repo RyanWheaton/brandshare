@@ -178,7 +178,6 @@ export function FilePreview({
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
   const isPDF = fileType === 'pdf';
 
-
   const renderContent = () => {
     if (isImage) {
       return (
@@ -631,10 +630,9 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             )}
             {page.footerText && (
               <div
-                className="prose prose-sm max-w-none"
+                className="prose prose-sm max-w-none description-font"
                 style={{ 
                   color: page.footerTextColor || "#000000",
-                  fontFamily: `var(--description-font)`
                 }}
                 dangerouslySetInnerHTML={{ __html: page.footerText }}
               />
