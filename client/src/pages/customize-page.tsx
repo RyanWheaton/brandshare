@@ -357,17 +357,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               <ChevronLeft className="h-4 w-4" />
               <span className="sr-only">Back to Dashboard</span>
             </Button>
-            <div className="flex items-center gap-2">
-              <h1 className="font-semibold">
-                Customize {isTemplate ? 'Template' : 'Share Page'}
+            <div className="flex flex-col">
+              <h1 className="font-semibold text-lg leading-none">
+                {item?.title || 'Untitled'}
               </h1>
-              {hasUnsavedChanges && (
-                <Badge variant="outline" className="gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Unsaved Changes
-                </Badge>
-              )}
+              <p className="text-sm text-muted-foreground">
+                Customize {isTemplate ? 'Template' : 'Share Page'}
+              </p>
             </div>
+            {hasUnsavedChanges && (
+              <Badge variant="outline" className="gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Unsaved Changes
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
