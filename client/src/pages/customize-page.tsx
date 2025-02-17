@@ -443,132 +443,131 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     <div className="space-y-6">
                       <Card>
                         <CardHeader>
-                          <CardTitle>Logo Settings</CardTitle>
+                          <CardTitle>Header</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="logoUrl"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Upload Logo</FormLabel>
-                                <FormDescription>
-                                  Upload your logo to display above the title
-                                </FormDescription>
-                                <FormControl>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <Input {...field} placeholder="Enter logo URL or use Dropbox" />
-                                      <DropboxChooser
-                                        onFilesSelected={(files) => {
-                                          if (files.length > 0) {
-                                            form.setValue('logoUrl', files[0].url, { shouldDirty: true });
-                                          }
-                                        }}
-                                        className="shrink-0"
-                                      >
-                                        <Button type="button" variant="outline" size="icon">
-                                          <Upload className="h-4 w-4" />
-                                        </Button>
-                                      </DropboxChooser>
-                                      {field.value && (
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="icon"
-                                          onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                        <CardContent className="space-y-8">
+                          {/* Logo Settings Section */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium">Logo Settings</h4>
+                            <FormField
+                              control={form.control}
+                              name="logoUrl"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Upload Logo</FormLabel>
+                                  <FormDescription>
+                                    Upload your logo to display above the title
+                                  </FormDescription>
+                                  <FormControl>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Input {...field} placeholder="Enter logo URL or use Dropbox" />
+                                        <DropboxChooser
+                                          onFilesSelected={(files) => {
+                                            if (files.length > 0) {
+                                              form.setValue('logoUrl', files[0].url, { shouldDirty: true });
+                                            }
+                                          }}
+                                          className="shrink-0"
                                         >
-                                          <X className="h-4 w-4" />
-                                        </Button>
+                                          <Button type="button" variant="outline" size="icon">
+                                            <Upload className="h-4 w-4" />
+                                          </Button>
+                                        </DropboxChooser>
+                                        {field.value && (
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                      {field.value && (
+                                        <LogoPreview url={field.value} size={formValues.logoSize || 200} />
                                       )}
                                     </div>
-                                    {field.value && (
-                                      <LogoPreview url={field.value} size={formValues.logoSize || 200} />
-                                    )}
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                          <FormField
-                            control={form.control}
-                            name="logoSize"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Logo Size</FormLabel>
-                                <FormControl>
-                                  <div className="flex items-center gap-4">
-                                    <Slider
-                                      min={50}
-                                      max={800}
-                                      step={10}
-                                      value={[field.value ?? 200]}
-                                      onValueChange={(value) => field.onChange(value[0])}
-                                      className="flex-1"
-                                    />
-                                    <span className="w-12 text-right">{field.value ?? 200}px</span>
-                                  </div>
-                                </FormControl>
-                                <FormDescription>
-                                  Adjust logo size (maintains aspect ratio)
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
+                            <FormField
+                              control={form.control}
+                              name="logoSize"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Logo Size</FormLabel>
+                                  <FormControl>
+                                    <div className="flex items-center gap-4">
+                                      <Slider
+                                        min={50}
+                                        max={800}
+                                        step={10}
+                                        value={[field.value ?? 200]}
+                                        onValueChange={(value) => field.onChange(value[0])}
+                                        className="flex-1"
+                                      />
+                                      <span className="w-12 text-right">{field.value ?? 200}px</span>
+                                    </div>
+                                  </FormControl>
+                                  <FormDescription>
+                                    Adjust logo size (maintains aspect ratio)
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Content</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Title</FormLabel>
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <Separator />
 
-                          <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Description</FormLabel>
-                                <FormControl>
-                                  <Textarea {...field} value={field.value || ''} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Appearance</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
+                          {/* Content Section */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-medium">Colors</h4>
+                            <h4 className="text-sm font-medium">Content</h4>
+                            <FormField
+                              control={form.control}
+                              name="title"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Title</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="description"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Description</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} value={field.value || ''} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <Separator />
+
+                          {/* Appearance Section */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium">Appearance</h4>
                             <div className="grid gap-4">
                               <FormField
                                 control={form.control}
@@ -658,6 +657,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             </div>
                           </div>
 
+                          <Separator />
+
+                          {/* Typography Section */}
                           <div className="space-y-4">
                             <h4 className="text-sm font-medium">Typography</h4>
                             <div className="grid gap-4">
