@@ -118,11 +118,13 @@ export function PageThumbnail({
         </div>
         {footerText && (
           <div className="mt-2">
-            <p 
-              className="text-[6px] description-font"
-              style={{ color: footerTextColor || textColor }}
-              dangerouslySetInnerHTML={{ __html: footerText }}
-            />
+            <div className="prose prose-sm max-w-none">
+              <p 
+                className="text-[6px] description-font"
+                style={{ color: footerTextColor || textColor, textAlign: 'center' }}
+                dangerouslySetInnerHTML={{ __html: footerText }}
+              />
+            </div>
           </div>
         )}
       </div>
