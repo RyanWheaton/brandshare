@@ -226,11 +226,23 @@ export function FilePreview({
           <div className="max-w-4xl mx-auto mt-4">
             <div className="flex items-center justify-between pb-4">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold font-[var(--title-font)]" style={{ color: textColor }}>
+                <h3 
+                  className="text-lg font-semibold"
+                  style={{ 
+                    color: textColor,
+                    fontFamily: `var(--title-font)` 
+                  }}
+                >
                   {file.title || file.name}
                 </h3>
                 {file.description && (
-                  <p className="mt-2 text-sm opacity-90 font-[var(--description-font)]" style={{ color: textColor }}>
+                  <p 
+                    className="mt-2 text-sm opacity-90"
+                    style={{ 
+                      color: textColor,
+                      fontFamily: `var(--description-font)`
+                    }}
+                  >
                     {file.description}
                   </p>
                 )}
@@ -505,25 +517,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       } as React.CSSProperties}
       className="min-h-screen relative"
     >
-      <style>{`
-        .share-page-content {
-          --title-font: ${page.titleFont || "Inter"};
-          --description-font: ${page.descriptionFont || "Inter"};
-        }
-        .share-page-content h1,
-        .share-page-content h2,
-        .share-page-content h3,
-        .share-page-content h4,
-        .share-page-content h5,
-        .share-page-content h6 {
-          font-family: var(--title-font);
-        }
-        .share-page-content p,
-        .share-page-content div:not(.preserve-font) {
-          font-family: var(--description-font);
-        }
-      `}</style>
-      <div className="share-page-content mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <header className="max-w-4xl mx-auto text-center mb-12">
           {page.logoUrl && (
             <div className="mb-8">
@@ -539,20 +533,22 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             </div>
           )}
           <h1
-            className="mb-4"
             style={{
               fontSize: `${page.titleFontSize || 24}px`,
               fontWeight: "bold",
+              fontFamily: `var(--title-font)`
             }}
+            className="mb-4"
           >
             {page.title}
           </h1>
           {page.description && (
             <p
-              className="opacity-90"
               style={{
                 fontSize: `${page.descriptionFontSize || 16}px`,
+                fontFamily: `var(--description-font)`
               }}
+              className="opacity-90"
             >
               {page.description}
             </p>
@@ -575,15 +571,15 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
 
       {page.showFooter && (page.footerText || page.footerBackgroundColor || page.footerLogoUrl) && (
         <footer
-          className="share-page-content w-full py-6 px-4 mt-8"
           style={{
             backgroundColor: page.footerBackgroundColor || "#f3f4f6",
             color: page.footerTextColor || "#000000",
           }}
+          className="w-full py-6 px-4 mt-8"
         >
           <div className="max-w-4xl mx-auto">
             {page.footerLogoUrl && (
-              <div className="mb-6 flex justify-center preserve-font">
+              <div className="mb-6 flex justify-center">
                 {page.footerLogoLink ? (
                   <a
                     href={page.footerLogoLink}
@@ -616,7 +612,10 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             {page.footerText && (
               <div
                 className="prose prose-sm max-w-none"
-                style={{ color: page.footerTextColor || "#000000" }}
+                style={{ 
+                  color: page.footerTextColor || "#000000",
+                  fontFamily: `var(--description-font)`
+                }}
                 dangerouslySetInnerHTML={{ __html: page.footerText }}
               />
             )}
