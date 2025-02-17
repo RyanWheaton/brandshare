@@ -3,11 +3,25 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --title-font: Inter;
+    --description-font: Inter;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  /* Apply custom fonts to specific elements */
+  .title-font {
+    font-family: var(--title-font);
+  }
+
+  .description-font {
+    font-family: var(--description-font);
   }
 }

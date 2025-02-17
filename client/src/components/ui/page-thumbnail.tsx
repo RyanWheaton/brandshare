@@ -29,18 +29,12 @@ function FilePreviewThumb({ file }: { file: FileObject }) {
         {isImage && <ImageIcon className="w-2 h-2" />}
         {isVideo && <Film className="w-2 h-2" />}
         {!isImage && !isVideo && <FileText className="w-2 h-2" />}
-        <span 
-          className="truncate" 
-          style={{ fontFamily: 'var(--thumbnail-title-font)' }}
-        >
+        <span className="truncate title-font">
           {file.title || file.name}
         </span>
       </div>
       {file.description && (
-        <p 
-          className="text-[6px] px-1 opacity-75 truncate"
-          style={{ fontFamily: 'var(--thumbnail-description-font)' }}
-        >
+        <p className="text-[6px] px-1 opacity-75 truncate description-font">
           {file.description}
         </p>
       )}
@@ -62,16 +56,18 @@ export function PageThumbnail({
   className = "",
   style = {},
 }: PageThumbnailProps) {
-  // Set up CSS variables at the root level
+  // Update root style to set the font variables
+  React.useEffect(() => {
+    document.documentElement.style.setProperty('--title-font', titleFont);
+    document.documentElement.style.setProperty('--description-font', descriptionFont);
+  }, [titleFont, descriptionFont]);
+
   const rootStyle = {
     backgroundColor: backgroundColor || "#ffffff",
     background: backgroundColorSecondary
       ? `linear-gradient(to bottom, ${backgroundColor || "#ffffff"}, ${backgroundColorSecondary})`
       : backgroundColor || "#ffffff",
     color: textColor || "#000000",
-    // Fix CSS custom property naming
-    '--thumbnail-title-font': titleFont || "Inter",
-    '--thumbnail-description-font': descriptionFont || "Inter",
     ...style,
   } as React.CSSProperties;
 
@@ -83,20 +79,18 @@ export function PageThumbnail({
       <div className="p-2 w-full h-full flex flex-col">
         <div className="text-center mb-2">
           <h3
-            className="font-bold mb-1 truncate"
+            className="font-bold mb-1 truncate title-font"
             style={{
               fontSize: `${titleFontSize / 8}px`,
-              fontFamily: 'var(--thumbnail-title-font)',
             }}
           >
             {title}
           </h3>
           {description && (
             <p
-              className="opacity-90 truncate"
+              className="opacity-90 truncate description-font"
               style={{
                 fontSize: `${descriptionFontSize / 8}px`,
-                fontFamily: 'var(--thumbnail-description-font)',
               }}
             >
               {description}
@@ -112,10 +106,7 @@ export function PageThumbnail({
               />
             ))}
             {files.length > 3 && (
-              <div 
-                className="text-[8px] text-center text-muted-foreground"
-                style={{ fontFamily: 'var(--thumbnail-description-font)' }}
-              >
+              <div className="text-[8px] text-center text-muted-foreground description-font">
                 +{files.length - 3} more files
               </div>
             )}
