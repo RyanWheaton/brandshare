@@ -20,7 +20,7 @@ import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { FilePreview } from "@/pages/share-page";
+import { FilePreview as OriginalFilePreview } from "@/pages/share-page"; //Renamed to avoid conflict
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Film, FileText } from "lucide-react";
@@ -761,6 +761,111 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           </div>
                         </CardContent>
                       </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Files</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <FileList
+                            files={formValues.files}
+                            onUpdateFile={handleFileUpdate}
+                            onAddFiles={(files) => {
+                              form.setValue('files', [...formValues.files, ...files], { shouldDirty: true });
+                            }}
+                            form={form}
+                          />
+                        </CardContent>
+                      </Card>
+
+                      {!isTemplate && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Security Settings</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-8">
+                            <FormField
+                              control={form.control}
+                              name="password"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Password Protection</FormLabel>
+                                  <FormDescription>
+                                    Set a password to restrict access to this share page
+                                  </FormDescription>
+                                  <FormControl>
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="password"
+                                        {...field}
+                                        value={field.value || ''}
+                                        placeholder="Enter a password"
+                                      />
+                                      {field.value && (
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="icon"
+                                          onClick={() => form.setValue('password', '', { shouldDirty: true })}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="expiresAt"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Expiration Date</FormLabel>
+                                  <FormDescription>
+                                    Set a date when this share page will no longer be accessible
+                                  </FormDescription>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant="outline"
+                                          className={cn(
+                                            "w-full pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value ? (
+                                            format(new Date(field.value), "PPP")
+                                          ) : (
+                                            <span>Pick a date</span>
+                                          )}
+                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={field.value ? new Date(field.value) : undefined}
+                                        onSelect={(date) => field.onChange(date?.toISOString())}
+                                        disabled={(date) => date < new Date()}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                     <Separator className="my-4" />
 
@@ -890,8 +995,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className={cn(
-                              form.formState.dirtyFields[name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>FooterText</FormLabel>
+                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                            )}>Footer Text</FormLabel>
                             <FormDescription>
                               Add formatted text to be displayed in the footer
                             </FormDescription>
@@ -901,7 +1006,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 onChange={field.onChange}
                                 className="min-h-[150px]"
                               />
-                            </FormControl>                            <FormMessage />
+                            </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -1090,7 +1196,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       {formValues.logoUrl && (
                         <div className="mb-8 flex justify-center">
                           <img
-                            src={formValues.logoUrl}
+                            src={convertDropboxUrl(formValues.logoUrl)}
                             alt="Logo"
                             className="mx-auto object-contain"
                             style={{
@@ -1126,7 +1232,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       </div>
                       <div className="space-y-4">
                         {(formValues.files as FileObject[])?.map((file, index) => (
-                          <FilePreview
+                          <OriginalFilePreview // Using the renamed component
                             key={index}
                             file={file}
                             textColor={formValues.textColor}
