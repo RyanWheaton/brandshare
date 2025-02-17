@@ -890,7 +890,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                              form.formState.dirtyFields[name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                             )}>FooterText</FormLabel>
                             <FormDescription>
                               Add formatted text to be displayed in the footer
@@ -959,114 +959,119 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                     <Separator className="my-4" />
 
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-medium">Security Settings</h3>
-
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Password Protection</FormLabel>
-                            <FormControl>
-                              <div className="flex gap-2">
-                                <Input
-                                  type="password"
-                                  placeholder="Leave empty for no password"
-                                  {...field}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="shrink-0"
-                                  onClick={() => form.setValue('password', '')}
-                                  disabled={!field.value}
-                                >
-                                  <Lock className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Optional: Add a password to restrict access
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="expiresAt"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Expiration Date</FormLabel>
-                            <FormControl>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    className={cn(
-                                      "w-full justify-start text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? (
-                                      format(new Date(field.value), "PPP")
-                                    ) : (
-                                      <span>No expiration date</span>
-                                    )}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value ? new Date(field.value) : undefined}
-                                    onSelect={(date) =>
-                                      field.onChange(date ? date.toISOString() : undefined)
-                                    }
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                            </FormControl>
-                            <FormDescription>
-                              Optional: Set when this share page should expire
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
                   </form>
                 </Form>
               </CardContent>
             </Card>
 
+            {/* Files Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Files</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add files from Dropbox and arrange them in your preferred order
-                </p>
                 <FileList
-                  form={form}
                   files={formValues.files}
                   onUpdateFile={handleFileUpdate}
-                  onAddFiles={(newFiles) => {
-                    const updatedFiles = [...formValues.files, ...newFiles];
-                    form.setValue('files', updatedFiles, { shouldDirty: true });
+                  onAddFiles={(files) => {
+                    form.setValue('files', [...formValues.files, ...files], { shouldDirty: true });
                   }}
+                  form={form}
                 />
               </CardContent>
             </Card>
+
+            {!isTemplate && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Security Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={cn(
+                          form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                        )}>Password Protection</FormLabel>
+                        <FormDescription>
+                          Set a password to restrict access to this share page
+                        </FormDescription>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="password"
+                              {...field}
+                              value={field.value || ''}
+                              placeholder="Enter a password"
+                            />
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => form.setValue('password', '', { shouldDirty: true })}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="expiresAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={cn(
+                          form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                        )}>Expiration Date</FormLabel>
+                        <FormDescription>
+                          Set a date when this share page will no longer be accessible
+                        </FormDescription>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(new Date(field.value), "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(date) => field.onChange(date?.toISOString())}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Footer Section */}
           </div>
           <div className="relative h-[calc(100vh-5rem)]">
             <div className="h-full">
