@@ -16,6 +16,8 @@ type PageThumbnailProps = {
   descriptionFontSize?: number;
   className?: string;
   style?: React.CSSProperties;
+  footerText?: string | null;
+  footerTextColor?: string;
 };
 
 function FilePreviewThumb({ file }: { file: FileObject }) {
@@ -55,6 +57,8 @@ export function PageThumbnail({
   descriptionFontSize = 16,
   className = "",
   style = {},
+  footerText,
+  footerTextColor,
 }: PageThumbnailProps) {
   // Update root style to set the font variables
   React.useEffect(() => {
@@ -112,6 +116,13 @@ export function PageThumbnail({
             )}
           </div>
         </div>
+        {footerText && (
+          <div 
+            className="mt-2 text-[6px] description-font"
+            style={{ color: footerTextColor || textColor }}
+            dangerouslySetInnerHTML={{ __html: footerText }}
+          />
+        )}
       </div>
     </div>
   );

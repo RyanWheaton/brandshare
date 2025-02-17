@@ -599,6 +599,8 @@ export default function Dashboard() {
                       descriptionFont={page.descriptionFont || "Inter"}
                       titleFontSize={page.titleFontSize || 24}
                       descriptionFontSize={page.descriptionFontSize || 16}
+                      footerText={page.footerText}
+                      footerTextColor={page.footerTextColor}
                     />
                   </div>
                   <div>
