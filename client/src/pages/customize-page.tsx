@@ -438,299 +438,323 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 <Form {...form}>
                   <form
                     onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
-                    className="space-y-4"
+                    className="space-y-6"
                   >
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-medium">Logo Settings</h3>
-                      <FormField
-                        control={form.control}
-                        name="logoUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Upload Logo</FormLabel>
-                            <FormDescription>
-                              Upload your logo to display above the title
-                            </FormDescription>
-                            <FormControl>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Input {...field} placeholder="Enter logo URL or use Dropbox" />
-                                  <DropboxChooser
-                                    onFilesSelected={(files) => {
-                                      if (files.length > 0) {
-                                        form.setValue('logoUrl', files[0].url, { shouldDirty: true });
-                                      }
-                                    }}
-                                    className="shrink-0"
-                                  >
-                                    <Button type="button" variant="outline" size="icon">
-                                      <Upload className="h-4 w-4" />
-                                    </Button>
-                                  </DropboxChooser>
-                                  {field.value && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </div>
-                                {field.value && (
-                                  <LogoPreview url={field.value} size={formValues.logoSize || 200} />
+                    <div className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Logo Settings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="logoUrl"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className={cn(
+                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                )}>Upload Logo</FormLabel>
+                                <FormDescription>
+                                  Upload your logo to display above the title
+                                </FormDescription>
+                                <FormControl>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <Input {...field} placeholder="Enter logo URL or use Dropbox" />
+                                      <DropboxChooser
+                                        onFilesSelected={(files) => {
+                                          if (files.length > 0) {
+                                            form.setValue('logoUrl', files[0].url, { shouldDirty: true });
+                                          }
+                                        }}
+                                        className="shrink-0"
+                                      >
+                                        <Button type="button" variant="outline" size="icon">
+                                          <Upload className="h-4 w-4" />
+                                        </Button>
+                                      </DropboxChooser>
+                                      {field.value && (
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="icon"
+                                          onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    {field.value && (
+                                      <LogoPreview url={field.value} size={formValues.logoSize || 200} />
+                                    )}
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="logoSize"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Logo Size</FormLabel>
+                                <FormControl>
+                                  <div className="flex items-center gap-4">
+                                    <Slider
+                                      min={50}
+                                      max={800}
+                                      step={10}
+                                      value={[field.value ?? 200]}
+                                      onValueChange={(value) => field.onChange(value[0])}
+                                      className="flex-1"
+                                    />
+                                    <span className="w-12 text-right">{field.value ?? 200}px</span>
+                                  </div>
+                                </FormControl>
+                                <FormDescription>
+                                  Adjust logo size (maintains aspect ratio)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Content</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className={cn(
+                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                )}>Title</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className={cn(
+                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                )}>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} value={field.value || ''} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Appearance</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium">Colors</h4>
+                            <div className="grid gap-4">
+                              <FormField
+                                control={form.control}
+                                name="backgroundColor"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Background Color</FormLabel>
+                                    <FormControl>
+                                      <div className="flex gap-2">
+                                        <Input
+                                          type="color"
+                                          {...field}
+                                          value={field.value || '#ffffff'}
+                                          className="w-12 h-10 p-1"
+                                        />
+                                        <Input {...field} value={field.value || '#ffffff'} />
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
                                 )}
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              />
 
-
-
-                      <FormField
-                        control={form.control}
-                        name="logoSize"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Logo Size</FormLabel>
-                            <FormControl>
-                              <div className="flex items-center gap-4">
-                                <Slider
-                                  min={50}
-                                  max={800}
-                                  step={10}
-                                  value={[field.value ?? 200]}
-                                  onValueChange={(value) => field.onChange(value[0])}
-                                  className="flex-1"
-                                />
-                                <span className="w-12 text-right">{field.value ?? 200}px</span>
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Adjust logo size (maintains aspect ratio)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className={cn(
-                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                          )}>Title</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className={cn(
-                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                          )}>Description</FormLabel>
-                          <FormControl>
-                            <Textarea {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="backgroundColor"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Background Color</FormLabel>
-                            <FormControl>
-                              <div className="flex gap-2">
-                                <Input
-                                  type="color"
-                                  {...field}
-                                  value={field.value || '#ffffff'}
-                                  className="w-12 h-10 p-1"
-                                />
-                                <Input {...field} value={field.value || '#ffffff'} />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="backgroundColorSecondary"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Secondary Background Color (Optional)</FormLabel>
-                            <FormDescription>
-                              Add a second color to create a vertical gradient background
-                            </FormDescription>
-                            <FormControl>
-                              <div className="flex gap-2">
-                                <Input
-                                  type="color"
-                                  {...field}
-                                  value={field.value || '#ffffff'}
-                                  className="w-12 h-10 p-1"
-                                />
-                                <Input {...field} value={field.value || ''} />
-                                {field.value && (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="shrink-0"
-                                    onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
+                              <FormField
+                                control={form.control}
+                                name="backgroundColorSecondary"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Secondary Background Color (Optional)</FormLabel>
+                                    <FormDescription>
+                                      Add a second color to create a vertical gradient background
+                                    </FormDescription>
+                                    <FormControl>
+                                      <div className="flex gap-2">
+                                        <Input
+                                          type="color"
+                                          {...field}
+                                          value={field.value || '#ffffff'}
+                                          className="w-12 h-10 p-1"
+                                        />
+                                        <Input {...field} value={field.value || ''} />
+                                        {field.value && (
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="shrink-0"
+                                            onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
                                 )}
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="textColor"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Text Color</FormLabel>
-                            <FormControl>
-                              <div className="flex gap-2">
-                                <Input
-                                  type="color"
-                                  {...field}
-                                  value={field.value || '#000000'}
-                                  className="w-12 h-10 p-1"
-                                />
-                                <Input {...field} value={field.value || '#000000'} />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="titleFont"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Title Font</FormLabel>
-                            <FormControl>
-                              <FontSelect
-                                value={field.value || "Inter"}
-                                onValueChange={field.onChange}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
 
-                      <FormField
-                        control={form.control}
-                        name="descriptionFont"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={cn(
-                              form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Description Font</FormLabel>
-                            <FormControl>
-                              <FontSelect
-                                value={field.value || "Inter"}
-                                onValueChange={field.onChange}
+                              <FormField
+                                control={form.control}
+                                name="textColor"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Text Color</FormLabel>
+                                    <FormControl>
+                                      <div className="flex gap-2">
+                                        <Input
+                                          type="color"
+                                          {...field}
+                                          value={field.value || '#000000'}
+                                          className="w-12 h-10 p-1"
+                                        />
+                                        <Input {...field} value={field.value || '#000000'} />
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="titleFontSize"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className={cn(
-                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                          )}>Title Font Size</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-4">
-                              <Slider
-                                min={12}
-                                max={48}
-                                step={1}
-                                value={[field.value]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                                className="flex-1"
-                              />
-                              <span className="w-12 text-right">{field.value}px</span>
                             </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                          </div>
 
-                    <FormField
-                      control={form.control}
-                      name="descriptionFontSize"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className={cn(
-                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                          )}>Description Font Size</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-4">
-                              <Slider
-                                min={12}
-                                max={32}
-                                step={1}
-                                value={[field.value]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                                className="flex-1"
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium">Typography</h4>
+                            <div className="grid gap-4">
+                              <FormField
+                                control={form.control}
+                                name="titleFont"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Title Font</FormLabel>
+                                    <FormControl>
+                                      <FontSelect
+                                        value={field.value || "Inter"}
+                                        onValueChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
-                              <span className="w-12 text-right">{field.value}px</span>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
+                              <FormField
+                                control={form.control}
+                                name="titleFontSize"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Title Font Size</FormLabel>
+                                    <FormControl>
+                                      <div className="flex items-center gap-4">
+                                        <Slider
+                                          min={12}
+                                          max={48}
+                                          step={1}
+                                          value={[field.value]}
+                                          onValueChange={(value) => field.onChange(value[0])}
+                                          className="flex-1"
+                                        />
+                                        <span className="w-12 text-right">{field.value}px</span>
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="descriptionFont"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Description Font</FormLabel>
+                                    <FormControl>
+                                      <FontSelect
+                                        value={field.value || "Inter"}
+                                        onValueChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="descriptionFontSize"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Description Font Size</FormLabel>
+                                    <FormControl>
+                                      <div className="flex items-center gap-4">
+                                        <Slider
+                                          min={12}
+                                          max={32}
+                                          step={1}
+                                          value={[field.value]}
+                                          onValueChange={(value) => field.onChange(value[0])}
+                                          className="flex-1"
+                                        />
+                                        <span className="w-12 text-right">{field.value}px</span>
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                     <Separator className="my-4" />
 
                     <div className="space-y-4">
@@ -870,8 +894,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 onChange={field.onChange}
                                 className="min-h-[150px]"
                               />
-                            </FormControl>
-                            <FormMessage />
+                            </FormControl>                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -914,8 +937,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   <Input
                                     type="color"
                                     {...field}
-                                    value={field.value || '#0000'}
-                                    className="w-12 h-10 p1"
+                                    value={field.value || '#000000'}
+                                    className="w-12 h-10 p-1"
                                   />
                                   <Input {...field} value={field.value || '#000000'} />
                                 </div>
