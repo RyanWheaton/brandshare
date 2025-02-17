@@ -227,21 +227,15 @@ export function FilePreview({
             <div className="flex items-center justify-between pb-4">
               <div className="flex-1">
                 <h3
-                  className="text-lg font-semibold"
-                  style={{
-                    color: textColor,
-                    fontFamily: window.sharePageFonts?.titleFont || "Inter",
-                  }}
+                  className="text-lg font-semibold font-[var(--title-font)]"
+                  style={{ color: textColor }}
                 >
                   {file.title || file.name}
                 </h3>
                 {file.description && (
                   <p
-                    className="mt-2 text-sm opacity-90"
-                    style={{
-                      color: textColor,
-                      fontFamily: window.sharePageFonts?.descriptionFont || "Inter",
-                    }}
+                    className="mt-2 text-sm opacity-90 font-[var(--description-font)]"
+                    style={{ color: textColor }}
                   >
                     {file.description}
                   </p>
@@ -452,7 +446,6 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   });
 
   useEffect(() => {
-    // Set global fonts for use throughout the page
     if (page?.titleFont || page?.descriptionFont) {
       window.sharePageFonts = {
         titleFont: page.titleFont || "Inter",
@@ -513,10 +506,10 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           : page.backgroundColor || "#ffffff",
         color: page.textColor || "#000000",
         minHeight: "100vh",
-        "--title-font": page.titleFont || "Inter",
-        "--description-font": page.descriptionFont || "Inter",
+        "--title-font": `${page.titleFont || "Inter"}`,
+        "--description-font": `${page.descriptionFont || "Inter"}`,
       } as React.CSSProperties}
-      className="min-h-screen relative [&_h1,&_h2,&_h3,&_h4,&_h5,&_h6]:font-[var(--title-font)] [&_p]:font-[var(--description-font)]"
+      className="min-h-screen relative font-[var(--description-font)]"
     >
       <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <header className="max-w-4xl mx-auto text-center mb-12">
@@ -534,7 +527,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             </div>
           )}
           <h1
-            className="mb-4"
+            className="mb-4 font-[var(--title-font)]"
             style={{
               fontSize: `${page.titleFontSize || 24}px`,
               fontWeight: "bold",
@@ -544,7 +537,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
           </h1>
           {page.description && (
             <p
-              className="opacity-90"
+              className="opacity-90 font-[var(--description-font)]"
               style={{
                 fontSize: `${page.descriptionFontSize || 16}px`,
               }}
@@ -570,7 +563,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
 
       {page.showFooter && (page.footerText || page.footerBackgroundColor || page.footerLogoUrl) && (
         <footer
-          className="w-full py-6 px-4 mt-8"
+          className="w-full py-6 px-4 mt-8 font-[var(--description-font)]"
           style={{
             backgroundColor: page.footerBackgroundColor || "#f3f4f6",
             color: page.footerTextColor || "#000000",
