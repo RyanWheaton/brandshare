@@ -29,7 +29,10 @@ function FilePreviewThumb({ file }: { file: FileObject }) {
         {isImage && <ImageIcon className="w-2 h-2" />}
         {isVideo && <Film className="w-2 h-2" />}
         {!isImage && !isVideo && <FileText className="w-2 h-2" />}
-        <span className="truncate" style={{ fontFamily: 'var(--thumbnail-title-font)' }}>
+        <span 
+          className="truncate" 
+          style={{ fontFamily: 'var(--thumbnail-title-font)' }}
+        >
           {file.title || file.name}
         </span>
       </div>
@@ -60,17 +63,17 @@ export function PageThumbnail({
   style = {},
 }: PageThumbnailProps) {
   // Set up CSS variables at the root level
-  const rootStyle: React.CSSProperties = {
+  const rootStyle = {
     backgroundColor: backgroundColor || "#ffffff",
     background: backgroundColorSecondary
       ? `linear-gradient(to bottom, ${backgroundColor || "#ffffff"}, ${backgroundColorSecondary})`
       : backgroundColor || "#ffffff",
     color: textColor || "#000000",
-    // Use different variable names to avoid conflicts with parent styles
+    // Fix CSS custom property naming
     '--thumbnail-title-font': titleFont || "Inter",
     '--thumbnail-description-font': descriptionFont || "Inter",
     ...style,
-  };
+  } as React.CSSProperties;
 
   return (
     <div
