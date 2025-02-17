@@ -36,10 +36,25 @@ function Comment({ annotation, onDelete, currentUserId }: CommentProps) {
     <div className="flex gap-3 py-3 border-t">
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-medium">{displayName}</div>
-          <div className="text-xs text-muted-foreground">{formattedDate}</div>
+          <div 
+            className="text-sm font-medium"
+            style={{ fontFamily: `var(--title-font)` }}
+          >
+            {displayName}
+          </div>
+          <div 
+            className="text-xs text-muted-foreground"
+            style={{ fontFamily: `var(--description-font)` }}
+          >
+            {formattedDate}
+          </div>
         </div>
-        <p className="mt-1 text-sm">{annotation.content}</p>
+        <p 
+          className="mt-1 text-sm"
+          style={{ fontFamily: `var(--description-font)` }}
+        >
+          {annotation.content}
+        </p>
       </div>
       {currentUserId === annotation.userId && onDelete && (
         <Button
@@ -286,6 +301,7 @@ export function FilePreview({
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Your name (optional)"
+                    style={{ fontFamily: `var(--description-font)` }}
                   />
                 )}
                 <div className="flex gap-2">
@@ -294,6 +310,7 @@ export function FilePreview({
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
                     placeholder="Add a comment..."
+                    style={{ fontFamily: `var(--description-font)` }}
                   />
                   <Button
                     type="submit"
@@ -325,7 +342,10 @@ export function FilePreview({
                     />
                   ))}
                   {comments.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p 
+                      className="text-sm text-muted-foreground text-center py-4"
+                      style={{ fontFamily: `var(--description-font)` }}
+                    >
                       No comments yet. Be the first to comment!
                     </p>
                   )}
