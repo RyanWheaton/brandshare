@@ -707,7 +707,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             <FormItem>
                               <FormLabel className={cn(
                                 form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                              )}>Description Font</FormLabel>
+                              )}>Body Font</FormLabel>
                               <FormControl>
                                 <FontSelect
                                   value={field.value || "Inter"}
@@ -904,7 +904,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                       form.setValue('footerLogoUrl', files[0].url, { shouldDirty: true });
                                     }
                                   }}
-                                    className="shrink-0"
+                                  className="shrink-0"
                                 >
                                   <Button type="button" variant="outline" size="icon">
                                     <Upload className="h-4 w-4" />
