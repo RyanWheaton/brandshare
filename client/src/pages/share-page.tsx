@@ -637,6 +637,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
               >
                 <p
                   className="description-font"
+                  style={{ textAlign: 'center' }}
                   dangerouslySetInnerHTML={{ __html: page.footerText }}
                 />
               </div>
