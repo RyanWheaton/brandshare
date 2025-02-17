@@ -29,17 +29,14 @@ function FilePreviewThumb({ file }: { file: FileObject }) {
         {isImage && <ImageIcon className="w-2 h-2" />}
         {isVideo && <Film className="w-2 h-2" />}
         {!isImage && !isVideo && <FileText className="w-2 h-2" />}
-        <span 
-          className="truncate" 
-          style={{ fontFamily: 'var(--title-font)' }}
-        >
+        <span className="truncate" style={{ fontFamily: 'var(--thumbnail-title-font)' }}>
           {file.title || file.name}
         </span>
       </div>
       {file.description && (
         <p 
           className="text-[6px] px-1 opacity-75 truncate"
-          style={{ fontFamily: 'var(--description-font)' }}
+          style={{ fontFamily: 'var(--thumbnail-description-font)' }}
         >
           {file.description}
         </p>
@@ -62,21 +59,23 @@ export function PageThumbnail({
   className = "",
   style = {},
 }: PageThumbnailProps) {
-  const combinedStyle = {
+  // Set up CSS variables at the root level
+  const rootStyle: React.CSSProperties = {
     backgroundColor: backgroundColor || "#ffffff",
     background: backgroundColorSecondary
       ? `linear-gradient(to bottom, ${backgroundColor || "#ffffff"}, ${backgroundColorSecondary})`
       : backgroundColor || "#ffffff",
     color: textColor || "#000000",
-    '--title-font': titleFont || "Inter",
-    '--description-font': descriptionFont || "Inter",
+    // Use different variable names to avoid conflicts with parent styles
+    '--thumbnail-title-font': titleFont || "Inter",
+    '--thumbnail-description-font': descriptionFont || "Inter",
     ...style,
-  } as React.CSSProperties;
+  };
 
   return (
     <div
       className={`w-full aspect-[4/3] rounded-lg shadow-sm overflow-hidden border ${className}`}
-      style={combinedStyle}
+      style={rootStyle}
     >
       <div className="p-2 w-full h-full flex flex-col">
         <div className="text-center mb-2">
@@ -84,7 +83,7 @@ export function PageThumbnail({
             className="font-bold mb-1 truncate"
             style={{
               fontSize: `${titleFontSize / 8}px`,
-              fontFamily: 'var(--title-font)',
+              fontFamily: 'var(--thumbnail-title-font)',
             }}
           >
             {title}
@@ -94,7 +93,7 @@ export function PageThumbnail({
               className="opacity-90 truncate"
               style={{
                 fontSize: `${descriptionFontSize / 8}px`,
-                fontFamily: 'var(--description-font)',
+                fontFamily: 'var(--thumbnail-description-font)',
               }}
             >
               {description}
@@ -112,7 +111,7 @@ export function PageThumbnail({
             {files.length > 3 && (
               <div 
                 className="text-[8px] text-center text-muted-foreground"
-                style={{ fontFamily: 'var(--description-font)' }}
+                style={{ fontFamily: 'var(--thumbnail-description-font)' }}
               >
                 +{files.length - 3} more files
               </div>
