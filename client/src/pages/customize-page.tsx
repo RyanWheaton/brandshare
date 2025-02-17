@@ -562,9 +562,14 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               )}
                             />
                           </div>
+                        </CardContent>
+                      </Card>
 
-                          <Separator />
-
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Body</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-8">
                           {/* Appearance Section */}
                           <div className="space-y-4">
                             <h4 className="text-sm font-medium">Appearance</h4>
