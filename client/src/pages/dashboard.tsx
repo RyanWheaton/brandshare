@@ -444,36 +444,6 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Add Dropbox Link Section */}
-      <motion.div
-        className="mb-8"
-        variants={fadeInVariant}
-        initial="initial"
-        animate="animate"
-      >
-        <AnimatedCard
-          whileHover={{ scale: 1.01 }}
-          transition={{ duration: 0.2 }}
-        >
-          <CardHeader>
-            <CardTitle>Add Files from Dropbox</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Paste a Dropbox share link to add files to your collection
-            </p>
-            <DropboxLinkInput
-              onSuccess={(file) => {
-                toast({
-                  title: "File added",
-                  description: `${file.name} has been added to your files.`,
-                });
-              }}
-            />
-          </CardContent>
-        </AnimatedCard>
-      </motion.div>
-
 
       {/* Templates Section */}
       <motion.div
@@ -724,4 +694,6 @@ type FileObject = {
   preview_url?: string;
   url: string;
   isFullWidth: boolean;
+  title?: string;
+  description?: string;
 };
