@@ -36,20 +36,20 @@ function Comment({ annotation, onDelete, currentUserId }: CommentProps) {
     <div className="flex gap-3 py-3 border-t">
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <div 
+          <div
             className="text-sm font-medium"
             style={{ fontFamily: `var(--title-font)` }}
           >
             {displayName}
           </div>
-          <div 
+          <div
             className="text-xs text-muted-foreground"
             style={{ fontFamily: `var(--description-font)` }}
           >
             {formattedDate}
           </div>
         </div>
-        <p 
+        <p
           className="mt-1 text-sm"
           style={{ fontFamily: `var(--description-font)` }}
         >
@@ -240,19 +240,19 @@ export function FilePreview({
           <div className="max-w-4xl mx-auto mt-4">
             <div className="flex items-center justify-between pb-4">
               <div className="flex-1">
-                <h3 
+                <h3
                   className="text-lg font-semibold"
-                  style={{ 
+                  style={{
                     color: textColor,
-                    fontFamily: `var(--title-font)` 
+                    fontFamily: `var(--title-font)`
                   }}
                 >
                   {file.title || file.name}
                 </h3>
                 {file.description && (
-                  <p 
+                  <p
                     className="mt-2 text-sm opacity-90"
-                    style={{ 
+                    style={{
                       color: textColor,
                       fontFamily: `var(--description-font)`
                     }}
@@ -341,7 +341,7 @@ export function FilePreview({
                     />
                   ))}
                   {comments.length === 0 && (
-                    <p 
+                    <p
                       className="text-sm text-muted-foreground text-center py-4"
                       style={{ fontFamily: `var(--description-font)` }}
                     >
@@ -630,12 +630,16 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
             )}
             {page.footerText && (
               <div
-                className="prose prose-sm max-w-none description-font"
-                style={{ 
+                className="prose prose-sm max-w-none"
+                style={{
                   color: page.footerTextColor || "#000000",
                 }}
-                dangerouslySetInnerHTML={{ __html: page.footerText }}
-              />
+              >
+                <p
+                  className="description-font"
+                  dangerouslySetInnerHTML={{ __html: page.footerText }}
+                />
+              </div>
             )}
           </div>
         </footer>
