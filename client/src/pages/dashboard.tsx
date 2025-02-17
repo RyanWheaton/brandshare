@@ -459,7 +459,7 @@ export default function Dashboard() {
           initial="initial"
           animate="animate"
         >
-          {templates.map((template, index) => (
+          {templates.map((template) => (
             <motion.div
               key={template.id}
               variants={fadeInVariant}
@@ -480,6 +480,10 @@ export default function Dashboard() {
                       textColor={template.textColor || "#000000"}
                       titleFont={template.titleFont || "Inter"}
                       descriptionFont={template.descriptionFont || "Inter"}
+                      style={{
+                        "--title-font": `${template.titleFont || "Inter"}`,
+                        "--description-font": `${template.descriptionFont || "Inter"}`,
+                      } as React.CSSProperties}
                     />
                   </div>
                   <div>
@@ -575,7 +579,7 @@ export default function Dashboard() {
           initial="initial"
           animate="animate"
         >
-          {pages.map((page, index) => (
+          {pages.map((page) => (
             <motion.div
               key={page.id}
               variants={fadeInVariant}
@@ -599,6 +603,10 @@ export default function Dashboard() {
                       descriptionFont={page.descriptionFont || "Inter"}
                       titleFontSize={page.titleFontSize || 24}
                       descriptionFontSize={page.descriptionFontSize || 16}
+                      style={{
+                        "--title-font": `${page.titleFont || "Inter"}`,
+                        "--description-font": `${page.descriptionFont || "Inter"}`,
+                      } as React.CSSProperties}
                     />
                   </div>
                   <div>

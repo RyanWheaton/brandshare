@@ -15,6 +15,7 @@ type PageThumbnailProps = {
   titleFontSize?: number;
   descriptionFontSize?: number;
   className?: string;
+  style?: React.CSSProperties;
 };
 
 function FilePreviewThumb({ file }: { file: FileObject }) {
@@ -28,10 +29,10 @@ function FilePreviewThumb({ file }: { file: FileObject }) {
         {isImage && <ImageIcon className="w-2 h-2" />}
         {isVideo && <Film className="w-2 h-2" />}
         {!isImage && !isVideo && <FileText className="w-2 h-2" />}
-        <span className="truncate">{file.title || file.name}</span>
+        <span className="truncate font-[var(--title-font)]">{file.title || file.name}</span>
       </div>
       {file.description && (
-        <p className="text-[6px] px-1 opacity-75 truncate">
+        <p className="text-[6px] px-1 opacity-75 truncate font-[var(--description-font)]">
           {file.description}
         </p>
       )}
@@ -51,24 +52,29 @@ export function PageThumbnail({
   titleFontSize = 24,
   descriptionFontSize = 16,
   className = "",
+  style = {},
 }: PageThumbnailProps) {
+  const combinedStyle = {
+    backgroundColor: backgroundColor || "#ffffff",
+    background: backgroundColorSecondary
+      ? `linear-gradient(to bottom, ${backgroundColor || "#ffffff"}, ${backgroundColorSecondary})`
+      : backgroundColor || "#ffffff",
+    color: textColor || "#000000",
+    "--title-font": `${titleFont || "Inter"}`,
+    "--description-font": `${descriptionFont || "Inter"}`,
+    ...style,
+  } as React.CSSProperties;
+
   return (
     <div
       className={`w-full aspect-[4/3] rounded-lg shadow-sm overflow-hidden border ${className}`}
-      style={{
-        backgroundColor: backgroundColor || "#ffffff",
-        background: backgroundColorSecondary
-          ? `linear-gradient(to bottom, ${backgroundColor || "#ffffff"}, ${backgroundColorSecondary})`
-          : backgroundColor || "#ffffff",
-        color: textColor || "#000000",
-      }}
+      style={combinedStyle}
     >
       <div className="p-2 w-full h-full flex flex-col">
         <div className="text-center mb-2">
           <h3
-            className="font-bold mb-1 truncate"
+            className="font-bold mb-1 truncate font-[var(--title-font)]"
             style={{
-              fontFamily: titleFont || "Inter",
               fontSize: `${titleFontSize / 8}px`,
             }}
           >
@@ -76,9 +82,8 @@ export function PageThumbnail({
           </h3>
           {description && (
             <p
-              className="opacity-90 truncate"
+              className="opacity-90 truncate font-[var(--description-font)]"
               style={{
-                fontFamily: descriptionFont || "Inter",
                 fontSize: `${descriptionFontSize / 8}px`,
               }}
             >
@@ -92,7 +97,7 @@ export function PageThumbnail({
               <FilePreviewThumb key={index} file={file} />
             ))}
             {files.length > 3 && (
-              <div className="text-[8px] text-center text-muted-foreground">
+              <div className="text-[8px] text-center text-muted-foreground font-[var(--description-font)]">
                 +{files.length - 3} more files
               </div>
             )}
