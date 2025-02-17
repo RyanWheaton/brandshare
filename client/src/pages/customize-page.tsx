@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema } from "@shared/schema";
+import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
