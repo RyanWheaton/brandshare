@@ -18,7 +18,11 @@ type PageThumbnailProps = {
   style?: React.CSSProperties;
 };
 
-function FilePreviewThumb({ file, style }: { file: FileObject; style?: React.CSSProperties }) {
+function FilePreviewThumb({ file, titleFont, descriptionFont }: { 
+  file: FileObject; 
+  titleFont: string;
+  descriptionFont: string;
+}) {
   const fileType = file.name.split('.').pop()?.toLowerCase();
   const isImage = fileType ? ['jpg', 'jpeg', 'png', 'gif'].includes(fileType) : false;
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
@@ -29,14 +33,17 @@ function FilePreviewThumb({ file, style }: { file: FileObject; style?: React.CSS
         {isImage && <ImageIcon className="w-2 h-2" />}
         {isVideo && <Film className="w-2 h-2" />}
         {!isImage && !isVideo && <FileText className="w-2 h-2" />}
-        <span className="truncate" style={{ fontFamily: style?.['--title-font'] }}>
+        <span 
+          className="truncate" 
+          style={{ fontFamily: titleFont }}
+        >
           {file.title || file.name}
         </span>
       </div>
       {file.description && (
         <p 
           className="text-[6px] px-1 opacity-75 truncate"
-          style={{ fontFamily: style?.['--description-font'] }}
+          style={{ fontFamily: descriptionFont }}
         >
           {file.description}
         </p>
@@ -65,8 +72,6 @@ export function PageThumbnail({
       ? `linear-gradient(to bottom, ${backgroundColor || "#ffffff"}, ${backgroundColorSecondary})`
       : backgroundColor || "#ffffff",
     color: textColor || "#000000",
-    '--title-font': titleFont || "Inter",
-    '--description-font': descriptionFont || "Inter",
     ...style,
   } as React.CSSProperties;
 
@@ -81,7 +86,7 @@ export function PageThumbnail({
             className="font-bold mb-1 truncate"
             style={{
               fontSize: `${titleFontSize / 8}px`,
-              fontFamily: combinedStyle['--title-font'],
+              fontFamily: titleFont,
             }}
           >
             {title}
@@ -91,7 +96,7 @@ export function PageThumbnail({
               className="opacity-90 truncate"
               style={{
                 fontSize: `${descriptionFontSize / 8}px`,
-                fontFamily: combinedStyle['--description-font'],
+                fontFamily: descriptionFont,
               }}
             >
               {description}
@@ -101,12 +106,17 @@ export function PageThumbnail({
         <div className="flex-1 overflow-hidden">
           <div className="grid gap-1">
             {files.slice(0, 3).map((file, index) => (
-              <FilePreviewThumb key={index} file={file} style={combinedStyle} />
+              <FilePreviewThumb 
+                key={index} 
+                file={file} 
+                titleFont={titleFont}
+                descriptionFont={descriptionFont}
+              />
             ))}
             {files.length > 3 && (
               <div 
                 className="text-[8px] text-center text-muted-foreground"
-                style={{ fontFamily: combinedStyle['--description-font'] }}
+                style={{ fontFamily: descriptionFont }}
               >
                 +{files.length - 3} more files
               </div>

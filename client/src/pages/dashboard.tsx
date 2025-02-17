@@ -480,10 +480,6 @@ export default function Dashboard() {
                       textColor={template.textColor || "#000000"}
                       titleFont={template.titleFont || "Inter"}
                       descriptionFont={template.descriptionFont || "Inter"}
-                      style={{
-                        "--title-font": `${template.titleFont || "Inter"}`,
-                        "--description-font": `${template.descriptionFont || "Inter"}`,
-                      } as React.CSSProperties}
                     />
                   </div>
                   <div>
@@ -603,10 +599,6 @@ export default function Dashboard() {
                       descriptionFont={page.descriptionFont || "Inter"}
                       titleFontSize={page.titleFontSize || 24}
                       descriptionFontSize={page.descriptionFontSize || 16}
-                      style={{
-                        "--title-font": `${page.titleFont || "Inter"}`,
-                        "--description-font": `${page.descriptionFont || "Inter"}`,
-                      } as React.CSSProperties}
                     />
                   </div>
                   <div>
