@@ -891,7 +891,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           <FormItem>
                             <FormLabel className={cn(
                               form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                            )}>Footer Text</FormLabel>
+                            )}>FooterText</FormLabel>
                             <FormDescription>
                               Add formatted text to be displayed in the footer
                             </FormDescription>
