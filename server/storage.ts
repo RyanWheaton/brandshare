@@ -550,18 +550,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(userId: number, updates: Partial<User>): Promise<User> {
+    console.log('Updating user with data:', updates);
     const [user] = await db
       .update(users)
       .set({
-        ...updates,
-        email: updates.email ?? undefined,
-        username: updates.username ?? undefined,
-        logoUrl: updates.logoUrl ?? undefined,
-        brandPrimaryColor: updates.brandPrimaryColor ?? undefined,
-        brandSecondaryColor: updates.brandSecondaryColor ?? undefined,
+        email: updates.email,
+        username: updates.username,
+        logoUrl: updates.logoUrl,
+        brandPrimaryColor: updates.brandPrimaryColor,
+        brandSecondaryColor: updates.brandSecondaryColor,
       })
       .where(eq(users.id, userId))
       .returning();
+    console.log('Updated user result:', user);
     return user;
   }
 }

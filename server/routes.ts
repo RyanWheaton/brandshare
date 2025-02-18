@@ -111,7 +111,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: parsed.error });
       }
 
+      console.log('Profile update data:', parsed.data);
       const updatedUser = await storage.updateUser(req.user.id, parsed.data);
+      console.log('Updated user:', updatedUser);
       res.json(updatedUser);
     } catch (error) {
       console.error('Error updating user profile:', error);
