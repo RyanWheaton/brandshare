@@ -93,6 +93,8 @@ const updateProfileSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Invalid email address"),
   logoUrl: z.string().optional(),
+  brandPrimaryColor: z.string().min(1, "Primary color is required"),
+  brandSecondaryColor: z.string().min(1, "Secondary color is required"),
 });
 
 export function registerRoutes(app: Express): Server {
