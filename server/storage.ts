@@ -53,6 +53,7 @@ export interface IStorage {
   getLocationViews(sharePageId: number): Promise<Record<string, any>>;
   getTotalComments(sharePageId: number): Promise<number>;
   getFileDownloads(sharePageId: number): Promise<Record<string, number>>;
+  updateUser(userId: number, updates: Partial<User>): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -546,6 +547,20 @@ export class DatabaseStorage implements IStorage {
   async getFileDownloads(sharePageId: number): Promise<Record<string, number>> {
     const stats = await this.getPageStats(sharePageId);
     return stats?.fileDownloads || {};
+  }
+
+  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...updates,
+        email: updates.email ?? undefined,
+        username: updates.username ?? undefined,
+        logoUrl: updates.logoUrl ?? undefined,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 }
 

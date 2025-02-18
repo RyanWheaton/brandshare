@@ -88,9 +88,40 @@ const dropboxUrlSchema = z.object({
   })
 });
 
+// User profile update schema
+const updateProfileSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email address"),
+  logoUrl: z.string().optional(),
+});
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
   setupDropbox(app);
+
+  // Add user profile update endpoint
+  app.patch("/api/user/profile", (async (req: Request & {user: User}, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const parsed = updateProfileSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error });
+      }
+
+      const updatedUser = await storage.updateUser(req.user.id, parsed.data);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }) as RequestHandler);
+
 
   // Add Dropbox file endpoint
   app.post("/api/files/dropbox", (async (req: CustomRequest, res: Response) => {
