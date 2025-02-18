@@ -152,7 +152,7 @@ type CustomizePageProps = {
 };
 
 function Analytics({ pageId }: { pageId: number }) {
-  const { data: stats, isLoading } = useQuery<{ 
+  const { data: stats, isLoading } = useQuery<{
     dailyViews: Record<string, number>;
     hourlyViews: Record<string, number>;
     locationViews: Record<string, { views: number; lastView: string }>;
@@ -161,6 +161,8 @@ function Analytics({ pageId }: { pageId: number }) {
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId), // Only run query if pageId is valid
+    retry: 3, // Retry failed requests 3 times
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   if (isLoading) {
@@ -180,16 +182,16 @@ function Analytics({ pageId }: { pageId: number }) {
   }
 
   const today = new Date().toISOString().split('T')[0];
-  const dailyViews = (stats.dailyViews as Record<string, number>)[today] || 0;
-  const hourlyViews = stats.hourlyViews as Record<string, number>;
-  const locationViews = stats.locationViews as Record<string, { views: number, lastView: string }>;
+  const dailyViews = stats.dailyViews?.[today] || 0;
+  const hourlyViews = stats.hourlyViews || {};
+  const locationViews = stats.locationViews || {};
 
   // Get current hour's views
   const currentHour = new Date().getHours();
   const currentHourViews = hourlyViews[currentHour] || 0;
 
   // Get top locations with timestamps
-  const topLocations = Object.entries(locationViews || {})
+  const topLocations = Object.entries(locationViews)
     .sort(([, a], [, b]) => (b.views) - (a.views))
     .slice(0, 3);
 
@@ -262,7 +264,7 @@ function Analytics({ pageId }: { pageId: number }) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {stats.fileDownloads?.map((file: any) => (
+            {stats.fileDownloads?.map((file) => (
               <div key={file.name} className="flex justify-between items-center">
                 <span className="text-sm font-medium">{file.name}</span>
                 <span className="text-sm text-muted-foreground">{file.downloads} downloads</span>
@@ -869,9 +871,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         step={1}
                                         value={[field.value]}
                                         onValueChange={(value) => field.onChange(value[0])}
+                                        className="flex1"
                                         className="flex-1"
                                       />
-                                      <span className="w-12 text-right">{field.value}px</span>
+                                                                     <span className="w-12 text-right">{field.value}px</span>
                                     </div>
                                   </FormControl>
                                   <FormMessage />
@@ -1318,7 +1321,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            {!isTemplate && id && <Analytics pageId={id} />}
+            {!isTemplate && <Analytics pageId={id} />}
           </TabsContent>
         </Tabs>
       </div>
