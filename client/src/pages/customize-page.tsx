@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -152,9 +152,25 @@ type CustomizePageProps = {
 };
 
 function Analytics({ pageId }: { pageId: number }) {
-  const { data: analyticsData, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery({
     queryKey: [`/api/pages/${pageId}/analytics`],
   });
+
+  if (!stats) return null;
+
+  const today = new Date().toISOString().split('T')[0];
+  const dailyViews = (stats.dailyViews as Record<string, number>)[today] || 0;
+  const hourlyViews = stats.hourlyViews as Record<string, number>;
+  const locationViews = stats.locationViews as Record<string, { views: number, lastView: string }>;
+
+  // Get current hour's views
+  const currentHour = new Date().getHours();
+  const currentHourViews = hourlyViews[currentHour] || 0;
+
+  // Get top locations with timestamps
+  const topLocations = Object.entries(locationViews || {})
+    .sort(([, a], [, b]) => (b.views) - (a.views))
+    .slice(0, 3);
 
   if (isLoading) {
     return (
@@ -165,21 +181,75 @@ function Analytics({ pageId }: { pageId: number }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Today's Views</p>
+                <p className="text-2xl font-bold">{dailyViews}</p>
+              </div>
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Current Hour</p>
+                <p className="text-2xl font-bold">{currentHourViews}</p>
+              </div>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Comments</p>
+                <p className="text-2xl font-bold">{stats.totalComments}</p>
+              </div>
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-4">Page Views</h3>
-          <div className="text-3xl font-bold">
-            {analyticsData?.views || 0}
-          </div>
+        <CardHeader>
+          <CardTitle>Top Locations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {topLocations.length > 0 ? (
+            <div className="space-y-2">
+              {topLocations.map(([location, data]) => (
+                <div key={location} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">{location}</span>
+                    <span className="text-sm">{data.views} views</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Last viewed: {new Date(data.lastView).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No location data available yet</p>
+          )}
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-4">File Downloads</h3>
+        <CardHeader>
+          <CardTitle>File Downloads</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="space-y-4">
-            {analyticsData?.fileDownloads?.map((file: any) => (
+            {stats.fileDownloads?.map((file: any) => (
               <div key={file.name} className="flex justify-between items-center">
                 <span className="text-sm font-medium">{file.name}</span>
                 <span className="text-sm text-muted-foreground">{file.downloads} downloads</span>
