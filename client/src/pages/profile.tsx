@@ -19,7 +19,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import { DropboxLinkInput } from "@/components/ui/dropbox-link-input";
+import { DropboxChooser } from "@/components/ui/dropbox-chooser";
 import { z } from "zod";
 
 const profileSchema = z.object({
@@ -144,14 +144,27 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Logo Image</FormLabel>
                       <FormControl>
-                        <DropboxLinkInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          fileType="image/*"
-                        />
+                        <div className="space-y-4">
+                          <DropboxChooser
+                            onFilesSelected={(files) => {
+                              if (files.length > 0) {
+                                field.onChange(files[0].url);
+                              }
+                            }}
+                          />
+                          {field.value && (
+                            <div className="mt-4">
+                              <img 
+                                src={field.value} 
+                                alt="Selected logo" 
+                                className="max-w-[200px] h-auto rounded-lg border"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
                       <FormDescription>
-                        Upload your logo image using Dropbox. This logo can be used in your share pages.
+                        Choose your logo image from Dropbox. This logo can be used in your share pages.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

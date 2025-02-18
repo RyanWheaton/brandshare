@@ -31,10 +31,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => {
           let previewUrl = file.link;
-          const isPDF = file.name.toLowerCase().endsWith('.pdf');
-
-          // For PDFs, use dl=1 for both preview and download
-          if (isPDF) {
+          if (file.name.toLowerCase().endsWith('.pdf')) {
             previewUrl = file.link.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
             if (!previewUrl.includes('dl=1')) {
               previewUrl += previewUrl.includes('?') ? '&dl=1' : '?dl=1';
@@ -57,8 +54,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
         // Handle cancel if needed
       },
       linkType: "direct", // This ensures we get direct links
-      multiselect: true,
-      extensions: ['images', 'pdf'], // Allow both image and PDF files
+      multiselect: false, // Only allow single file selection
+      extensions: ['images'], // Only allow image files
     });
   }, [onFilesSelected]);
 
@@ -71,7 +68,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
       className={cn(className)}
     >
       <Plus className="mr-2 h-4 w-4" />
-      Add Files from Dropbox
+      Choose Logo from Dropbox
     </Button>
   );
 }
