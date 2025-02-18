@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -160,7 +161,7 @@ function Analytics({ pageId }: { pageId: number }) {
     fileDownloads: Array<{ name: string; downloads: number }>;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
-    enabled: !isNaN(pageId), // Only run query if pageId is valid
+    enabled: !isNaN(pageId), // Only run query if pageId is a number
     retry: 3, // Retry failed requests 3 times
     staleTime: 30000, // Consider data fresh for 30 seconds
   });
@@ -176,7 +177,7 @@ function Analytics({ pageId }: { pageId: number }) {
   if (!stats) {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-        No analytics data available
+        <p>No analytics data available</p>
       </div>
     );
   }
@@ -184,15 +185,11 @@ function Analytics({ pageId }: { pageId: number }) {
   const today = new Date().toISOString().split('T')[0];
   const dailyViews = stats.dailyViews?.[today] || 0;
   const hourlyViews = stats.hourlyViews || {};
-  const locationViews = stats.locationViews || {};
-
-  // Get current hour's views
   const currentHour = new Date().getHours();
   const currentHourViews = hourlyViews[currentHour] || 0;
-
-  // Get top locations with timestamps
+  const locationViews = stats.locationViews || {};
   const topLocations = Object.entries(locationViews)
-    .sort(([, a], [, b]) => (b.views) - (a.views))
+    .sort(([, a], [, b]) => b.views - a.views)
     .slice(0, 3);
 
   return (
@@ -874,7 +871,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         className="flex1"
                                         className="flex-1"
                                       />
-                                                                     <span className="w-12 text-right">{field.value}px</span>
+                                      <span className="w-12 text-right">{field.value}px</span>
                                     </div>
                                   </FormControl>
                                   <FormMessage />
