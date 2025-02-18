@@ -291,7 +291,7 @@ function SharePageCard({
               descriptionFont={page.descriptionFont || "Inter"}
               titleFontSize={page.titleFontSize || 24}
               descriptionFontSize={page.descriptionFontSize || 16}
-              footerText={page.footerText}
+              footerText={page.footerText || undefined}
               footerTextColor={page.footerTextColor}
             />
           </div>
