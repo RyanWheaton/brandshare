@@ -92,18 +92,33 @@ app.use('/api/fonts', fontsRouter);
       serveStatic(app);
     }
 
-    // Try multiple ports if the primary port is in use
-    const ports = [5000, 3000, 3001];
+    // Determine port from environment variable or use fallback ports
+    const primaryPort = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+    const ports = [primaryPort, 3000, 3001, 8080];
     let serverStarted = false;
 
+    // Try each port in sequence
     for (const PORT of ports) {
       try {
         await new Promise<void>((resolve, reject) => {
-          server.listen(PORT, '0.0.0.0', () => {
+          const serverInstance = server.listen(PORT, '0.0.0.0');
+
+          // Set timeout for server startup
+          const timeout = setTimeout(() => {
+            serverInstance.close();
+            resolve(); // Move to next port if timeout
+            log(`Server startup timed out on port ${PORT}, trying next port...`);
+          }, 5000);
+
+          serverInstance.once('listening', () => {
+            clearTimeout(timeout);
             log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
             serverStarted = true;
             resolve();
-          }).on('error', (error: NodeJS.ErrnoException) => {
+          });
+
+          serverInstance.once('error', (error: NodeJS.ErrnoException) => {
+            clearTimeout(timeout);
             if (error.code === 'EADDRINUSE') {
               log(`Port ${PORT} is in use, trying next port...`);
               resolve(); // Continue to next port
@@ -115,15 +130,15 @@ app.use('/api/fonts', fontsRouter);
 
         if (serverStarted) break;
       } catch (error) {
-        log(`Error on port ${PORT}: ${error}`);
+        log(`Error starting server on port ${PORT}: ${error}`);
         if (PORT === ports[ports.length - 1]) {
-          throw error; // Throw if we've tried all ports
+          throw new Error(`Failed to start server on any available port. Last error: ${error}`);
         }
       }
     }
 
     if (!serverStarted) {
-      throw new Error('Failed to start server on any available port');
+      throw new Error('Failed to start server on any available port after trying all options');
     }
 
   } catch (error) {
