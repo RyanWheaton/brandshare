@@ -154,9 +154,26 @@ type CustomizePageProps = {
 function Analytics({ pageId }: { pageId: number }) {
   const { data: stats, isLoading } = useQuery({
     queryKey: [`/api/pages/${pageId}/analytics`],
+    enabled: !isNaN(pageId), // Only run query if pageId is valid
   });
 
-  if (!stats) return null;
+  console.log('Analytics Data:', stats); // Add logging for debugging
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
+        No analytics data available
+      </div>
+    );
+  }
 
   const today = new Date().toISOString().split('T')[0];
   const dailyViews = (stats.dailyViews as Record<string, number>)[today] || 0;
@@ -171,14 +188,6 @@ function Analytics({ pageId }: { pageId: number }) {
   const topLocations = Object.entries(locationViews || {})
     .sort(([, a], [, b]) => (b.views) - (a.views))
     .slice(0, 3);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -210,7 +219,7 @@ function Analytics({ pageId }: { pageId: number }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Comments</p>
-                <p className="text-2xl font-bold">{stats.totalComments}</p>
+                <p className="text-2xl font-bold">{stats.totalComments || 0}</p>
               </div>
               <MessageCircle className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -853,8 +862,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                       <Slider
                                         min={12}
                                         max={32}
-                                        step={1}
-                                        value={[field.value]}
+                                        step={1}                                        value={[field.value]}
                                         onValueChange={(value) => field.onChange(value[0])}
                                         className="flex-1"
                                       />
@@ -1304,8 +1312,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             </div>
           </TabsContent>
 
-          <TabsContent value="analytics">
-            <Analytics pageId={id} />
+          <TabsContent value="analytics" className="space-y-6">
+            {!isTemplate && id && <Analytics pageId={id} />}
           </TabsContent>
         </Tabs>
       </div>
