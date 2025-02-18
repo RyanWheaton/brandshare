@@ -1305,7 +1305,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           </TabsContent>
 
           <TabsContent value="analytics">
-            {!isTemplate && <Analytics pageId={id} />}
+            <Analytics pageId={id} />
           </TabsContent>
         </Tabs>
       </div>
