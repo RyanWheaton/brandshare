@@ -247,6 +247,118 @@ const staggerContainerVariant: Variants = {
   }
 };
 
+function SharePageCard({
+  page,
+  onDelete,
+  onCopyLink,
+}: {
+  page: SharePage & { stats: any };
+  onDelete: (id: number) => void;
+  onCopyLink: (slug: string) => void;
+}) {
+  const [, setLocation] = useLocation();
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on action buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    setLocation(`/customize/${page.id}`);
+  };
+
+  return (
+    <motion.div
+      variants={fadeInVariant}
+      initial="initial"
+      animate="animate"
+    >
+      <AnimatedCard
+        whileHover={{ scale: 1.01 }}
+        transition={{ duration: 0.2 }}
+        className="cursor-pointer"
+        onClick={handleCardClick}
+      >
+        <div className="grid lg:grid-cols-[200px_1fr] gap-4">
+          <div className="p-4">
+            <PageThumbnail
+              title={page.title}
+              description={page.description}
+              files={page.files as FileObject[]}
+              backgroundColor={page.backgroundColor || "#ffffff"}
+              backgroundColorSecondary={page.backgroundColorSecondary}
+              textColor={page.textColor || "#000000"}
+              titleFont={page.titleFont || "Inter"}
+              descriptionFont={page.descriptionFont || "Inter"}
+              titleFontSize={page.titleFontSize || 24}
+              descriptionFontSize={page.descriptionFontSize || 16}
+              footerText={page.footerText}
+              footerTextColor={page.footerTextColor}
+            />
+          </div>
+          <div>
+            <CardHeader>
+              <CardTitle>{page.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StatsCard stats={page.stats} />
+              <p className="text-sm text-muted-foreground mb-4">
+                {page.description || "No description"}
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation(`/customize/${page.id}`);
+                  }}
+                >
+                  <Palette className="mr-2 h-4 w-4" />
+                  Customize
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/p/${page.slug}`, "_blank");
+                  }}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View Page
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopyLink(page.slug);
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy Link
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(page.id);
+                  }}
+                  disabled={false}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </CardContent>
+          </div>
+        </div>
+      </AnimatedCard>
+    </motion.div>
+  );
+}
+
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
@@ -576,86 +688,12 @@ export default function Dashboard() {
           animate="animate"
         >
           {pages.map((page) => (
-            <motion.div
+            <SharePageCard
               key={page.id}
-              variants={fadeInVariant}
-              initial="initial"
-              animate="animate"
-            >
-              <AnimatedCard
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="grid lg:grid-cols-[200px_1fr] gap-4">
-                  <div className="p-4">
-                    <PageThumbnail
-                      title={page.title}
-                      description={page.description}
-                      files={page.files as FileObject[]}
-                      backgroundColor={page.backgroundColor || "#ffffff"}
-                      backgroundColorSecondary={page.backgroundColorSecondary}
-                      textColor={page.textColor || "#000000"}
-                      titleFont={page.titleFont || "Inter"}
-                      descriptionFont={page.descriptionFont || "Inter"}
-                      titleFontSize={page.titleFontSize || 24}
-                      descriptionFontSize={page.descriptionFontSize || 16}
-                      footerText={page.footerText}
-                      footerTextColor={page.footerTextColor}
-                    />
-                  </div>
-                  <div>
-                    <CardHeader>
-                      <CardTitle>{page.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <StatsCard stats={page.stats} />
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {page.description || "No description"}
-                      </p>
-                      <div className="flex gap-2 flex-wrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setLocation(`/customize/${page.id}`)}
-                        >
-                          <Palette className="mr-2 h-4 w-4" />
-                          Customize
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`/p/${page.slug}`, "_blank")}
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          View Page
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(page.slug)}
-                        >
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy Link
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteMutation.mutate(page.id)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          {deleteMutation.isPending ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="mr-2 h-4 w-4" />
-                          )}
-                          Delete
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </div>
-                </div>
-              </AnimatedCard>
-            </motion.div>
+              page={page}
+              onDelete={(id) => deleteMutation.mutate(id)}
+              onCopyLink={(slug) => copyToClipboard(slug)}
+            />
           ))}
 
           {pages.length === 0 && (
