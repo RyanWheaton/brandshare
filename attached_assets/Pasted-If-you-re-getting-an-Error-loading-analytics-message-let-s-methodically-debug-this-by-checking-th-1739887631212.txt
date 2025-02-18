@@ -1,0 +1,83 @@
+If you're getting an "Error loading analytics" message, let's methodically debug this by checking the most likely causes.
+ Step 1: Verify the API Response
+Since the error happens when loading analytics, the first thing to check is the API call.
+Add this inside the Analytics component to log errors:
+useEffect(() => {
+  console.log("Fetching analytics for page:", pageId);
+}, [pageId]);
+
+const { data: stats, isLoading, error } = useQuery(...);
+
+if (error) {
+  console.error("Analytics API error:", error);
+  return <p className="text-red-500">Error loading analytics: {error.message}</p>;
+}
+Then:
+Open DevTools → Console in the browser and check for errors.
+Open DevTools → Network → Fetch/XHR and find the API request to /api/pages/{pageId}/analytics.
+What status code is returned?
+If it's 404 (Not Found) → The API endpoint is incorrect.
+If it's 500 (Server Error) → The backend might be failing.
+Step 2: Test API Directly
+Try visiting the API endpoint manually in your browser:
+https://yourdomain.com/api/pages/{pageId}/analytics
+If it loads correctly, the issue is on the frontend.
+If you get an error response, there's a backend issue.
+If it fails:
+Check if pageId exists in the database
+If the share page is new, it may not have analytics yet.
+Query the database (SELECT * FROM analytics WHERE page_id = {pageId};).
+If there's no data, analytics tracking might not be saving correctly.
+Check API authentication and permissions
+If the API requires authentication, ensure the request includes credentials.
+If using useAuth(), confirm that authenticated users can access analytics.
+
+🔍 Step 3: Ensure pageId is Passed Correctly
+If the API is correct but still fails, pageId might be invalid.
+✅ Add this inside Analytics:
+useEffect(() => {
+  console.log("Analytics Tab - pageId:", pageId);
+}, [pageId]);
+Then:
+If pageId is undefined or NaN, the query won't work.
+If pageId is correct, check if it's a template (which disables analytics).
+Step 4: Debug useQuery Call
+Your analytics query currently looks like this:
+useQuery({
+  queryKey: [`/api/pages/${pageId}/analytics`],
+  enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
+  retry: 3,
+  staleTime: 30000
+});
+Modify it to explicitly log failures:
+const { data: stats, isLoading, error } = useQuery({
+  queryKey: [`/api/pages/${pageId}/analytics`],
+  enabled: Boolean(pageId) && !isTemplate && activeTab === "analytics",
+  retry: 3,
+  staleTime: 30000,
+  onError: (err) => console.error("Analytics fetch error:", err),
+});
+
+if (error) {
+  return (
+    <div className="text-red-500">
+      Error loading analytics: {error.message || "Unknown error"}
+    </div>
+  );
+}
+Now, check DevTools Console for the "Analytics fetch error" message.
+If the error is NetworkError, check CORS settings on the API.
+Step 5: Manually Invalidate Queries (Force Fetch)
+If the API is working but data isn't loading, force refresh:
+useEffect(() => {
+  if (activeTab === "analytics") {
+    queryClient.invalidateQueries([`/api/pages/${pageId}/analytics`]);
+  }
+}, [activeTab, pageId]);
+Make sure pageId is valid before calling invalidateQueries.
+Next Steps Based on Debugging
+API is returning an error → Fix backend issues.
+API works manually but not in the app → Fix frontend request.
+pageId is undefined → Fix state management.
+Data is empty in database → Fix analytics tracking.
+

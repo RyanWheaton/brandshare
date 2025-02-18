@@ -169,12 +169,17 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     }
   });
 
-  console.log('Analytics Query:', {
+  useEffect(() => {
+    console.log('Analytics Component Mount - pageId:', pageId, 'isTemplate:', isTemplate, 'activeTab:', activeTab);
+  }, [pageId, isTemplate, activeTab]);
+
+  console.log('Analytics Query State:', {
     pageId,
     isLoading,
     error,
     stats,
-    activeTab
+    activeTab,
+    queryEnabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics"
   });
 
   if (isLoading) {
@@ -186,10 +191,13 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   }
 
   if (error) {
-    console.error('Error details:', error);
+    console.error('Analytics Error Details:', error);
     return (
-      <div className="flex items-center justify-center min-h-[400px] text-destructive">
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-destructive space-y-2">
         <p>Error loading analytics data. Please try again.</p>
+        <p className="text-sm text-muted-foreground">
+          {error instanceof Error ? error.message : 'Unknown error occurred'}
+        </p>
       </div>
     );
   }
@@ -197,7 +205,7 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   if (!stats) {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-        <p>No analytics data available</p>
+        <p>No analytics data available yet</p>
       </div>
     );
   }
@@ -445,7 +453,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   useEffect(() => {
     if (activeTab === "analytics") {
-      queryClient.invalidateQueries({ queryKey: [`/api/pages/${id}/analytics`] });
+      console.log('Invalidating analytics query for pageId:', id);
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/pages/${id}/analytics`],
+        exact: true 
+      });
     }
   }, [activeTab, id]);
 
