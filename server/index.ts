@@ -26,7 +26,7 @@ app.use(
   })
 );
 
-// Request logging middleware
+// Request logging middleware with enhanced analytics logging
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -42,7 +42,15 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+
+      // Enhanced logging for analytics endpoint
+      if (path.includes('/analytics')) {
+        logLine += ` [Analytics Request]`;
+        if (capturedJsonResponse) {
+          const dataStatus = capturedJsonResponse ? 'Data Present' : 'No Data';
+          logLine += ` :: ${dataStatus}`;
+        }
+      } else if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
@@ -64,11 +72,14 @@ app.use('/api/fonts', fontsRouter);
   try {
     const server = registerRoutes(app);
 
-    // Global error handler
+    // Global error handler with enhanced logging
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-      log(`Error: ${message}`);
+      log(`Error: ${message} (${status})`);
+      if (err.stack) {
+        log(`Stack: ${err.stack}`);
+      }
       res.status(status).json({ message });
     });
 
@@ -81,21 +92,38 @@ app.use('/api/fonts', fontsRouter);
       serveStatic(app);
     }
 
-    // Use port 5000 as specified in .replit
-    const PORT = 5000;
+    // Try multiple ports if the primary port is in use
+    const ports = [5000, 3000, 3001];
+    let serverStarted = false;
 
-    try {
-      await new Promise<void>((resolve, reject) => {
-        server.listen(PORT, '0.0.0.0', () => {
-          log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
-          resolve();
-        }).on('error', (error: NodeJS.ErrnoException) => {
-          reject(error);
+    for (const PORT of ports) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.listen(PORT, '0.0.0.0', () => {
+            log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
+            serverStarted = true;
+            resolve();
+          }).on('error', (error: NodeJS.ErrnoException) => {
+            if (error.code === 'EADDRINUSE') {
+              log(`Port ${PORT} is in use, trying next port...`);
+              resolve(); // Continue to next port
+            } else {
+              reject(error);
+            }
+          });
         });
-      });
-    } catch (error) {
-      log(`Failed to start server: ${error}`);
-      process.exit(1);
+
+        if (serverStarted) break;
+      } catch (error) {
+        log(`Error on port ${PORT}: ${error}`);
+        if (PORT === ports[ports.length - 1]) {
+          throw error; // Throw if we've tried all ports
+        }
+      }
+    }
+
+    if (!serverStarted) {
+      throw new Error('Failed to start server on any available port');
     }
 
   } catch (error) {

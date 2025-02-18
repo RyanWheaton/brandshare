@@ -163,13 +163,33 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
     retry: 3,
-    staleTime: 30000
+    staleTime: 30000,
+    onError: (error) => {
+      console.error('Analytics fetch error:', error);
+    }
+  });
+
+  console.log('Analytics Query:', {
+    pageId,
+    isLoading,
+    error,
+    stats,
+    activeTab
   });
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('Error details:', error);
+    return (
+      <div className="flex items-center justify-center min-h-[400px] text-destructive">
+        <p>Error loading analytics data. Please try again.</p>
       </div>
     );
   }
@@ -183,14 +203,14 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   }
 
   const today = new Date().toISOString().split('T')[0];
-  const dailyViews = (stats.dailyViews as Record<string, number>)[today] || 0;
-  const hourlyViews = stats.hourlyViews as Record<string, number>;
+  const dailyViews = stats.dailyViews?.[today] || 0;
+  const hourlyViews = stats.hourlyViews || {};
   const currentHour = new Date().getHours();
   const currentHourViews = hourlyViews[currentHour] || 0;
-  const locationViews = stats.locationViews as Record<string, { views: number, lastView: string }>;
+  const locationViews = stats.locationViews || {};
 
-  const topLocations = Object.entries(locationViews || {})
-    .sort(([, a], [, b]) => (b.views) - (a.views))
+  const topLocations = Object.entries(locationViews)
+    .sort(([, a], [, b]) => b.views - a.views)
     .slice(0, 3);
 
   return (
@@ -422,6 +442,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [form, updateMutation, toast]);
+
+  useEffect(() => {
+    if (activeTab === "analytics") {
+      queryClient.invalidateQueries({ queryKey: [`/api/pages/${id}/analytics`] });
+    }
+  }, [activeTab, id]);
 
   const copyToClipboard = async () => {
     if (!item) return;
@@ -860,7 +886,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml0.5 after:text-primary"
                                   )}>Description Font Size</FormLabel>
                                   <FormControl>
                                     <div className="flex items-center gap-4">
