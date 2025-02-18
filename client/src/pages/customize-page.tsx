@@ -152,9 +152,7 @@ type CustomizePageProps = {
   isTemplate?: boolean;
 };
 
-function Analytics({ pageId, isTemplate }: { pageId: number; isTemplate: boolean }) {
-  const [activeTab, setActiveTab] = useState<string>("customize");
-
+function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTemplate: boolean; activeTab: string }) {
   const { data: stats, isLoading, error } = useQuery<{
     dailyViews: Record<string, number>;
     hourlyViews: Record<string, number>;
@@ -1337,7 +1335,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            {!isTemplate && <Analytics pageId={id} isTemplate={isTemplate} />}
+            {!isTemplate && <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />}
           </TabsContent>
         </Tabs>
       </div>
