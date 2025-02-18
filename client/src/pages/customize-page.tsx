@@ -152,12 +152,16 @@ type CustomizePageProps = {
 };
 
 function Analytics({ pageId }: { pageId: number }) {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery<{ 
+    dailyViews: Record<string, number>;
+    hourlyViews: Record<string, number>;
+    locationViews: Record<string, { views: number; lastView: string }>;
+    totalComments: number;
+    fileDownloads: Array<{ name: string; downloads: number }>;
+  }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId), // Only run query if pageId is valid
   });
-
-  console.log('Analytics Data:', stats); // Add logging for debugging
 
   if (isLoading) {
     return (
@@ -862,7 +866,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                       <Slider
                                         min={12}
                                         max={32}
-                                        step={1}                                        value={[field.value]}
+                                        step={1}
+                                        value={[field.value]}
                                         onValueChange={(value) => field.onChange(value[0])}
                                         className="flex-1"
                                       />
