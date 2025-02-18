@@ -11,11 +11,13 @@ import CustomizePage from "@/pages/customize-page";
 import VerifyEmailPage from "@/pages/verify-email";
 import AdminDashboard from "@/pages/admin-dashboard";
 import { ProtectedRoute } from "./lib/protected-route";
+import ProfilePage from "@/pages/profile";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} path="/" />} />
+      <Route path="/profile" component={() => <ProtectedRoute component={ProfilePage} path="/profile" />} />
       <Route 
         path="/customize/:id" 
         component={({ params }) => (

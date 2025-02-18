@@ -517,6 +517,13 @@ export default function Dashboard() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setLocation("/profile")}
+          >
+            Profile
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
           >
