@@ -1,0 +1,85 @@
+1. Ensure the Data is Actually Being Fetched
+Issue: API or Data Fetching is Not Triggering When Switching Tabs
+Many tab components do not reload their content when switching between tabs. If the data fetch happens only when the main dashboard loads, the analytics tab might not be making the same request.
+Solution for the AI Agent:
+Ensure that the analytics tab triggers a data fetch when it is selected.
+Use a useEffect hook (if using React) that runs when the tab is activated.
+If an API request is needed, verify that it is being made inside the analytics tab component.
+Example Fix (React with Fetch/State Hook):
+useEffect(() => {
+  if (isAnalyticsTabActive) { // Ensure this runs only when the tab is active
+    fetchAnalyticsData();
+  }
+}, [isAnalyticsTabActive]); 
+
+2. Verify State Management for Analytics Data
+Issue: Data is Fetched but Not Stored in the Correct State
+If the analytics state is only being stored on the main dashboard, the analytics tab may not have access to it.
+Solution for the AI Agent:
+Make sure analytics data is stored in global state (e.g., React Context, Redux, or a shared store) rather than local component state.
+If the dashboard already fetches analytics, pass down the same data to the analytics tab instead of making a duplicate request.
+Example Fix (Using React Context for Global State):
+const { analyticsData, fetchAnalyticsData } = useAnalyticsContext(); // Use shared context
+
+3. Check for Conditional Rendering Issues
+Issue: The Component Renders Before Data is Available
+The analytics tab might be trying to display data before it's been fetched, which could cause it to default to "No Data Available" before the request completes.
+Solution for the AI Agent:
+Ensure the component waits for the data to load before rendering the message.
+Add a loading state to handle the data fetch properly.
+Example Fix (Handle Loading State in React):
+if (isLoading) {
+  return <p>Loading analytics...</p>;
+}
+
+if (!analyticsData || analyticsData.length === 0) {
+  return <p>No data available</p>;
+}
+
+return <AnalyticsTable data={analyticsData} />;
+
+4. Confirm API Response is Correct
+Issue: API Request is Returning Empty Data
+If the API call is being made but returns an empty array or null, it could mean:
+The wrong query parameters are being sent.
+There are permissions issues preventing data access.
+The analytics dataset for that share page doesn't exist.
+Solution for the AI Agent:
+Console log the API response inside the analytics tab component to verify the data.
+Check if the API requires a specific share page ID to fetch relevant analytics.
+Ensure the API request matches the one used on the main dashboard.
+Example Fix (Logging API Response):
+useEffect(() => {
+  fetchAnalyticsData()
+    .then(data => {
+      console.log("Fetched analytics:", data); // Check if data is being retrieved
+      setAnalyticsData(data);
+    })
+    .catch(error => console.error("Error fetching analytics:", error));
+}, []);
+
+5. Ensure the Correct Data is Being Used
+Issue: Data Exists But Isn’t Being Mapped Correctly
+If the data exists but isn't appearing, the tab might be expecting a different format (e.g., analyticsData[0].views vs. analyticsData.views).
+Solution for the AI Agent:
+Check if the structure of analyticsData is correct by logging it before rendering.
+Ensure the component maps through the correct data fields.
+Example Fix (Check Data Structure Before Displaying)
+if (analyticsData && analyticsData.length > 0) {
+  return (
+    <div>
+      {analyticsData.map((entry) => (
+        <p key={entry.id}>Views: {entry.views}</p>
+      ))}
+    </div>
+  );
+} else {
+  return <p>No data available</p>;
+}
+
+Final Steps for the AI Agent
+Check if the analytics data is being fetched when switching to the tab.
+Ensure the fetched data is correctly stored in state or context.
+Verify that the "No Data Available" message is not appearing due to a rendering delay.
+Console log the API response to confirm that the correct data is being retrieved.
+Ensure that the correct data fields are being mapped and displayed in the tab.

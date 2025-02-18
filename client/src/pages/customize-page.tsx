@@ -152,8 +152,10 @@ type CustomizePageProps = {
   isTemplate?: boolean;
 };
 
-function Analytics({ pageId }: { pageId: number }) {
-  const { data: stats, isLoading } = useQuery<{
+function Analytics({ pageId, isTemplate }: { pageId: number; isTemplate: boolean }) {
+  const [activeTab, setActiveTab] = useState<string>("customize");
+
+  const { data: stats, isLoading, error } = useQuery<{
     dailyViews: Record<string, number>;
     hourlyViews: Record<string, number>;
     locationViews: Record<string, { views: number; lastView: string }>;
@@ -161,15 +163,31 @@ function Analytics({ pageId }: { pageId: number }) {
     fileDownloads: Array<{ name: string; downloads: number }>;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
-    enabled: !isNaN(pageId), // Only run query if pageId is a number
-    retry: 3, // Retry failed requests 3 times
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
+    retry: 3,
+    staleTime: 30000,
+  });
+
+  console.log('Analytics Query:', {
+    pageId,
+    isLoading,
+    error,
+    stats,
+    activeTab
   });
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] text-destructive">
+        <p>Error loading analytics data. Please try again.</p>
       </div>
     );
   }
@@ -280,6 +298,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isCopied, setIsCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("customize");
 
   if (!params?.id || isNaN(parseInt(params.id))) {
     setLocation("/");
@@ -554,7 +573,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       </div>
 
       <div className="flex-1 container mx-auto p-4">
-        <Tabs defaultValue="customize" className="space-y-6">
+        <Tabs defaultValue="customize" className="space-y-6" onValueChange={(value) => setActiveTab(value)}>
           <TabsList>
             <TabsTrigger value="customize">Customize</TabsTrigger>
             <TabsTrigger value="analytics" disabled={isTemplate}>Analytics</TabsTrigger>
@@ -1318,7 +1337,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            {!isTemplate && <Analytics pageId={id} />}
+            {!isTemplate && <Analytics pageId={id} isTemplate={isTemplate} />}
           </TabsContent>
         </Tabs>
       </div>
