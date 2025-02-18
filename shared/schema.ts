@@ -13,7 +13,9 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
   verificationTokenExpiresAt: timestamp("verification_token_expires_at"),
-  logoUrl: text("logo_url"), // Added logoUrl field
+  logoUrl: text("logo_url"),
+  brandPrimaryColor: text("brand_primary_color").default("#000000"),
+  brandSecondaryColor: text("brand_secondary_color").default("#ffffff"),
 });
 
 export const fileSchema = z.object({

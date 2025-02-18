@@ -26,6 +26,8 @@ const profileSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Invalid email address"),
   logoUrl: z.string().optional(),
+  brandPrimaryColor: z.string().min(1, "Primary color is required"),
+  brandSecondaryColor: z.string().min(1, "Secondary color is required"),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -41,6 +43,8 @@ export default function ProfilePage() {
       username: user?.username || "",
       email: user?.email || "",
       logoUrl: user?.logoUrl || "",
+      brandPrimaryColor: user?.brandPrimaryColor || "#000000",
+      brandSecondaryColor: user?.brandSecondaryColor || "#ffffff",
     },
   });
 
@@ -170,6 +174,69 @@ export default function ProfilePage() {
                     </FormItem>
                   )}
                 />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="brandPrimaryColor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Brand Color</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="color"
+                              {...field}
+                              className="w-16 h-10 p-1 rounded cursor-pointer"
+                            />
+                            <Input
+                              type="text"
+                              value={field.value}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              className="flex-1"
+                              placeholder="#000000"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Choose your primary brand color
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="brandSecondaryColor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Secondary Brand Color</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="color"
+                              {...field}
+                              className="w-16 h-10 p-1 rounded cursor-pointer"
+                            />
+                            <Input
+                              type="text"
+                              value={field.value}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              className="flex-1"
+                              placeholder="#ffffff"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Choose your secondary brand color
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <Button
                   type="submit"
                   disabled={updateProfileMutation.isPending}
