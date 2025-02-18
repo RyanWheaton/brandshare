@@ -47,6 +47,15 @@ function ChangePasswordCard() {
   const changePasswordMutation = useMutation({
     mutationFn: async (data: ChangePasswordData) => {
       const res = await apiRequest("POST", "/api/change-password", data);
+      if (!res.ok) {
+        const errorData = await res.text();
+        try {
+          const jsonError = JSON.parse(errorData);
+          throw new Error(jsonError.message || 'Failed to change password');
+        } catch {
+          throw new Error(errorData || 'Failed to change password');
+        }
+      }
       return res.json();
     },
     onSuccess: () => {
