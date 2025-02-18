@@ -557,6 +557,8 @@ export class DatabaseStorage implements IStorage {
         email: updates.email ?? undefined,
         username: updates.username ?? undefined,
         logoUrl: updates.logoUrl ?? undefined,
+        brandPrimaryColor: updates.brandPrimaryColor ?? undefined,
+        brandSecondaryColor: updates.brandSecondaryColor ?? undefined,
       })
       .where(eq(users.id, userId))
       .returning();
