@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Loader2 } from "lucide-react";
@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils";
 interface DropboxLinkInputProps {
   onSuccess?: (file: FileObject) => void;
   className?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  fileType?: string;
 }
 
 const SUPPORTED_FILE_TYPES = [
@@ -45,14 +48,20 @@ function getFileExtension(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() || '';
 }
 
-function validateFileType(filename: string): boolean {
-  const extension = getFileExtension(filename);
-  return SUPPORTED_FILE_TYPES.includes(extension);
+function validateFileType(filename: string, fileType?: string): boolean {
+  if (fileType === "image/*") {
+    return ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(filename));
+  }
+  return SUPPORTED_FILE_TYPES.includes(getFileExtension(filename));
 }
 
-export function DropboxLinkInput({ onSuccess, className }: DropboxLinkInputProps) {
-  const [inputValue, setInputValue] = useState("");
+export function DropboxLinkInput({ onSuccess, className, value, onChange, fileType }: DropboxLinkInputProps) {
+  const [inputValue, setInputValue] = useState(value || "");
   const { toast } = useToast();
+
+  useEffect(() => {
+    setInputValue(value || "");
+  }, [value]);
 
   const addDropboxFile = useMutation({
     mutationFn: async (dropboxUrl: string) => {
@@ -60,8 +69,8 @@ export function DropboxLinkInput({ onSuccess, className }: DropboxLinkInputProps
       const urlParts = dropboxUrl.split('/');
       const filename = urlParts[urlParts.length - 1].split('?')[0];
 
-      if (!validateFileType(filename)) {
-        throw new Error(`Unsupported file type. Supported types are: ${SUPPORTED_FILE_TYPES.join(', ')}`);
+      if (!validateFileType(filename, fileType)) {
+        throw new Error(`Unsupported file type. ${fileType === "image/*" ? "Only image files are allowed." : `Supported types are: ${SUPPORTED_FILE_TYPES.join(', ')}`}`);
       }
 
       const response = await fetch('/api/files/dropbox', {
@@ -85,7 +94,7 @@ export function DropboxLinkInput({ onSuccess, className }: DropboxLinkInputProps
         title: "Success",
         description: "Dropbox file added successfully",
       });
-      setInputValue("");
+      onChange?.(data.file.url);
       onSuccess?.(data.file);
     },
     onError: (error: Error) => {
@@ -111,13 +120,19 @@ export function DropboxLinkInput({ onSuccess, className }: DropboxLinkInputProps
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    onChange?.(newValue);
+  };
+
   return (
     <form onSubmit={handleSubmit} className={cn("flex gap-2", className)}>
       <Input
         type="text"
         placeholder="Paste Dropbox share link here..."
         value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
+        onChange={handleChange}
         className="flex-1"
       />
       <Button 

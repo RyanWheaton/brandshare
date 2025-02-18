@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
   verificationTokenExpiresAt: timestamp("verification_token_expires_at"),
+  logoUrl: text("logo_url"), // Added logoUrl field
 });
 
 export const fileSchema = z.object({
