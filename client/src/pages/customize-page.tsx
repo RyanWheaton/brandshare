@@ -158,7 +158,7 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     hourlyViews: Record<string, number>;
     locationViews: Record<string, { views: number; lastView: string }>;
     totalComments: number;
-    fileDownloads: Array<{ name: string; downloads: number }>;
+    fileDownloads: Record<string, number>;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
@@ -284,18 +284,21 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
         </CardContent>
       </Card>
 
+      {/* File downloads section */}
       <Card>
         <CardHeader>
           <CardTitle>File Downloads</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {stats.fileDownloads?.map((file) => (
-              <div key={file.name} className="flex justify-between items-center">
-                <span className="text-sm font-medium">{file.name}</span>
-                <span className="text-sm text-muted-foreground">{file.downloads} downloads</span>
-              </div>
-            )) || (
+            {Object.entries(stats.fileDownloads || {}).length > 0 ? (
+              Object.entries(stats.fileDownloads || {}).map(([name, downloads]) => (
+                <div key={name} className="flex justify-between items-center">
+                  <span className="text-sm font-medium">{name}</span>
+                  <span className="text-sm text-muted-foreground">{downloads} downloads</span>
+                </div>
+              ))
+            ) : (
               <p className="text-sm text-muted-foreground">No downloads yet</p>
             )}
           </div>
@@ -861,11 +864,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         min={12}
                                         max={48}
                                         step={1}
-                                        value={[field.value]}
+                                        value={[field.value ?? 24]}
                                         onValueChange={(value) => field.onChange(value[0])}
                                         className="flex-1"
                                       />
-                                      <span className="w-12 text-right">{field.value}px</span>
+                                      <span className="w-12 text-right">{field.value ?? 24}px</span>
                                     </div>
                                   </FormControl>
                                   <FormMessage />
