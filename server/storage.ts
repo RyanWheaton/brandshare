@@ -48,6 +48,11 @@ export interface IStorage {
   verifyEmail(token: string): Promise<User | undefined>;
   resendVerificationEmail(userId: number): Promise<string | null>;
   deleteUser(userId: number): Promise<void>;
+  getDailyViews(sharePageId: number): Promise<Record<string, number>>;
+  getHourlyViews(sharePageId: number): Promise<Record<string, number>>;
+  getLocationViews(sharePageId: number): Promise<Record<string, any>>;
+  getTotalComments(sharePageId: number): Promise<number>;
+  getFileDownloads(sharePageId: number): Promise<Record<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -516,6 +521,31 @@ export class DatabaseStorage implements IStorage {
     );
 
     return usersWithStats;
+  }
+
+  async getDailyViews(sharePageId: number): Promise<Record<string, number>> {
+    const stats = await this.getPageStats(sharePageId);
+    return stats?.dailyViews || {};
+  }
+
+  async getHourlyViews(sharePageId: number): Promise<Record<string, number>> {
+    const stats = await this.getPageStats(sharePageId);
+    return stats?.hourlyViews || {};
+  }
+
+  async getLocationViews(sharePageId: number): Promise<Record<string, any>> {
+    const stats = await this.getPageStats(sharePageId);
+    return stats?.locationViews || {};
+  }
+
+  async getTotalComments(sharePageId: number): Promise<number> {
+    const stats = await this.getPageStats(sharePageId);
+    return stats?.totalComments || 0;
+  }
+
+  async getFileDownloads(sharePageId: number): Promise<Record<string, number>> {
+    const stats = await this.getPageStats(sharePageId);
+    return stats?.fileDownloads || {};
   }
 }
 

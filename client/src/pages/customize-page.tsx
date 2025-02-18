@@ -454,9 +454,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   useEffect(() => {
     if (activeTab === "analytics") {
       console.log('Invalidating analytics query for pageId:', id);
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: [`/api/pages/${id}/analytics`],
-        exact: true 
+        exact: true
       });
     }
   }, [activeTab, id]);

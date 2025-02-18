@@ -188,6 +188,52 @@ export function registerRoutes(app: Express): Server {
     res.json({ ...page, stats });
   }) as RequestHandler);
 
+  // Add analytics endpoint after other page endpoints
+  app.get("/api/pages/:id/analytics", (async (req: CustomRequest, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    try {
+      const pageId = parseInt(req.params.id);
+      if (isNaN(pageId)) {
+        return res.status(400).json({ error: "Invalid page ID" });
+      }
+
+      const page = await storage.getSharePage(pageId);
+      if (!page || page.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+
+      // Get analytics data from storage
+      const [dailyViews, hourlyViews, locationViews, totalComments, fileDownloads] = await Promise.all([
+        storage.getDailyViews(page.id),
+        storage.getHourlyViews(page.id),
+        storage.getLocationViews(page.id),
+        storage.getTotalComments(page.id),
+        storage.getFileDownloads(page.id)
+      ]);
+
+      // Set explicit content type
+      res.setHeader('Content-Type', 'application/json');
+
+      res.json({
+        dailyViews: dailyViews || {},
+        hourlyViews: hourlyViews || {},
+        locationViews: locationViews || {},
+        totalComments: totalComments || 0,
+        fileDownloads: fileDownloads || {}
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      // Ensure error response is also JSON
+      res.status(500).json({ 
+        error: "Failed to fetch analytics data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }) as RequestHandler);
+
   // Password verification endpoint
   app.post("/api/p/:slug/verify", checkSharePageAccess, (async (req: CustomRequest, res: Response) => {
     const stats = await storage.getPageStats(req.sharePage!.id);
