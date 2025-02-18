@@ -46,17 +46,35 @@ function ChangePasswordCard() {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: ChangePasswordData) => {
-      const res = await apiRequest("POST", "/api/change-password", data);
-      if (!res.ok) {
-        const errorData = await res.text();
-        try {
-          const jsonError = JSON.parse(errorData);
-          throw new Error(jsonError.message || 'Failed to change password');
-        } catch {
-          throw new Error(errorData || 'Failed to change password');
+      try {
+        const response = await fetch('/api/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage: string;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || 'Failed to change password';
+          } catch {
+            errorMessage = 'Failed to change password. Please try again.';
+          }
+          throw new Error(errorMessage);
         }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error('An unexpected error occurred');
       }
-      return res.json();
     },
     onSuccess: () => {
       toast({
@@ -241,9 +259,9 @@ export default function ProfilePage() {
                           />
                           {field.value && (
                             <div className="mt-4">
-                              <img 
-                                src={field.value} 
-                                alt="Selected logo" 
+                              <img
+                                src={field.value}
+                                alt="Selected logo"
                                 className="max-w-[200px] h-auto rounded-lg border"
                               />
                             </div>
