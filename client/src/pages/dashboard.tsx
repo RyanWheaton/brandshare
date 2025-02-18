@@ -1,10 +1,11 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SharePage, SharePageTemplate, changePasswordSchema } from "@shared/schema";
+import { SharePage, SharePageTemplate } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, Variants } from "framer-motion";
-import {  ExternalLink,
+import {
+  ExternalLink,
   Copy,
   Trash2,
   Palette,
@@ -39,7 +40,7 @@ import { PageThumbnail } from "@/components/ui/page-thumbnail";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 
 
-// Dummy files for testing
+// Update DUMMY_FILES to ensure preview_url is always present
 const DUMMY_FILES = [
   {
     name: "sample-image.jpg",
@@ -146,85 +147,6 @@ function StatsCard({ stats }: { stats: any }) {
   );
 }
 
-function ChangePasswordCard() {
-  const { toast } = useToast();
-  const form = useForm<ChangePasswordData>({
-    resolver: zodResolver(changePasswordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-    },
-  });
-
-  const changePasswordMutation = useMutation({
-    mutationFn: async (data: ChangePasswordData) => {
-      const res = await apiRequest("POST", "/api/change-password", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully.",
-      });
-      form.reset();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Change Password</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => changePasswordMutation.mutate(data))} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="currentPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={changePasswordMutation.isPending}>
-              {changePasswordMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                "Update Password"
-              )}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  );
-}
-
 // Wrap Card component with motion
 const AnimatedCard = motion(Card);
 
@@ -247,11 +169,8 @@ const staggerContainerVariant: Variants = {
   }
 };
 
-function SharePageCard({
-  page,
-  onDelete,
-  onCopyLink,
-}: {
+// Update PageThumbnail usage to handle null values
+function SharePageCard({ page, onDelete, onCopyLink }: {
   page: SharePage & { stats: any };
   onDelete: (id: number) => void;
   onCopyLink: (slug: string) => void;
@@ -283,16 +202,16 @@ function SharePageCard({
             <PageThumbnail
               title={page.title}
               description={page.description}
-              files={page.files as FileObject[]}
+              files={page.files as { name: string; url: string; preview_url: string; isFullWidth: boolean; title?: string; description?: string; }[]}
               backgroundColor={page.backgroundColor || "#ffffff"}
-              backgroundColorSecondary={page.backgroundColorSecondary}
+              backgroundColorSecondary={page.backgroundColorSecondary || undefined}
               textColor={page.textColor || "#000000"}
               titleFont={page.titleFont || "Inter"}
               descriptionFont={page.descriptionFont || "Inter"}
               titleFontSize={page.titleFontSize || 24}
               descriptionFontSize={page.descriptionFontSize || 16}
               footerText={page.footerText || undefined}
-              footerTextColor={page.footerTextColor}
+              footerTextColor={page.footerTextColor || undefined}
             />
           </div>
           <div>
@@ -717,28 +636,14 @@ export default function Dashboard() {
           )}
         </motion.div>
       </motion.div>
-
-      <motion.div
-        className="mt-8"
-        variants={fadeInVariant}
-        initial="initial"
-        animate="animate"
-      >
-        <AnimatedCard
-          whileHover={{ scale: 1.01 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChangePasswordCard />
-        </AnimatedCard>
-      </motion.div>
     </motion.div>
   );
 }
 
-// Type definition -  You'll need to adapt this to your actual FileObject type.
+// Type definition
 type FileObject = {
   name: string;
-  preview_url?: string;
+  preview_url: string; // Make it required since PageThumbnail expects it
   url: string;
   isFullWidth: boolean;
   title?: string;

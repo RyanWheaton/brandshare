@@ -21,6 +21,8 @@ import { useLocation } from "wouter";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
 import { z } from "zod";
+import { changePasswordSchema } from "@shared/schema";
+import type { ChangePasswordData } from "@shared/schema";
 
 const profileSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -31,6 +33,78 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
+
+function ChangePasswordCard() {
+  const { toast } = useToast();
+  const form = useForm<ChangePasswordData>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: ChangePasswordData) => {
+      const res = await apiRequest("POST", "/api/change-password", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => changePasswordMutation.mutate(data))} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="currentPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Current Password</FormLabel>
+              <FormControl>
+                <Input type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="newPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>New Password</FormLabel>
+              <FormControl>
+                <Input type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full" disabled={changePasswordMutation.isPending}>
+          {changePasswordMutation.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            "Update Password"
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -248,6 +322,15 @@ export default function ProfilePage() {
                 </Button>
               </form>
             </Form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChangePasswordCard />
           </CardContent>
         </Card>
       </div>
