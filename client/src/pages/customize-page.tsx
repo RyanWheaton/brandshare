@@ -207,17 +207,30 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
 
   // Calculate average duration for today's visits
   const todayDurations = stats.dailyVisitDurations[today] || [];
-  const todayAverageDuration = todayDurations.length > 0
-    ? Math.round(todayDurations.reduce((sum, visit) => sum + visit.duration, 0) / todayDurations.length)
+  const validDurations = todayDurations
+    .map(visit => visit.duration)
+    .filter(duration => typeof duration === 'number' && !isNaN(duration));
+
+  const todayAverageDuration = validDurations.length > 0
+    ? Math.round(validDurations.reduce((sum, duration) => sum + duration, 0) / validDurations.length)
     : 0;
 
   // Format duration in minutes and seconds
   const formatDuration = (seconds: number) => {
+    if (typeof seconds !== 'number' || isNaN(seconds)) return 'Invalid duration';
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return minutes > 0
       ? `${minutes}m ${remainingSeconds}s`
       : `${remainingSeconds}s`;
+  };
+
+  // Helper to format location
+  const formatLocation = (location: { city?: string; region?: string; country?: string } | undefined) => {
+    if (!location) return 'Location not available';
+    return [location.city, location.region, location.country]
+      .filter(Boolean)
+      .join(", ") || 'Location not available';
   };
 
   const topLocations = Object.entries(locationViews)
@@ -287,45 +300,43 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
             <div>
               <p className="text-sm font-medium text-muted-foreground">Today's Average Duration</p>
               <p className="text-xl font-bold">{formatDuration(todayAverageDuration)}</p>
-              <p className="text-sm text-muted-foreground mt-1">Based on {todayDurations.length} visits</p>
+              <p className="text-sm text-muted-foreground mt-1">Based on {validDurations.length} visits</p>
             </div>
           </div>
           {todayDurations.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm font-medium mb-2">Today's Visit Durations</p>
-              <div className="space-y-2">
-                {todayDurations.slice(-5).map((visit, index) => {
-                  // Validate timestamp before creating Date object
-                  const timestamp = visit?.timestamp ? new Date(visit.timestamp) : null;
-                  const isValidDate = timestamp && !isNaN(timestamp.getTime());
+            <Card>
+              <CardHeader>
+                <CardTitle>Today's Visit Durations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {todayDurations.slice(-5).map((visit, index) => {
+                    const timestamp = visit?.timestamp ? new Date(visit.timestamp) : null;
+                    const isValidDate = timestamp && !isNaN(timestamp.getTime());
+                    const visitNumber = todayDurations.length - (todayDurations.length - 1 - index);
 
-                  return (
-                    <div key={index} className="text-sm border rounded-lg p-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Visit {todayDurations.length - (5 - index) + 1}</span>
-                        <span className="text-muted-foreground">
-                          {typeof visit.duration === 'number' && !isNaN(visit.duration) 
-                            ? formatDuration(visit.duration)
-                            : 'Invalid duration'}
-                        </span>
+                    return (
+                      <div key={index} className="text-sm border rounded-lg p-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Visit {visitNumber}</span>
+                          <span className="text-muted-foreground">
+                            {typeof visit.duration === 'number' && !isNaN(visit.duration)
+                              ? formatDuration(visit.duration)
+                              : 'Invalid duration'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {isValidDate && (
+                            <div>{format(timestamp, 'PPpp')}</div>
+                          )}
+                          <div>{formatLocation(visit.location)}</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {isValidDate && (
-                          <div>{format(timestamp, 'PPpp')}</div>
-                        )}
-                        {visit?.location && (
-                          <div>
-                            {[visit.location.city, visit.location.region, visit.location.country]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </CardContent>
       </Card>
@@ -812,7 +823,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               </FormItem>
                             )}
                           />
-
                           <FormField
                             control={form.control}
                             name="description"
@@ -825,7 +835,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   <Textarea {...field} value={field.value || ''} />
                                 </FormControl>
                                 <FormMessage />
-                              </FormItem>                            )}
+                              </FormItem>
+                            )}
                           />
                         </div>
                       </CardContent>
@@ -990,7 +1001,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml0.5 after:text-primary"
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                   )}>Description Font Size</FormLabel>
                                   <FormControl>
                                     <div className="flex items-center gap-4">
