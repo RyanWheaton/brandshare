@@ -608,10 +608,12 @@ export class DatabaseStorage implements IStorage {
     if (ip) {
       const geo = geoip.lookup(ip);
       if (geo) {
+        const locationKey = [geo.country, geo.region, geo.city].filter(Boolean).join(', ');
         location = {
           country: geo.country || null,
           region: geo.region || null,
-          city: geo.city || null
+          city: geo.city || null,
+          key: locationKey,
         };
       }
     }
@@ -632,7 +634,7 @@ export class DatabaseStorage implements IStorage {
           [today]: [{
             duration,
             timestamp,
-            location: location || { city: null, region: null, country: null }
+            location: location || undefined
           }]
         },
         averageVisitDuration: duration,
@@ -646,7 +648,7 @@ export class DatabaseStorage implements IStorage {
       visitDurations[today].push({
         duration,
         timestamp,
-        location: location || { city: null, region: null, country: null }
+        location: location || undefined
       });
 
       // Calculate new average

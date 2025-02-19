@@ -163,7 +163,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     uniqueVisitors: Record<string, number>;
     totalUniqueVisitors: number;
     averageVisitDuration: number;
-    dailyVisitDurations: Record<string, { duration: number; timestamp: string; location?: { city?: string | null; region?: string | null; country?: string | null } }[]>;
+    dailyVisitDurations: Record<string, { duration: number; timestamp: string; location?: { city?: string | null; region?: string | null; country?: string | null; key?: string } }[]>;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
@@ -226,11 +226,15 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   };
 
   // Helper to format location
-  const formatLocation = (location: { city?: string | null; region?: string | null; country?: string | null } | undefined) => {
+  const formatLocation = (location: { city?: string | null; region?: string | null; country?: string | null; key?: string } | undefined) => {
     if (!location) return 'Location not available';
 
+    // If we have a pre-formatted key, use it
+    if (location.key) return location.key;
+
+    // Otherwise construct from individual fields
     const locationParts = [location.city, location.region, location.country]
-      .filter(part => part && part !== 'null')
+      .filter(part => part && part !== 'null' && part !== 'undefined')
       .join(", ");
 
     return locationParts || 'Location not available';
@@ -997,7 +1001,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 </FormItem>
                               )}
                             />
-
                             <FormField
                               control={form.control}
                               name="descriptionFontSize"
