@@ -294,24 +294,36 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
             <div className="mt-4">
               <p className="text-sm font-medium mb-2">Today's Visit Durations</p>
               <div className="space-y-2">
-                {todayDurations.slice(-5).map((visit, index) => (
-                  <div key={index} className="text-sm border rounded-lg p-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Visit {todayDurations.length - (5 - index) + 1}</span>
-                      <span className="text-muted-foreground">{formatDuration(visit.duration)}</span>
+                {todayDurations.slice(-5).map((visit, index) => {
+                  // Validate timestamp before creating Date object
+                  const timestamp = visit?.timestamp ? new Date(visit.timestamp) : null;
+                  const isValidDate = timestamp && !isNaN(timestamp.getTime());
+
+                  return (
+                    <div key={index} className="text-sm border rounded-lg p-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Visit {todayDurations.length - (5 - index) + 1}</span>
+                        <span className="text-muted-foreground">
+                          {typeof visit.duration === 'number' && !isNaN(visit.duration) 
+                            ? formatDuration(visit.duration)
+                            : 'Invalid duration'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {isValidDate && (
+                          <div>{format(timestamp, 'PPpp')}</div>
+                        )}
+                        {visit?.location && (
+                          <div>
+                            {[visit.location.city, visit.location.region, visit.location.country]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      <div>{format(new Date(visit.timestamp), 'PPpp')}</div>
-                      {visit.location && (
-                        <div>
-                          {[visit.location.city, visit.location.region, visit.location.country]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -813,8 +825,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   <Textarea {...field} value={field.value || ''} />
                                 </FormControl>
                                 <FormMessage />
-                              </FormItem>
-                            )}
+                              </FormItem>                            )}
                           />
                         </div>
                       </CardContent>
@@ -834,7 +845,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className={cn(
-                                                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                   )}>Background Color</FormLabel>
                                   <FormControl>
                                     <ColorPicker

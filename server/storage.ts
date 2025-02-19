@@ -595,6 +595,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async recordVisitDuration(sharePageId: number, duration: number, ip?: string): Promise<void> {
+    // Validate duration to prevent NaN
+    if (isNaN(duration) || !Number.isFinite(duration)) {
+      console.warn('Invalid duration value:', duration);
+      return;
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const timestamp = new Date().toISOString();
     let location = null;
@@ -646,10 +652,12 @@ export class DatabaseStorage implements IStorage {
       // Calculate new average
       const allDurations = Object.values(visitDurations)
         .flat()
-        .map(visit => visit.duration);
-      const newAverage = Math.round(
-        allDurations.reduce((sum, dur) => sum + dur, 0) / allDurations.length
-      );
+        .map(visit => visit.duration)
+        .filter(d => !isNaN(d) && Number.isFinite(d)); // Filter out invalid durations
+
+      const newAverage = allDurations.length > 0
+        ? Math.round(allDurations.reduce((sum, dur) => sum + dur, 0) / allDurations.length)
+        : 0;
 
       await db
         .update(pageStats)
