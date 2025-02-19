@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { serveStatic, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
 import fontsRouter from "./routes/fonts";
@@ -50,8 +50,6 @@ app.use((req, res, next) => {
           const dataStatus = capturedJsonResponse ? 'Data Present' : 'No Data';
           logLine += ` :: ${dataStatus}`;
         }
-      } else if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
       if (logLine.length > 80) {
@@ -70,6 +68,7 @@ app.use('/api/fonts', fontsRouter);
 
 (async () => {
   try {
+    log("Starting server initialization...");
     const server = registerRoutes(app);
 
     // Global error handler with enhanced logging
@@ -83,63 +82,26 @@ app.use('/api/fonts', fontsRouter);
       res.status(status).json({ message });
     });
 
-    // In development mode, always use Vite's dev server
-    if (process.env.NODE_ENV === "development") {
-      log("Starting in development mode with Vite dev server");
-      await setupVite(app, server);
-    } else {
+    // Serve static files in production only
+    if (process.env.NODE_ENV === "production") {
       log("Starting in production mode with static files");
       serveStatic(app);
     }
 
-    // Determine port from environment variable or use fallback ports
-    const primaryPort = process.env.PORT ? parseInt(process.env.PORT) : 5000;
-    const ports = [primaryPort, 3000, 3001, 8080];
-    let serverStarted = false;
+    // Single fixed port
+    const PORT = 3000;
+    log(`Starting Express server on port ${PORT}...`);
 
-    // Try each port in sequence
-    for (const PORT of ports) {
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const serverInstance = server.listen(PORT, '0.0.0.0');
-
-          // Set timeout for server startup
-          const timeout = setTimeout(() => {
-            serverInstance.close();
-            resolve(); // Move to next port if timeout
-            log(`Server startup timed out on port ${PORT}, trying next port...`);
-          }, 5000);
-
-          serverInstance.once('listening', () => {
-            clearTimeout(timeout);
-            log(`Server started successfully and is serving on port ${PORT} in ${process.env.NODE_ENV} mode`);
-            serverStarted = true;
-            resolve();
-          });
-
-          serverInstance.once('error', (error: NodeJS.ErrnoException) => {
-            clearTimeout(timeout);
-            if (error.code === 'EADDRINUSE') {
-              log(`Port ${PORT} is in use, trying next port...`);
-              resolve(); // Continue to next port
-            } else {
-              reject(error);
-            }
-          });
-        });
-
-        if (serverStarted) break;
-      } catch (error) {
-        log(`Error starting server on port ${PORT}: ${error}`);
-        if (PORT === ports[ports.length - 1]) {
-          throw new Error(`Failed to start server on any available port. Last error: ${error}`);
-        }
+    server.listen(PORT, '0.0.0.0', () => {
+      log(`Express server started successfully on port ${PORT} in ${process.env.NODE_ENV} mode`);
+      // Let the workflow handle Vite separately
+    }).on('error', (error: NodeJS.ErrnoException) => {
+      log(`Failed to start server: ${error.message}`);
+      if (error.code === 'EADDRINUSE') {
+        log(`Port ${PORT} is already in use. Please free up the port and try again.`);
       }
-    }
-
-    if (!serverStarted) {
-      throw new Error('Failed to start server on any available port after trying all options');
-    }
+      process.exit(1);
+    });
 
   } catch (error) {
     console.error('Failed to start server:', error);
