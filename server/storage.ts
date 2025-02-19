@@ -651,6 +651,14 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    console.log('Recording visit duration:', {
+      sharePageId,
+      duration,
+      ip,
+      location,
+      timestamp
+    });
+
     const [currentStats] = await db
       .select()
       .from(pageStats)
@@ -693,6 +701,11 @@ export class DatabaseStorage implements IStorage {
       const newAverage = allDurations.length > 0
         ? Math.round(allDurations.reduce((sum, dur) => sum + dur, 0) / allDurations.length)
         : 0;
+
+      console.log('Updating visit duration stats:', {
+        visitDurations,
+        newAverage
+      });
 
       await db
         .update(pageStats)
