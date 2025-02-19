@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type SharePage, type FileObject, type Annotation } from "@shared/schema";
 import {
@@ -440,6 +440,44 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   const { user } = useAuth();
   const { toast } = useToast();
   const [password, setPassword] = useState<string>();
+  const visitStartTime = useRef<number>(Date.now());
+  const isPageVisible = useRef<boolean>(true);
+
+  // Add visit duration tracking
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPageVisible.current = false;
+      } else {
+        isPageVisible.current = true;
+        // Reset start time when page becomes visible again
+        visitStartTime.current = Date.now();
+      }
+    };
+
+    const recordVisitDuration = async () => {
+      try {
+        if (!isPageVisible.current) return; // Don't record if page wasn't visible
+        const duration = Math.floor((Date.now() - visitStartTime.current) / 1000); // Convert to seconds
+        await apiRequest(
+          "POST",
+          `/api/p/${params.slug}/visit-duration`,
+          { duration }
+        );
+      } catch (error) {
+        console.error('Failed to record visit duration:', error);
+      }
+    };
+
+    // Set up event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', () => recordVisitDuration());
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      recordVisitDuration(); // Record duration when component unmounts
+    };
+  }, [params.slug]);
 
   const { data: page, isLoading } = useQuery<SharePage>({
     queryKey: [`/api/p/${params.slug}`],

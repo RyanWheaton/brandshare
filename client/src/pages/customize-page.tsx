@@ -153,7 +153,7 @@ type CustomizePageProps = {
   isTemplate?: boolean;
 };
 
-function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTemplate: boolean; activeTab: string }) {
+const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTemplate: boolean; activeTab: string }) => {
   const { data: stats, isLoading, error } = useQuery<{
     dailyViews: Record<string, number>;
     hourlyViews: Record<string, number>;
@@ -162,27 +162,13 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     fileDownloads: Record<string, number>;
     uniqueVisitors: Record<string, number>;
     totalUniqueVisitors: number;
+    averageVisitDuration: number;
+    dailyVisitDurations: Record<string, number[]>;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
     retry: 3,
     staleTime: 30000,
-    onError: (error) => {
-      console.error('Analytics fetch error:', error);
-    }
-  });
-
-  useEffect(() => {
-    console.log('Analytics Component Mount - pageId:', pageId, 'isTemplate:', isTemplate, 'activeTab:', activeTab);
-  }, [pageId, isTemplate, activeTab]);
-
-  console.log('Analytics Query State:', {
-    pageId,
-    isLoading,
-    error,
-    stats,
-    activeTab,
-    queryEnabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics"
   });
 
   if (isLoading) {
@@ -194,7 +180,6 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   }
 
   if (error) {
-    console.error('Analytics Error Details:', error);
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-destructive space-y-2">
         <p>Error loading analytics data. Please try again.</p>
@@ -219,6 +204,21 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   const currentHour = new Date().getHours();
   const currentHourViews = hourlyViews[currentHour] || 0;
   const locationViews = stats.locationViews || {};
+
+  // Calculate average duration for today's visits
+  const todayDurations = stats.dailyVisitDurations[today] || [];
+  const todayAverageDuration = todayDurations.length > 0 
+    ? Math.round(todayDurations.reduce((sum, dur) => sum + dur, 0) / todayDurations.length)
+    : 0;
+
+  // Format duration in minutes and seconds
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return minutes > 0 
+      ? `${minutes}m ${remainingSeconds}s`
+      : `${remainingSeconds}s`;
+  };
 
   const topLocations = Object.entries(locationViews)
     .sort(([, a], [, b]) => b.views - a.views)
@@ -275,6 +275,39 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
 
       <Card>
         <CardHeader>
+          <CardTitle>Visit Duration Statistics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Average Visit Duration</p>
+              <p className="text-xl font-bold">{formatDuration(stats.averageVisitDuration)}</p>
+              <p className="text-sm text-muted-foreground mt-1">All time average</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Today's Average Duration</p>
+              <p className="text-xl font-bold">{formatDuration(todayAverageDuration)}</p>
+              <p className="text-sm text-muted-foreground mt-1">Based on {todayDurations.length} visits</p>
+            </div>
+          </div>
+          {todayDurations.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">Today's Visit Durations</p>
+              <div className="space-y-1">
+                {todayDurations.slice(-5).map((duration, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span>Visit {todayDurations.length - (5 - index) + 1}</span>
+                    <span className="text-muted-foreground">{formatDuration(duration)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Total Statistics</CardTitle>
         </CardHeader>
         <CardContent>
@@ -282,12 +315,12 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Page Views</p>
               <p className="text-xl font-bold">
-                {Object.values(stats?.dailyViews || {}).reduce((a, b) => a + b, 0)}
+                {Object.values(stats.dailyViews || {}).reduce((a, b) => a + b, 0)}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Unique Visitors</p>
-              <p className="text-xl font-bold">{stats?.totalUniqueVisitors || 0}</p>
+              <p className="text-xl font-bold">{stats.totalUniqueVisitors || 0}</p>
             </div>
           </div>
         </CardContent>
@@ -339,7 +372,7 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
       </Card>
     </div>
   );
-}
+};
 
 export default function CustomizePage({ params, isTemplate = false }: CustomizePageProps) {
   const { toast } = useToast();
@@ -809,7 +842,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    form.formState.dirtyFields[field.name] &&"after:content-['*'] after:ml-0.5 after:text-primary"
                                   )}>Secondary Background Color (Optional)</FormLabel>
                                   <FormDescription>
                                     Add a second color to create a vertical gradient background
