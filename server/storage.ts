@@ -284,12 +284,12 @@ export class DatabaseStorage implements IStorage {
         sharePageId,
         dailyViews: { [today]: 1 },
         hourlyViews: { [hour]: 1 },
-        locationViews: location ? { 
-          [location.key]: { 
-            views: 1, 
+        locationViews: location ? {
+          [location.key]: {
+            views: 1,
             lastView: timestamp,
             details: location // Store full location details
-          } 
+          }
         } : {},
         totalViews: 1,
         totalComments: 0,
