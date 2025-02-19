@@ -90,6 +90,7 @@ export const pageStats = pgTable("page_stats", {
   totalViews: integer("total_views").default(0).notNull(),
   totalComments: integer("total_comments").default(0).notNull(),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  uniqueVisitors: jsonb("unique_visitors").default({}).notNull(), // Track unique IPs per day
 });
 
 export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick({

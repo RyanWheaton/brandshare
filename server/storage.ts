@@ -54,6 +54,7 @@ export interface IStorage {
   getTotalComments(sharePageId: number): Promise<number>;
   getFileDownloads(sharePageId: number): Promise<Record<string, number>>;
   updateUser(userId: number, updates: Partial<User>): Promise<User>;
+  getUniqueVisitorCount(sharePageId: number): Promise<Record<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -124,6 +125,7 @@ export class DatabaseStorage implements IStorage {
       dailyViews: {},
       totalViews: 0,
       totalComments: 0,
+      uniqueVisitors: {}, //Added
     });
 
     return sharePage;
@@ -263,11 +265,13 @@ export class DatabaseStorage implements IStorage {
         locationViews: location ? { [location.key]: { views: 1, lastView: timestamp } } : {},
         totalViews: 1,
         totalComments: 0,
+        uniqueVisitors: ip ? { [today]: [ip] } : {},
       });
     } else {
       const dailyViews = currentStats.dailyViews as Record<string, number>;
       const hourlyViews = (currentStats.hourlyViews as Record<string, number>) || {};
       const locationViews = (currentStats.locationViews as Record<string, any>) || {};
+      const uniqueVisitors = (currentStats.uniqueVisitors as Record<string, string[]>) || {};
 
       dailyViews[today] = (dailyViews[today] || 0) + 1;
       hourlyViews[hour] = (hourlyViews[hour] || 0) + 1;
@@ -279,12 +283,22 @@ export class DatabaseStorage implements IStorage {
         };
       }
 
+      // Track unique visitors
+      if (ip) {
+        if (!uniqueVisitors[today]) {
+          uniqueVisitors[today] = [ip];
+        } else if (!uniqueVisitors[today].includes(ip)) {
+          uniqueVisitors[today].push(ip);
+        }
+      }
+
       await db
         .update(pageStats)
         .set({
           dailyViews,
           hourlyViews,
           locationViews,
+          uniqueVisitors,
           totalViews: currentStats.totalViews + 1,
           lastUpdated: new Date(),
         })
@@ -304,6 +318,7 @@ export class DatabaseStorage implements IStorage {
         dailyViews: {},
         totalViews: 0,
         totalComments: increment ? 1 : 0,
+        uniqueVisitors: {}, // Added
       });
     } else {
       await db
@@ -564,6 +579,16 @@ export class DatabaseStorage implements IStorage {
       .returning();
     console.log('Updated user result:', user);
     return user;
+  }
+
+  async getUniqueVisitorCount(sharePageId: number): Promise<Record<string, number>> {
+    const stats = await this.getPageStats(sharePageId);
+    if (!stats) return {};
+
+    const uniqueVisitors = stats.uniqueVisitors as Record<string, string[]>;
+    return Object.fromEntries(
+      Object.entries(uniqueVisitors).map(([date, ips]) => [date, ips.length])
+    );
   }
 }
 

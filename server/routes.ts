@@ -237,13 +237,17 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get analytics data from storage
-      const [dailyViews, hourlyViews, locationViews, totalComments, fileDownloads] = await Promise.all([
+      const [dailyViews, hourlyViews, locationViews, totalComments, fileDownloads, uniqueVisitors] = await Promise.all([
         storage.getDailyViews(page.id),
         storage.getHourlyViews(page.id),
         storage.getLocationViews(page.id),
         storage.getTotalComments(page.id),
-        storage.getFileDownloads(page.id)
+        storage.getFileDownloads(page.id),
+        storage.getUniqueVisitorCount(page.id)
       ]);
+
+      // Calculate total unique visitors
+      const totalUniqueVisitors = Object.values(uniqueVisitors).reduce((sum, count) => sum + count, 0);
 
       // Set explicit content type
       res.setHeader('Content-Type', 'application/json');
@@ -253,11 +257,12 @@ export function registerRoutes(app: Express): Server {
         hourlyViews: hourlyViews || {},
         locationViews: locationViews || {},
         totalComments: totalComments || 0,
-        fileDownloads: fileDownloads || {}
+        fileDownloads: fileDownloads || {},
+        uniqueVisitors: uniqueVisitors || {},
+        totalUniqueVisitors,
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      // Ensure error response is also JSON
       res.status(500).json({ 
         error: "Failed to fetch analytics data",
         details: error instanceof Error ? error.message : "Unknown error"
