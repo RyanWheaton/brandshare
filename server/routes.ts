@@ -1,8 +1,8 @@
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import { storage } from "./storage";
-import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, fileSchema, User } from "@shared/schema";
+import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, fileSchema, User, changePasswordSchema } from "@shared/schema";
 import { setupDropbox } from "./dropbox";
 import session from "express-session";
 import { z } from "zod";
@@ -127,40 +127,36 @@ export function registerRoutes(app: Express): Server {
   }) as RequestHandler);
 
 
-  // Add Dropbox file endpoint
-  app.post("/api/files/dropbox", (async (req: CustomRequest, res: Response) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  // Add the change password endpoint
+  app.post("/api/change-password", (async (req: CustomRequest, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
-    const parsed = dropboxUrlSchema.safeParse(req.body);
+    const parsed = changePasswordSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json(parsed.error);
+      return res.status(400).json({ message: "Invalid request data" });
     }
 
     try {
-      const { dropboxUrl } = parsed.data;
+      const { currentPassword, newPassword } = parsed.data;
 
-      // Extract filename from URL
-      const urlParts = new URL(dropboxUrl);
-      const pathSegments = urlParts.pathname.split('/');
-      const filename = pathSegments[pathSegments.length - 1];
+      // Verify current password
+      const user = await storage.getUser(req.user!.id);
+      if (!user || !(await comparePasswords(currentPassword, user.password))) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
 
-      // Create file object
-      const file = {
-        name: decodeURIComponent(filename),
-        url: dropboxUrl,
-        preview_url: dropboxUrl,
-        isFullWidth: false
-      };
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
 
-      const parsedFile = fileSchema.parse(file);
+      // Update password
+      await storage.updatePassword(user.id, hashedPassword);
 
-      res.json({ success: true, file: parsedFile });
+      res.json({ message: "Password updated successfully" });
     } catch (error) {
-      console.error('Error processing Dropbox URL:', error);
-      res.status(400).json({
-        success: false,
-        message: error instanceof Error ? error.message : "Failed to process Dropbox URL"
-      });
+      console.error('Error changing password:', error);
+      res.status(500).json({ message: "Failed to change password" });
     }
   }) as RequestHandler);
 
