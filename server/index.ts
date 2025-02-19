@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import fontsRouter from "./routes/fonts";
 import path from "path";
 import { execSync } from 'child_process';
+import { setupVite, serveStatic } from "./vite";
 
 // Simple logging function
 const log = (message: string) => {
@@ -87,16 +88,6 @@ app.use('/api/fonts', fontsRouter);
       log("✅ Port 5000 is available");
     }
 
-    // Check Vite dev server status
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        const viteProcess = execSync("lsof -i :5173").toString();
-        log("✅ Vite dev server is running on port 5173");
-      } catch (error) {
-        log("⚠️ Vite dev server is not running on port 5173. Frontend assets may not be served properly.");
-      }
-    }
-
     const server = registerRoutes(app);
 
     // Global error handler with enhanced logging
@@ -110,26 +101,11 @@ app.use('/api/fonts', fontsRouter);
       res.status(status).json({ message });
     });
 
-    // Serve static files in development
+    // Handle static files and development mode
     if (process.env.NODE_ENV === 'development') {
-      // Only redirect non-API routes to Vite dev server
-      app.use((req, res, next) => {
-        if (req.path.startsWith('/api')) {
-          return next();
-        }
-        res.redirect(`http://localhost:5173${req.path}`);
-      });
+      await setupVite(app, server);
     } else {
-      // Serve static files in production
-      const staticPath = path.join(__dirname, '../dist');
-      app.use(express.static(staticPath));
-
-      // SPA fallback
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-          res.sendFile(path.join(staticPath, 'index.html'));
-        }
-      });
+      serveStatic(app);
     }
 
     // Force port 5000 as required by the workflow
