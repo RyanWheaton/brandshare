@@ -4,6 +4,7 @@ import session from "express-session";
 import { storage } from "./storage";
 import fontsRouter from "./routes/fonts";
 import path from "path";
+import { execSync } from 'child_process';
 
 // Simple logging function
 const log = (message: string) => {
@@ -75,6 +76,27 @@ app.use('/api/fonts', fontsRouter);
 (async () => {
   try {
     log("Starting server initialization...");
+
+    // Check if port 5000 is available
+    try {
+      const processUsingPort = execSync("lsof -i :5000").toString();
+      log("⚠️ Port 5000 is in use. Attempting to free port...");
+      execSync("kill -9 $(lsof -t -i :5000)");
+      log("✅ Port 5000 has been freed");
+    } catch (error) {
+      log("✅ Port 5000 is available");
+    }
+
+    // Check Vite dev server status
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        const viteProcess = execSync("lsof -i :5173").toString();
+        log("✅ Vite dev server is running on port 5173");
+      } catch (error) {
+        log("⚠️ Vite dev server is not running on port 5173. Frontend assets may not be served properly.");
+      }
+    }
+
     const server = registerRoutes(app);
 
     // Global error handler with enhanced logging
