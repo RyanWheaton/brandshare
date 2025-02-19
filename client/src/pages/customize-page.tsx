@@ -207,7 +207,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
 
   // Calculate average duration for today's visits
   const todayDurations = stats.dailyVisitDurations[today] || [];
-  const todayAverageDuration = todayDurations.length > 0 
+  const todayAverageDuration = todayDurations.length > 0
     ? Math.round(todayDurations.reduce((sum, dur) => sum + dur, 0) / todayDurations.length)
     : 0;
 
@@ -215,7 +215,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return minutes > 0 
+    return minutes > 0
       ? `${minutes}m ${remainingSeconds}s`
       : `${remainingSeconds}s`;
   };
@@ -293,11 +293,23 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
           {todayDurations.length > 0 && (
             <div className="mt-4">
               <p className="text-sm font-medium mb-2">Today's Visit Durations</p>
-              <div className="space-y-1">
-                {todayDurations.slice(-5).map((duration, index) => (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span>Visit {todayDurations.length - (5 - index) + 1}</span>
-                    <span className="text-muted-foreground">{formatDuration(duration)}</span>
+              <div className="space-y-2">
+                {todayDurations.slice(-5).map((visit, index) => (
+                  <div key={index} className="text-sm border rounded-lg p-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Visit {todayDurations.length - (5 - index) + 1}</span>
+                      <span className="text-muted-foreground">{formatDuration(visit.duration)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      <div>{new Date(visit.timestamp).toLocaleString()}</div>
+                      {visit.location && (
+                        <div>
+                          {[visit.location.city, visit.location.region, visit.location.country]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -55,7 +55,7 @@ export interface IStorage {
   getFileDownloads(sharePageId: number): Promise<Record<string, number>>;
   updateUser(userId: number, updates: Partial<User>): Promise<User>;
   getUniqueVisitorCount(sharePageId: number): Promise<Record<string, number>>;
-  recordVisitDuration(sharePageId: number, duration: number): Promise<void>;
+  recordVisitDuration(sharePageId: number, duration: number, ip?: string): Promise<void>;
   getAverageVisitDuration(sharePageId: number): Promise<number>;
   getDailyVisitDurations(sharePageId: number): Promise<Record<string, number[]>>;
 }
@@ -594,8 +594,22 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async recordVisitDuration(sharePageId: number, duration: number): Promise<void> {
+  async recordVisitDuration(sharePageId: number, duration: number, ip?: string): Promise<void> {
     const today = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString();
+    let location = null;
+
+    if (ip) {
+      const geo = geoip.lookup(ip);
+      if (geo) {
+        location = {
+          country: geo.country,
+          region: geo.region,
+          city: geo.city,
+        };
+      }
+    }
+
     const [currentStats] = await db
       .select()
       .from(pageStats)
@@ -608,19 +622,31 @@ export class DatabaseStorage implements IStorage {
         totalViews: 0,
         totalComments: 0,
         uniqueVisitors: {},
-        visitDurations: { [today]: [duration] },
+        visitDurations: {
+          [today]: [{
+            duration,
+            timestamp,
+            location,
+          }]
+        },
         averageVisitDuration: duration,
       });
     } else {
-      const visitDurations = currentStats.visitDurations as Record<string, number[]> || {};
+      const visitDurations = currentStats.visitDurations as Record<string, any[]> || {};
 
       if (!visitDurations[today]) {
         visitDurations[today] = [];
       }
-      visitDurations[today].push(duration);
+      visitDurations[today].push({
+        duration,
+        timestamp,
+        location,
+      });
 
       // Calculate new average
-      const allDurations = Object.values(visitDurations).flat();
+      const allDurations = Object.values(visitDurations)
+        .flat()
+        .map(visit => visit.duration);
       const newAverage = Math.round(
         allDurations.reduce((sum, dur) => sum + dur, 0) / allDurations.length
       );
