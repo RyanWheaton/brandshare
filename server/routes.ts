@@ -6,6 +6,7 @@ import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, fi
 import { setupDropbox } from "./dropbox";
 import session from "express-session";
 import { z } from "zod";
+import geoip from 'geoip-lite';
 
 // Extend Express Request type to include our custom properties
 declare module 'express-session' {
@@ -300,8 +301,7 @@ export function registerRoutes(app: Express): Server {
       const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
       const clientIp = ip.split(',')[0].trim();
 
-      // Get location data from IP
-      const geoip = require('geoip-lite');
+      // Get location data using geoip-lite
       const geo = geoip.lookup(clientIp);
       console.log("GeoIP lookup result:", geo);
 
@@ -327,7 +327,7 @@ export function registerRoutes(app: Express): Server {
         timestamp: new Date().toISOString()
       });
 
-      await storage.recordVisitDuration(page.id, duration, location);
+      await storage.recordVisitDuration(page.id, duration, clientIp);
       console.log("Successfully recorded visit duration for page:", page.id);
 
       res.json({ success: true });
