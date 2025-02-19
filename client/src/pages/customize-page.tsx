@@ -163,7 +163,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     uniqueVisitors: Record<string, number>;
     totalUniqueVisitors: number;
     averageVisitDuration: number;
-    dailyVisitDurations: Record<string, number[]>;
+    dailyVisitDurations: Record<string, { duration: number; timestamp: string; location?: { city?: string; region?: string; country?: string } }[]>;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
@@ -208,7 +208,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   // Calculate average duration for today's visits
   const todayDurations = stats.dailyVisitDurations[today] || [];
   const todayAverageDuration = todayDurations.length > 0
-    ? Math.round(todayDurations.reduce((sum, dur) => sum + dur, 0) / todayDurations.length)
+    ? Math.round(todayDurations.reduce((sum, visit) => sum + visit.duration, 0) / todayDurations.length)
     : 0;
 
   // Format duration in minutes and seconds
@@ -301,7 +301,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
                       <span className="text-muted-foreground">{formatDuration(visit.duration)}</span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      <div>{new Date(visit.timestamp).toLocaleString()}</div>
+                      <div>{format(new Date(visit.timestamp), 'PPpp')}</div>
                       {visit.location && (
                         <div>
                           {[visit.location.city, visit.location.region, visit.location.country]
@@ -352,7 +352,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
                     <span className="text-sm">{data.views} views</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Last viewed: {new Date(data.lastView).toLocaleString()}
+                    Last viewed: {format(new Date(data.lastView), 'PPpp')}
                   </p>
                 </div>
               ))}
@@ -362,7 +362,6 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
           )}
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>File Downloads</CardTitle>
@@ -835,7 +834,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                   )}>Background Color</FormLabel>
                                   <FormControl>
                                     <ColorPicker
