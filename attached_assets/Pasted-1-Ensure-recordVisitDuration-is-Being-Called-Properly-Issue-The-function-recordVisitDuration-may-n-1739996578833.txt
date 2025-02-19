@@ -1,0 +1,55 @@
+1. Ensure recordVisitDuration is Being Called Properly
+Issue: The function recordVisitDuration may not be called when a visit ends.
+Fix: Confirm that it's triggered on both page load and before the user leaves.
+✅ Ask the agent to:
+Add console logs when recordVisitDuration is called.
+Ensure it’s called on page unload using beforeunload. Example:
+useEffect(() => {
+  const startTime = Date.now();
+
+  const handleBeforeUnload = () => {
+    const duration = Math.round((Date.now() - startTime) / 1000);
+    if (duration > 1) {
+      fetch(`/api/pages/${pageId}/visit-duration`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duration }),
+      });
+    }
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+}, []);
+
+2. Ensure the Database is Storing Visit Durations Correctly
+Issue: The visit durations might not be saved or updated correctly in the database.
+Fix: Add debug logs before and after the database update in recordVisitDuration.
+✅ Ask the agent to insert logs inside recordVisitDuration:
+console.log("Recording visit duration for page:", sharePageId, "Duration:", duration, "IP:", ip);
+
+Also, before updating the database:
+console.log("Updated visit durations:", visitDurations);
+
+3. Ensure the Analytics API Fetches Visit Duration Correctly
+Issue: The frontend analytics tab might not be fetching the correct data.
+Fix: Ensure getDailyVisitDurations and getAverageVisitDuration return recent updates.
+✅ Ask the agent to log the data being fetched in getDailyVisitDurations:
+console.log("Fetching daily visit durations for page:", sharePageId, "Data:", stats?.visitDurations);
+
+4. Ensure the UI is Displaying Data Properly
+Issue: Even if the backend records the data, the UI might not update correctly.
+Fix: Ensure React's state updates after fetching analytics.
+✅ Ask the agent to trigger a UI update when new analytics are fetched:
+useEffect(() => {
+  queryClient.invalidateQueries({ queryKey: [`/api/pages/${pageId}/analytics`] });
+}, [pageId]);
+
+Final Message for the AI Agent
+Tell the AI agent to:
+Verify recordVisitDuration is triggered when a user leaves the page (use beforeunload).
+Add debug logs in recordVisitDuration to check if visit durations are saved.
+Ensure getDailyVisitDurations is returning recent data and add logs.
+Confirm the frontend analytics query refreshes properly after fetching new data.
+
+
