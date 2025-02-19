@@ -236,22 +236,29 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Page not found" });
       }
 
-      // Get analytics data from storage
-      const [dailyViews, hourlyViews, locationViews, totalComments, fileDownloads, uniqueVisitors] = await Promise.all([
+      const [
+        dailyViews,
+        hourlyViews,
+        locationViews,
+        totalComments,
+        fileDownloads,
+        uniqueVisitors,
+        averageVisitDuration,
+        dailyVisitDurations
+      ] = await Promise.all([
         storage.getDailyViews(page.id),
         storage.getHourlyViews(page.id),
         storage.getLocationViews(page.id),
         storage.getTotalComments(page.id),
         storage.getFileDownloads(page.id),
-        storage.getUniqueVisitorCount(page.id)
+        storage.getUniqueVisitorCount(page.id),
+        storage.getAverageVisitDuration(page.id),
+        storage.getDailyVisitDurations(page.id)
       ]);
 
-      // Calculate total unique visitors
       const totalUniqueVisitors = Object.values(uniqueVisitors).reduce((sum, count) => sum + count, 0);
 
-      // Set explicit content type
       res.setHeader('Content-Type', 'application/json');
-
       res.json({
         dailyViews: dailyViews || {},
         hourlyViews: hourlyViews || {},
@@ -260,6 +267,8 @@ export function registerRoutes(app: Express): Server {
         fileDownloads: fileDownloads || {},
         uniqueVisitors: uniqueVisitors || {},
         totalUniqueVisitors,
+        averageVisitDuration,
+        dailyVisitDurations,
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -267,6 +276,27 @@ export function registerRoutes(app: Express): Server {
         error: "Failed to fetch analytics data",
         details: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  }) as RequestHandler);
+
+  // Add visit duration tracking to the public share page endpoint
+  app.post("/api/p/:slug/visit-duration", (async (req: CustomRequest, res: Response) => {
+    try {
+      const page = await storage.getSharePageBySlug(req.params.slug);
+      if (!page) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+
+      const duration = parseInt(req.body.duration);
+      if (isNaN(duration) || duration < 0) {
+        return res.status(400).json({ error: "Invalid duration" });
+      }
+
+      await storage.recordVisitDuration(page.id, duration);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error recording visit duration:', error);
+      res.status(500).json({ error: "Failed to record visit duration" });
     }
   }) as RequestHandler);
 

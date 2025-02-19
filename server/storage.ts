@@ -55,6 +55,9 @@ export interface IStorage {
   getFileDownloads(sharePageId: number): Promise<Record<string, number>>;
   updateUser(userId: number, updates: Partial<User>): Promise<User>;
   getUniqueVisitorCount(sharePageId: number): Promise<Record<string, number>>;
+  recordVisitDuration(sharePageId: number, duration: number): Promise<void>;
+  getAverageVisitDuration(sharePageId: number): Promise<number>;
+  getDailyVisitDurations(sharePageId: number): Promise<Record<string, number[]>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -125,7 +128,7 @@ export class DatabaseStorage implements IStorage {
       dailyViews: {},
       totalViews: 0,
       totalComments: 0,
-      uniqueVisitors: {}, //Added
+      uniqueVisitors: {},
     });
 
     return sharePage;
@@ -318,7 +321,7 @@ export class DatabaseStorage implements IStorage {
         dailyViews: {},
         totalViews: 0,
         totalComments: increment ? 1 : 0,
-        uniqueVisitors: {}, // Added
+        uniqueVisitors: {},
       });
     } else {
       await db
@@ -589,6 +592,58 @@ export class DatabaseStorage implements IStorage {
     return Object.fromEntries(
       Object.entries(uniqueVisitors).map(([date, ips]) => [date, ips.length])
     );
+  }
+
+  async recordVisitDuration(sharePageId: number, duration: number): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    const [currentStats] = await db
+      .select()
+      .from(pageStats)
+      .where(eq(pageStats.sharePageId, sharePageId));
+
+    if (!currentStats) {
+      await db.insert(pageStats).values({
+        sharePageId,
+        dailyViews: {},
+        totalViews: 0,
+        totalComments: 0,
+        uniqueVisitors: {},
+        visitDurations: { [today]: [duration] },
+        averageVisitDuration: duration,
+      });
+    } else {
+      const visitDurations = currentStats.visitDurations as Record<string, number[]> || {};
+
+      if (!visitDurations[today]) {
+        visitDurations[today] = [];
+      }
+      visitDurations[today].push(duration);
+
+      // Calculate new average
+      const allDurations = Object.values(visitDurations).flat();
+      const newAverage = Math.round(
+        allDurations.reduce((sum, dur) => sum + dur, 0) / allDurations.length
+      );
+
+      await db
+        .update(pageStats)
+        .set({
+          visitDurations,
+          averageVisitDuration: newAverage,
+          lastUpdated: new Date(),
+        })
+        .where(eq(pageStats.sharePageId, sharePageId));
+    }
+  }
+
+  async getAverageVisitDuration(sharePageId: number): Promise<number> {
+    const stats = await this.getPageStats(sharePageId);
+    return stats?.averageVisitDuration || 0;
+  }
+
+  async getDailyVisitDurations(sharePageId: number): Promise<Record<string, number[]>> {
+    const stats = await this.getPageStats(sharePageId);
+    return (stats?.visitDurations as Record<string, number[]>) || {};
   }
 }
 
