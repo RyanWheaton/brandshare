@@ -1,9 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { serveStatic, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
 import fontsRouter from "./routes/fonts";
+import path from "path";
+
+// Simple logging function
+const log = (message: string) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`);
+};
 
 // Set development mode explicitly if not set
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
@@ -82,26 +88,40 @@ app.use('/api/fonts', fontsRouter);
       res.status(status).json({ message });
     });
 
-    // Serve static files in production only
-    if (process.env.NODE_ENV === "production") {
-      log("Starting in production mode with static files");
-      serveStatic(app);
+    // Serve static files in development
+    if (process.env.NODE_ENV === 'development') {
+      // Only redirect non-API routes to Vite dev server
+      app.use((req, res, next) => {
+        if (req.path.startsWith('/api')) {
+          return next();
+        }
+        res.redirect(`http://localhost:5173${req.path}`);
+      });
+    } else {
+      // Serve static files in production
+      const staticPath = path.join(__dirname, '../dist');
+      app.use(express.static(staticPath));
+
+      // SPA fallback
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.sendFile(path.join(staticPath, 'index.html'));
+        }
+      });
     }
 
-    // Single fixed port
-    const PORT = 3000;
+    // Force port 5000 as required by the workflow
+    const PORT = 5000;
     log(`Starting Express server on port ${PORT}...`);
 
-    server.listen(PORT, '0.0.0.0', () => {
-      log(`Express server started successfully on port ${PORT} in ${process.env.NODE_ENV} mode`);
-      // Let the workflow handle Vite separately
-    }).on('error', (error: NodeJS.ErrnoException) => {
-      log(`Failed to start server: ${error.message}`);
-      if (error.code === 'EADDRINUSE') {
-        log(`Port ${PORT} is already in use. Please free up the port and try again.`);
-      }
-      process.exit(1);
-    });
+    server.listen(PORT, '0.0.0.0')
+      .once('listening', () => {
+        log(`Express server started successfully on port ${PORT} in ${process.env.NODE_ENV} mode`);
+      })
+      .once('error', (error: NodeJS.ErrnoException) => {
+        log(`Failed to start server: ${error.message}`);
+        process.exit(1);
+      });
 
   } catch (error) {
     console.error('Failed to start server:', error);
