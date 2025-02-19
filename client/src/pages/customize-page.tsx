@@ -314,6 +314,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const [, setLocation] = useLocation();
   const [isCopied, setIsCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("customize");
+  const { user } = useAuth(); // Access user object from useAuth
 
   if (!params?.id || isNaN(parseInt(params.id))) {
     setLocation("/");
@@ -643,11 +644,23 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                           <Upload className="h-4 w-4" />
                                         </Button>
                                       </DropboxChooser>
+                                      {user?.logoUrl && (
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
+                                          className="gap-2 shrink-0"
+                                        >
+                                          <Image className="h-4 w-4" />
+                                          Use Profile Logo
+                                        </Button>
+                                      )}
                                       {field.value && (
                                         <Button
                                           type="button"
                                           variant="outline"
                                           size="icon"
+                                          className="shrink-0"
                                           onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
                                         >
                                           <X className="h-4 w-4" />
@@ -854,7 +867,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         max={48}
                                         step={1}
                                         value={[field.value ?? 24]}
-                                        onValueChange={(value) => field.onChange(value[0])}
+                                        onValueChange={(value)=> field.onChange(value[0])}
                                         className="flex-1"
                                       />
                                       <span className="w-12 text-right">{field.value ?? 24}px</span>
@@ -1057,7 +1070,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                               )}>Footer Logo</FormLabel>
                               <FormDescription>
-                                Upload a logo to display above the footer text
+                                Upload a logo to display in the footer
                               </FormDescription>
                               <FormControl>
                                 <div className="space-y-2">
@@ -1075,11 +1088,23 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         <Upload className="h-4 w-4" />
                                       </Button>
                                     </DropboxChooser>
+                                    {user?.logoUrl && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => form.setValue('footerLogoUrl', user.logoUrl!, { shouldDirty: true })}
+                                        className="gap-2 shrink-0"
+                                      >
+                                        <Image className="h-4 w-4" />
+                                        Use Profile Logo
+                                      </Button>
+                                    )}
                                     {field.value && (
                                       <Button
                                         type="button"
                                         variant="outline"
                                         size="icon"
+                                        className="shrink-0"
                                         onClick={() => form.setValue('footerLogoUrl', '', { shouldDirty: true })}
                                       >
                                         <X className="h-4 w-4" />
