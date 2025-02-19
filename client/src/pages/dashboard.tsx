@@ -282,8 +282,8 @@ function SharePageCard({ page, onDelete, onCopyLink }: {
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const visitStartTime = useRef<number>(Date.now());
+  const [location, setLocation] = useLocation();
+  const startTime = useRef<number>(Date.now());
 
   const { data: pages = [], isLoading: pagesLoading } = useQuery<(SharePage & { stats: any })[]>({
     queryKey: ["/api/pages"],
@@ -414,27 +414,36 @@ export default function Dashboard() {
 
   // Add visit duration tracking
   useEffect(() => {
+    const startTime = Date.now();
+    console.log("Starting visit duration tracking at:", new Date(startTime).toISOString());
+
     const recordVisitDuration = async () => {
-      const duration = Math.floor((Date.now() - visitStartTime.current) / 1000); // Convert to seconds
-      try {
-        await apiRequest("POST", "/api/pages/visit-duration", {
-          duration,
-          timestamp: new Date().toISOString()
-        });
-      } catch (error) {
-        console.error("Failed to record visit duration:", error);
+      const duration = Math.round((Date.now() - startTime) / 1000); // Convert to seconds
+      if (duration > 1) { // Only record if duration is meaningful
+        console.log("Recording visit duration:", duration, "seconds");
+        try {
+          await apiRequest("POST", `/api/p/${location}/visit-duration`, {
+            duration,
+            timestamp: new Date().toISOString()
+          });
+          console.log("Successfully recorded visit duration");
+        } catch (error) {
+          console.error("Failed to record visit duration:", error);
+        }
       }
     };
 
     // Record duration when page visibility changes
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
+        console.log("Page visibility changed to hidden, recording duration");
         recordVisitDuration();
       }
     };
 
-    // Record duration when component unmounts
+    // Record duration when component unmounts or before unload
     const handleBeforeUnload = () => {
+      console.log("Page is being unloaded, recording duration");
       recordVisitDuration();
     };
 
@@ -447,8 +456,7 @@ export default function Dashboard() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       recordVisitDuration();
     };
-  }, []);
-
+  }, [location]); // Add location dependency
 
   if (pagesLoading || templatesLoading) {
     return (

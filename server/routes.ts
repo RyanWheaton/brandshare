@@ -282,21 +282,41 @@ export function registerRoutes(app: Express): Server {
   // Add visit duration tracking to the public share page endpoint
   app.post("/api/p/:slug/visit-duration", (async (req: CustomRequest, res: Response) => {
     try {
+      console.log("Recording visit duration for page:", req.params.slug, "Duration:", req.body.duration);
+
       const page = await storage.getSharePageBySlug(req.params.slug);
       if (!page) {
+        console.log("Page not found:", req.params.slug);
         return res.status(404).json({ error: "Page not found" });
       }
 
       const duration = parseInt(req.body.duration);
       if (isNaN(duration) || duration < 0) {
+        console.log("Invalid duration value:", req.body.duration);
         return res.status(400).json({ error: "Invalid duration" });
       }
 
+      // Get client IP for logging
+      const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
+      const clientIp = ip.split(',')[0].trim();
+
+      console.log("Recording visit duration:", {
+        pageId: page.id,
+        duration,
+        ip: clientIp,
+        timestamp: new Date().toISOString()
+      });
+
       await storage.recordVisitDuration(page.id, duration);
+      console.log("Successfully recorded visit duration for page:", page.id);
+
       res.json({ success: true });
     } catch (error) {
       console.error('Error recording visit duration:', error);
-      res.status(500).json({ error: "Failed to record visit duration" });
+      res.status(500).json({ 
+        error: "Failed to record visit duration",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   }) as RequestHandler);
 
