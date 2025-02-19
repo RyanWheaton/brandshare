@@ -300,14 +300,34 @@ export function registerRoutes(app: Express): Server {
       const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
       const clientIp = ip.split(',')[0].trim();
 
+      // Get location data from IP
+      const geoip = require('geoip-lite');
+      const geo = geoip.lookup(clientIp);
+      console.log("GeoIP lookup result:", geo);
+
+      let location = null;
+      if (geo) {
+        location = {
+          country: geo.country,
+          region: geo.region,
+          city: geo.city,
+          key: `${geo.country}, ${geo.region}, ${geo.city}`,
+          timestamp: new Date().toISOString(),
+          latitude: geo.ll[0],
+          longitude: geo.ll[1]
+        };
+        console.log("Processed location data:", location);
+      }
+
       console.log("Recording visit duration:", {
-        pageId: page.id,
+        sharePageId: page.id,
         duration,
         ip: clientIp,
+        location,
         timestamp: new Date().toISOString()
       });
 
-      await storage.recordVisitDuration(page.id, duration);
+      await storage.recordVisitDuration(page.id, duration, location);
       console.log("Successfully recorded visit duration for page:", page.id);
 
       res.json({ success: true });
