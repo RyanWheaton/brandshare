@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { DropboxLinkInput } from "@/components/ui/dropbox-link-input";
 import { PageThumbnail } from "@/components/ui/page-thumbnail";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { useEffect, useRef } from "react";
 
 
 // Update DUMMY_FILES to ensure preview_url is always present
@@ -282,6 +283,7 @@ export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const visitStartTime = useRef<number>(Date.now());
 
   const { data: pages = [], isLoading: pagesLoading } = useQuery<(SharePage & { stats: any })[]>({
     queryKey: ["/api/pages"],
@@ -409,6 +411,44 @@ export default function Dashboard() {
       });
     }
   };
+
+  // Add visit duration tracking
+  useEffect(() => {
+    const recordVisitDuration = async () => {
+      const duration = Math.floor((Date.now() - visitStartTime.current) / 1000); // Convert to seconds
+      try {
+        await apiRequest("POST", "/api/pages/visit-duration", {
+          duration,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Failed to record visit duration:", error);
+      }
+    };
+
+    // Record duration when page visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        recordVisitDuration();
+      }
+    };
+
+    // Record duration when component unmounts
+    const handleBeforeUnload = () => {
+      recordVisitDuration();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      recordVisitDuration();
+    };
+  }, []);
+
 
   if (pagesLoading || templatesLoading) {
     return (
