@@ -245,31 +245,59 @@ export class DatabaseStorage implements IStorage {
       .from(pageStats)
       .where(eq(pageStats.sharePageId, sharePageId));
 
+    console.log('Recording page view with IP:', ip); // Debug log
+
     let location = null;
     if (ip) {
+      console.log('Looking up location for IP:', ip); // Debug log
       const geo = geoip.lookup(ip);
+      console.log('GeoIP lookup result:', geo); // Debug log
+
       if (geo) {
-        const locationKey = [geo.country, geo.region, geo.city].filter(Boolean).join(', ');
+        // Ensure we have meaningful location data
+        const countryName = geo.country || 'Unknown Country';
+        const regionName = geo.region || 'Unknown Region';
+        const cityName = geo.city || 'Unknown City';
+
+        // Create a more descriptive location key
+        const locationKey = [countryName, regionName, cityName]
+          .filter(part => part && part !== 'Unknown Country' && part !== 'Unknown Region' && part !== 'Unknown City')
+          .join(', ') || 'Location not available';
+
         location = {
-          country: geo.country,
-          region: geo.region,
-          city: geo.city,
+          country: countryName,
+          region: regionName,
+          city: cityName,
           key: locationKey,
-          timestamp
+          timestamp,
+          latitude: geo.ll ? geo.ll[0] : null,
+          longitude: geo.ll ? geo.ll[1] : null
         };
       }
     }
 
+    console.log('Processed location data:', location); // Debug log
+
     if (!currentStats) {
-      await db.insert(pageStats).values({
+      // Create new stats entry
+      const initialStats = {
         sharePageId,
         dailyViews: { [today]: 1 },
         hourlyViews: { [hour]: 1 },
-        locationViews: location ? { [location.key]: { views: 1, lastView: timestamp } } : {},
+        locationViews: location ? { 
+          [location.key]: { 
+            views: 1, 
+            lastView: timestamp,
+            details: location // Store full location details
+          } 
+        } : {},
         totalViews: 1,
         totalComments: 0,
         uniqueVisitors: ip ? { [today]: [ip] } : {},
-      });
+      };
+
+      console.log('Creating new stats entry:', initialStats); // Debug log
+      await db.insert(pageStats).values(initialStats);
     } else {
       const dailyViews = currentStats.dailyViews as Record<string, number>;
       const hourlyViews = (currentStats.hourlyViews as Record<string, number>) || {};
@@ -282,7 +310,8 @@ export class DatabaseStorage implements IStorage {
       if (location) {
         locationViews[location.key] = {
           views: (locationViews[location.key]?.views || 0) + 1,
-          lastView: timestamp
+          lastView: timestamp,
+          details: location // Store full location details
         };
       }
 
@@ -295,16 +324,19 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      const updatedStats = {
+        dailyViews,
+        hourlyViews,
+        locationViews,
+        uniqueVisitors,
+        totalViews: currentStats.totalViews + 1,
+        lastUpdated: new Date(),
+      };
+
+      console.log('Updating stats:', updatedStats); // Debug log
       await db
         .update(pageStats)
-        .set({
-          dailyViews,
-          hourlyViews,
-          locationViews,
-          uniqueVisitors,
-          totalViews: currentStats.totalViews + 1,
-          lastUpdated: new Date(),
-        })
+        .set(updatedStats)
         .where(eq(pageStats.sharePageId, sharePageId));
     }
   }
