@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import { TipTapEditor } from "@/components/ui/tiptap-editor";
 import { convertDropboxUrl } from "@/lib/utils";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 function loadGoogleFont(fontFamily: string) {
   const link = document.createElement('link');
@@ -747,15 +748,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                   )}>Background Color</FormLabel>
                                   <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        type="color"
-                                        {...field}
-                                        value={field.value || '#ffffff'}
-                                        className="w-12 h-10 p-1"
-                                      />
-                                      <Input {...field} value={field.value || '#ffffff'} />
-                                    </div>
+                                    <ColorPicker
+                                      value={field.value || '#ffffff'}
+                                      onChange={(value) => field.onChange(value)}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -775,13 +771,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   </FormDescription>
                                   <FormControl>
                                     <div className="flex gap-2">
-                                      <Input
-                                        type="color"
-                                        {...field}
+                                      <ColorPicker
                                         value={field.value || '#ffffff'}
-                                        className="w-12 h-10 p-1"
+                                        onChange={(value) => field.onChange(value)}
+                                        className="flex-1"
                                       />
-                                      <Input {...field} value={field.value || ''} />
                                       {field.value && (
                                         <Button
                                           type="button"
@@ -809,15 +803,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                   )}>Text Color</FormLabel>
                                   <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        type="color"
-                                        {...field}
-                                        value={field.value || '#000000'}
-                                        className="w-12 h-10 p-1"
-                                      />
-                                      <Input {...field} value={field.value || '#000000'} />
-                                    </div>
+                                    <ColorPicker
+                                      value={field.value || '#000000'}
+                                      onChange={(value) => field.onChange(value)}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -1186,15 +1175,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                 )}>Footer Background Color</FormLabel>
                                 <FormControl>
-                                  <div className="flex gap-2">
-                                    <Input
-                                      type="color"
-                                      {...field}
-                                      value={field.value || '#f3f4f6'}
-                                      className="w-12 h-10 p-1"
-                                    />
-                                    <Input {...field} value={field.value || '#f3f4f6'} />
-                                  </div>
+                                  <ColorPicker
+                                    value={field.value || '#f3f4f6'}
+                                    onChange={(value) => field.onChange(value)}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1210,15 +1194,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                 )}>Footer Text Color</FormLabel>
                                 <FormControl>
-                                  <div className="flex gap-2">
-                                    <Input
-                                      type="color"
-                                      {...field}
-                                      value={field.value || '#000000'}
-                                      className="w-12 h-10 p-1"
-                                    />
-                                    <Input {...field} value={field.value || '#000000'} />
-                                  </div>
+                                  <ColorPicker
+                                    value={field.value || '#000000'}
+                                    onChange={(value) => field.onChange(value)}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
