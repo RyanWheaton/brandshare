@@ -226,18 +226,23 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   };
 
   // Helper to format location
-  const formatLocation = (location: { city?: string | null; region?: string | null; country?: string | null; key?: string } | undefined) => {
-    if (!location) return 'Location not available';
+  const formatLocation = (location: {
+    city?: string | null;
+    region?: string | null;
+    country?: string | null;
+    key?: string;
+  } | undefined) => {
+    if (!location) return "Location not available";
 
     // If we have a pre-formatted key, use it
     if (location.key) return location.key;
 
-    // Otherwise construct from individual fields
+    // Properly filter out null and undefined values
     const locationParts = [location.city, location.region, location.country]
-      .filter(part => part && part !== 'null' && part !== 'undefined')
+      .filter((part) => part && part !== "null" && part !== "undefined")
       .join(", ");
 
-    return locationParts || 'Location not available';
+    return locationParts.length > 0 ? locationParts : "Unknown Location";
   };
 
   const topLocations = Object.entries(locationViews)
@@ -839,7 +844,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                 )}>Description</FormLabel>
                                 <FormControl>
-                                  <Textarea {...field} value={field.value || ''} />
+                                  <Textarea {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1013,19 +1018,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     <div className="flex items-center gap-4">
                                       <Slider
                                         min={12}
-                                        max={32}
+                                        max={48}
                                         step={1}
-                                        value={[field.value]}
+                                        value={[field.value ?? 16]}
                                         onValueChange={(value) => field.onChange(value[0])}
                                         className="flex-1"
                                       />
-                                      <span className="w-12 text-right">{field.value}px</span>
+                                      <span className="w-12 text-right">{field.value ?? 16}px</span>
                                     </div>
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
+
                           </div>
                         </div>
                       </CardContent>

@@ -614,6 +614,7 @@ export class DatabaseStorage implements IStorage {
           region: geo.region || null,
           city: geo.city || null,
           key: locationKey,
+          timestamp
         };
       }
     }
@@ -634,7 +635,7 @@ export class DatabaseStorage implements IStorage {
           [today]: [{
             duration,
             timestamp,
-            location: location || undefined
+            location: location || { city: null, region: null, country: null, key: 'Location not available' }
           }]
         },
         averageVisitDuration: duration,
@@ -648,14 +649,14 @@ export class DatabaseStorage implements IStorage {
       visitDurations[today].push({
         duration,
         timestamp,
-        location: location || undefined
+        location: location || { city: null, region: null, country: null, key: 'Location not available' }
       });
 
       // Calculate new average
       const allDurations = Object.values(visitDurations)
         .flat()
         .map(visit => visit.duration)
-        .filter(d => !isNaN(d) && Number.isFinite(d)); // Filter out invalid durations
+        .filter(d => !isNaN(d) && Number.isFinite(d));
 
       const newAverage = allDurations.length > 0
         ? Math.round(allDurations.reduce((sum, dur) => sum + dur, 0) / allDurations.length)

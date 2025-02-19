@@ -1,0 +1,64 @@
+Fix #1: Improve formatLocation() to Handle Missing Data Properly
+Modify the function to better format location data:
+✅ Update the formatLocation() function
+const formatLocation = (location: {
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  key?: string;
+} | undefined) => {
+  if (!location) return "Location not available";
+
+  // If we have a pre-formatted key, use it
+  if (location.key) return location.key;
+
+  // Properly filter out null and undefined values
+  const locationParts = [location.city, location.region, location.country]
+    .filter((part) => part && part !== "null" && part !== "undefined")
+    .join(", ");
+
+  return locationParts.length > 0 ? locationParts : "Unknown Location";
+};
+
+What This Fixes:
+Ensures missing values don’t cause empty results.
+If a city or region is missing, it still shows the available data.
+Fix #2: Verify Location Data in Analytics API Response
+✅ Debug Location Data by Logging It
+Before rendering, add a debug log to check if location data is coming through:
+console.log("Location Data Debug:", stats.dailyVisitDurations);
+
+What This Fixes:
+Helps verify if the API is sending the correct data.
+If locations are missing, you may need to check your backend.
+Fix #3: Ensure Backend is Providing Location Data
+If location data is missing, the backend might not be pulling IP geolocation properly.
+✅ Check if your backend API is correctly fetching location using a service like:
+ipinfo.io (https://ipinfo.io/json)
+ip-api.com (http://ip-api.com/json/)
+✅ Backend Fix Example (Node.js)
+Modify your API to fetch visitor location using their IP:
+import fetch from 'node-fetch';
+
+async function getLocation(ip: string) {
+  try {
+    const response = await fetch(`https://ipinfo.io/${ip}/json?token=YOUR_API_KEY`);
+    const data = await response.json();
+    return {
+      city: data.city,
+      region: data.region,
+      country: data.country,
+      key: `${data.city}, ${data.region}, ${data.country}`,
+    };
+  } catch (error) {
+    console.error("Error fetching location:", error);
+    return null;
+  }
+}
+
+What This Fixes:
+Ensures location is correctly retrieved from the user's IP.
+Reduces missing location issues in the frontend.
+Try Fix #1: Update the formatLocation() function.
+Try Fix #2: Debug by logging stats.dailyVisitDurations.
+If still missing, Fix #3: Check backend API geolocation.
