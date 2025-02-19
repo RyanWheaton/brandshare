@@ -163,7 +163,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     uniqueVisitors: Record<string, number>;
     totalUniqueVisitors: number;
     averageVisitDuration: number;
-    dailyVisitDurations: Record<string, { duration: number; timestamp: string; location?: { city?: string; region?: string; country?: string } }[]>;
+    dailyVisitDurations: Record<string, { duration: number; timestamp: string; location?: { city?: string | null; region?: string | null; country?: string | null } }[]>;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
@@ -226,11 +226,14 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   };
 
   // Helper to format location
-  const formatLocation = (location: { city?: string; region?: string; country?: string } | undefined) => {
+  const formatLocation = (location: { city?: string | null; region?: string | null; country?: string | null } | undefined) => {
     if (!location) return 'Location not available';
-    return [location.city, location.region, location.country]
-      .filter(Boolean)
-      .join(", ") || 'Location not available';
+
+    const locationParts = [location.city, location.region, location.country]
+      .filter(part => part && part !== 'null')
+      .join(", ");
+
+    return locationParts || 'Location not available';
   };
 
   const topLocations = Object.entries(locationViews)
@@ -329,7 +332,7 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
                           {isValidDate && (
                             <div>{format(timestamp, 'PPpp')}</div>
                           )}
-                          <div>{formatLocation(visit.location)}</div>
+                          <div>Location: {formatLocation(visit.location)}</div>
                         </div>
                       </div>
                     );
