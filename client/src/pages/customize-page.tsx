@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, MessageCircle } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, MessageCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -160,6 +160,8 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
     locationViews: Record<string, { views: number; lastView: string }>;
     totalComments: number;
     fileDownloads: Record<string, number>;
+    uniqueVisitors: Record<string, number>;
+    totalUniqueVisitors: number;
   }>({
     queryKey: [`/api/pages/${pageId}/analytics`],
     enabled: !isNaN(pageId) && !isTemplate && activeTab === "analytics",
@@ -224,7 +226,7 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -233,6 +235,17 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
                 <p className="text-2xl font-bold">{dailyViews}</p>
               </div>
               <Eye className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Unique Visitors Today</p>
+                <p className="text-2xl font-bold">{stats?.uniqueVisitors[today] || 0}</p>
+              </div>
+              <Users className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -252,13 +265,33 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Comments</p>
-                <p className="text-2xl font-bold">{stats.totalComments || 0}</p>
+                <p className="text-2xl font-bold">{stats.totalComments}</p>
               </div>
               <MessageCircle className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Total Statistics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Page Views</p>
+              <p className="text-xl font-bold">
+                {Object.values(stats?.dailyViews || {}).reduce((a, b) => a + b, 0)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Unique Visitors</p>
+              <p className="text-xl font-bold">{stats?.totalUniqueVisitors || 0}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -285,7 +318,6 @@ function Analytics({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
         </CardContent>
       </Card>
 
-      {/* File downloads section */}
       <Card>
         <CardHeader>
           <CardTitle>File Downloads</CardTitle>
@@ -314,7 +346,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const [, setLocation] = useLocation();
   const [isCopied, setIsCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("customize");
-  const { user } = useAuth(); // Access user object from useAuth
+  const { user } = useAuth();
 
   if (!params?.id || isNaN(parseInt(params.id))) {
     setLocation("/");
