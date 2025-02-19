@@ -442,40 +442,81 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   const [password, setPassword] = useState<string>();
   const visitStartTime = useRef<number>(Date.now());
   const isPageVisible = useRef<boolean>(true);
+  const lastRecordedTime = useRef<number>(Date.now());
+  const recordingInterval = useRef<number>();
 
-  // Add visit duration tracking
+  // Enhanced visit duration tracking
   useEffect(() => {
+    console.log('Visit tracking started:', new Date().toISOString());
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        console.log('Page hidden, pausing tracking');
         isPageVisible.current = false;
+        // Record the duration up to this point
+        recordVisitDuration();
       } else {
+        console.log('Page visible, resuming tracking');
         isPageVisible.current = true;
         // Reset start time when page becomes visible again
         visitStartTime.current = Date.now();
+        lastRecordedTime.current = Date.now();
       }
     };
 
     const recordVisitDuration = async () => {
       try {
-        if (!isPageVisible.current) return; // Don't record if page wasn't visible
-        const duration = Math.floor((Date.now() - visitStartTime.current) / 1000); // Convert to seconds
-        await apiRequest(
+        if (!isPageVisible.current) {
+          console.log('Skipping recording - page not visible');
+          return;
+        }
+
+        const now = Date.now();
+        const duration = Math.floor((now - lastRecordedTime.current) / 1000); // Convert to seconds
+
+        if (duration < 1) {
+          console.log('Duration too short, skipping record');
+          return;
+        }
+
+        console.log(`Recording duration: ${duration}s`);
+
+        const response = await apiRequest(
           "POST",
           `/api/p/${params.slug}/visit-duration`,
           { duration }
         );
+
+        if (response.ok) {
+          console.log('Successfully recorded visit duration');
+          lastRecordedTime.current = now;
+        } else {
+          console.error('Failed to record visit duration:', await response.text());
+        }
       } catch (error) {
         console.error('Failed to record visit duration:', error);
       }
     };
 
+    // Record duration every minute while the page is visible
+    recordingInterval.current = window.setInterval(() => {
+      if (isPageVisible.current) {
+        recordVisitDuration();
+      }
+    }, 60000); // Every minute
+
     // Set up event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', () => recordVisitDuration());
+    window.addEventListener('beforeunload', () => {
+      console.log('Page unloading, recording final duration');
+      recordVisitDuration();
+    });
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      recordVisitDuration(); // Record duration when component unmounts
+      window.clearInterval(recordingInterval.current);
+      // Record final duration when component unmounts
+      recordVisitDuration();
     };
   }, [params.slug]);
 
