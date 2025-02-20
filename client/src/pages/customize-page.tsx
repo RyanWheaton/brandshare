@@ -477,9 +477,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   // Initialize AbortController and handle cleanup
   useEffect(() => {
     // Create new controller for this component instance
-    if (!abortControllerRef.current) {
-      abortControllerRef.current = new AbortController();
-    }
+    abortControllerRef.current = new AbortController();
 
     return () => {
       // Cleanup on unmount
@@ -487,10 +485,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         try {
           console.log("Aborting pending API requests due to navigation...");
           abortControllerRef.current.abort();
+          abortControllerRef.current = null; // Reset controller after aborting
         } catch (error) {
           console.error('Error aborting requests:', error);
-        } finally {
-          abortControllerRef.current = null;
         }
       }
     };
@@ -584,7 +581,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     mutationFn: async (data: FormValues) => {
       try {
         // Ensure we have a valid controller
-        if (!abortControllerRef.current) {
+        if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
           abortControllerRef.current = new AbortController();
         }
 
@@ -630,8 +627,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       });
       form.reset(form.getValues());
     },
-    onError: (err) => {
-      if (err instanceof DOMException && err.name === "AbortError") {
+    onError: (error: Error) => {
+      if (error instanceof DOMException && error.name === "AbortError") {
         console.log('Request was aborted cleanly');
         return;
       }
@@ -641,7 +638,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         description: "Failed to save changes. Please try again.",
         variant: "destructive",
       });
-      console.error("Error during update:", err);
+      console.error("Error during update:", error);
     }
   });
 
