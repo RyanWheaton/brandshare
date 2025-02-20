@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useRef, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -22,6 +22,23 @@ type LoginData = Pick<InsertUser, "email" | "password">;
 export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Set up abort controller
+  useEffect(() => {
+    if (!abortControllerRef.current) {
+      abortControllerRef.current = new AbortController();
+    }
+
+    return () => {
+      if (abortControllerRef.current) {
+        console.log("Aborting pending auth API requests...");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
   const {
     data: user,
     error,
@@ -29,17 +46,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: false,
+    gcTime: 0,
   });
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        const res = await apiRequest(
+          "POST", 
+          "/api/login", 
+          credentials,
+          abortControllerRef.current.signal
+        );
+        return await res.json();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Login request aborted");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: (user: SelectUser | null) => {
+      if (user === null) return; // Skip if request was aborted
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast({
         title: "Login failed",
         description: error.message,
@@ -50,13 +87,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
-      return await res.json();
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        const res = await apiRequest(
+          "POST", 
+          "/api/register", 
+          credentials,
+          abortControllerRef.current.signal
+        );
+        return await res.json();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Register request aborted");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: (user: SelectUser | null) => {
+      if (user === null) return; // Skip if request was aborted
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast({
         title: "Registration failed",
         description: error.message,
@@ -67,12 +122,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        await apiRequest(
+          "POST", 
+          "/api/logout", 
+          undefined,
+          abortControllerRef.current.signal
+        );
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Logout request aborted");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) return; // Skip if request was aborted
       queryClient.setQueryData(["/api/user"], null);
     },
     onError: (error: Error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast({
         title: "Logout failed",
         description: error.message,

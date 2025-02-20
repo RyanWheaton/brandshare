@@ -1,0 +1,95 @@
+**Instructions for AI Agent to Fix Abort Errors in the App**
+
+### Issue Description:
+The application is experiencing abort errors when navigating between pages. The error messages indicate that API requests are being aborted without a clear reason. The issue seems to be related to how the AbortController is used in the app.
+
+### Observations from Console Logs:
+1. **AbortError** occurs when attempting to record visit duration.
+2. `PDFFetchStreamRangeReader.cancel` appears to be involved, suggesting an issue with request cancellation.
+3. The app is using an `AbortController` to cancel requests but might not be managing it correctly.
+4. Requests may be getting aborted too soon, causing issues with fetching data and updating components.
+
+### Steps to Fix:
+#### **1. Ensure Proper AbortController Management**
+Modify the `useEffect` cleanup logic to avoid unnecessary aborts:
+```tsx
+useEffect(() => {
+  abortControllerRef.current = new AbortController();
+  return () => {
+    if (abortControllerRef.current) {
+      console.log("Aborting pending API requests due to navigation...");
+      abortControllerRef.current.abort();
+      abortControllerRef.current = new AbortController(); // Reset controller instead of nullifying it
+    }
+  };
+}, []);
+```
+This ensures a new `AbortController` instance is created immediately after aborting to prevent unintended cancellations.
+
+#### **2. Update API Requests to Handle Aborted Calls Gracefully**
+Wrap API calls in try-catch blocks and specifically check for `AbortError`:
+```tsx
+try {
+  const response = await apiRequest("POST", `/api/p/${location}/visit-duration`, {
+    duration,
+    timestamp: new Date().toISOString()
+  }, abortControllerRef.current.signal);
+} catch (error) {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    console.log("Visit duration recording aborted due to navigation");
+    return;
+  }
+  console.error("Failed to record visit duration:", error);
+}
+```
+This prevents unnecessary error logs and ensures normal app behavior.
+
+#### **3. Adjust Timing of Visit Duration Recording**
+Currently, the visit duration recording happens on `beforeunload` and `visibilitychange`. To reduce the chance of aborted requests:
+- Introduce a delay before sending the request to ensure the page remains active.
+- Only send the request if the user stays on the page for at least a few seconds.
+
+Modify the visit tracking logic:
+```tsx
+useEffect(() => {
+  const startTime = Date.now();
+
+  const recordVisitDuration = async () => {
+    const duration = Math.round((Date.now() - startTime) / 1000);
+    if (duration > 3) { // Only send request if duration is meaningful
+      console.log("Recording visit duration:", duration, "seconds");
+      try {
+        await apiRequest("POST", `/api/p/${location}/visit-duration`, { duration }, abortControllerRef.current.signal);
+        console.log("Successfully recorded visit duration");
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Visit duration recording aborted");
+          return;
+        }
+        console.error("Failed to record visit duration:", error);
+      }
+    }
+  };
+
+  document.addEventListener("visibilitychange", recordVisitDuration);
+  window.addEventListener("beforeunload", recordVisitDuration);
+
+  return () => {
+    document.removeEventListener("visibilitychange", recordVisitDuration);
+    window.removeEventListener("beforeunload", recordVisitDuration);
+    recordVisitDuration().catch(() => console.log("Ignoring error during cleanup"));
+  };
+}, [location]);
+```
+This ensures visit durations are recorded only when necessary, reducing unnecessary API requests and potential abort errors.
+
+#### **4. Ensure API Requests Are Not Being Overwritten**
+Check for simultaneous updates to `AbortController`. If multiple API calls are being aborted unintentionally, consider keeping a reference to ongoing requests to track their state properly.
+
+### Summary of Fixes:
+- **Properly manage `AbortController` instances** to prevent unintended request cancellations.
+- **Handle `AbortError` gracefully** to avoid unnecessary errors.
+- **Adjust timing of visit duration recording** to reduce premature API requests.
+- **Ensure API requests are not being overwritten** by checking for concurrent calls.
+
+These changes should help stabilize the app and prevent abort errors during navigation.

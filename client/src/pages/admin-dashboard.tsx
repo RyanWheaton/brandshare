@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Loader2, KeyRound, Trash2 } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -32,7 +32,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface UserStats {
   id: number;
@@ -46,22 +46,52 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Set up abort controller
+  useEffect(() => {
+    if (!abortControllerRef.current) {
+      abortControllerRef.current = new AbortController();
+    }
+
+    return () => {
+      if (abortControllerRef.current) {
+        console.log("Aborting pending admin API requests...");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const { data: users, isLoading } = useQuery<UserStats[]>({
     queryKey: ["/api/admin/users"],
+    retry: false,
+    gcTime: 0,
   });
 
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ userId, password }: { userId: number; password: string }) => {
-      const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newPassword: password }),
-      });
-      if (!response.ok) throw new Error("Failed to reset password");
-      return response.json();
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        const response = await apiRequest(
+          "POST",
+          `/api/admin/users/${userId}/reset-password`,
+          { newPassword: password },
+          abortControllerRef.current.signal
+        );
+        return response.json();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Reset password request aborted");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) return; // Skip if request was aborted
       toast({
         title: "Success",
         description: "Password has been reset successfully",
@@ -70,6 +100,7 @@ export default function AdminDashboard() {
       setNewPassword("");
     },
     onError: (error: Error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast({
         title: "Error",
         description: error.message,
@@ -80,13 +111,27 @@ export default function AdminDashboard() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete user");
-      return response.json();
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        const response = await apiRequest(
+          "DELETE", 
+          `/api/admin/users/${userId}`,
+          undefined,
+          abortControllerRef.current.signal
+        );
+        return response.json();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Delete user request aborted");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) return; // Skip if request was aborted
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "Success",
@@ -94,6 +139,7 @@ export default function AdminDashboard() {
       });
     },
     onError: (error: Error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast({
         title: "Error",
         description: error.message,
@@ -137,10 +183,13 @@ export default function AdminDashboard() {
                 <TableCell>{user.emailVerified ? "Yes" : "No"}</TableCell>
                 <TableCell className="text-right">{user.totalSharePages}</TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Dialog open={resetPasswordUserId === user.id} onOpenChange={(open) => {
-                    if (!open) setResetPasswordUserId(null);
-                    setNewPassword("");
-                  }}>
+                  <Dialog 
+                    open={resetPasswordUserId === user.id} 
+                    onOpenChange={(open) => {
+                      if (!open) setResetPasswordUserId(null);
+                      setNewPassword("");
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
