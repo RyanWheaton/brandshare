@@ -460,6 +460,17 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const [isCopied, setIsCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("customize");
   const { user } = useAuth();
+  const abortController = useRef<AbortController | null>(null);
+
+  // Cleanup function for WebSocket and pending requests
+  useEffect(() => {
+    return () => {
+      // Cleanup any pending requests when component unmounts
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    };
+  }, []);
 
   // Get tab from URL query params
   useEffect(() => {
@@ -469,6 +480,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       setActiveTab(tabParam);
     }
   }, []);
+
+  // Create new AbortController for new requests
+  useEffect(() => {
+    abortController.current = new AbortController();
+    return () => {
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    };
+  }, [id]);
 
   if (!params?.id || isNaN(parseInt(params.id))) {
     setLocation("/");
@@ -480,6 +501,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   const { data: item, isLoading } = useQuery<SharePage | SharePageTemplate>({
     queryKey: [apiEndpoint],
+    retry: false, // Don't retry on failure
+    gcTime: 0, // Immediately garbage collect
+    staleTime: Infinity, // Prevent unnecessary refetches
   });
 
   const form = useForm<FormValues>({
@@ -554,6 +578,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         ...data,
         titleFont: data.titleFont || "Inter",
         descriptionFont: data.descriptionFont || "Inter",
+        signal: abortController.current?.signal,
         ...(isTemplate ? {} : {
           titleFontSize: data.titleFontSize || 24,
           descriptionFontSize: data.descriptionFontSize || 16,
@@ -577,6 +602,17 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       });
       form.reset(form.getValues());
     },
+    onError: (err) => {
+      // Silently handle aborted requests
+      if (abortController.current?.signal.aborted) return;
+
+      toast({
+        title: "Error",
+        description: "Failed to save changes. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error during update:", err); // Log the error for debugging
+    }
   });
 
   const handleFileUpdate = React.useCallback((index: number, updates: Partial<FileObject>) => {
@@ -801,63 +837,63 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               <FormField
                                 control={form.control}
                                 name="logoUrl"
-                                render={({ field }) => (
+                                render={({ field }) =>(
                                   <FormItem>
-                                    <FormLabel className={cn(
-                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                    )}>Upload Logo</FormLabel>
-                                    <FormDescription>
-                                      Upload your logo to display above the title
-                                    </FormDescription>
-                                    <FormControl>
-                                      <div className="space-y-2">
-                                        <div className="flex flex-col gap-2">
-                                          <DropboxChooser
-                                            onFilesSelected={(files) => {
-                                              if (files.length > 0) {
-                                                form.setValue('logoUrl', files[0].url, { shouldDirty: true });
-                                              }
-                                            }}
-                                          >
-                                            <Button type="button" variant="outline" className="w-full gap-2">
-                                              <Upload className="h-4 w-4" />
-                                              Choose Logo from Dropbox
-                                            </Button>
-                                          </DropboxChooser>
-                                          {user?.logoUrl && (
-                                            <div className="flex items-center gap-2">
-                                              <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
-                                                className="flex-1 gap-2"
-                                              >
-                                                <Image className="h-4 w-4" />
-                                                Use Profile Logo
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Upload Logo</FormLabel>
+                                      <FormDescription>
+                                        Upload your logo to display above the title
+                                      </FormDescription>
+                                      <FormControl>
+                                        <div className="space-y-2">
+                                          <div className="flex flex-col gap-2">
+                                            <DropboxChooser
+                                              onFilesSelected={(files) => {
+                                                if (files.length > 0) {
+                                                  form.setValue('logoUrl', files[0].url, { shouldDirty: true });
+                                                }
+                                              }}
+                                            >
+                                              <Button type="button" variant="outline" className="w-full gap-2">
+                                                <Upload className="h-4 w-4" />
+                                                Choose Logo from Dropbox
                                               </Button>
-                                              {field.value && (
+                                            </DropboxChooser>
+                                            {user?.logoUrl && (
+                                              <div className="flex items-center gap-2">
                                                 <Button
                                                   type="button"
                                                   variant="outline"
-                                                  size="icon"
-                                                  className="shrink-0"
-                                                  onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                                  onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
+                                                  className="flex-1 gap-2"
                                                 >
-                                                  <X className="h-4 w-4" />
+                                                  <Image className="h-4 w-4" />
+                                                  Use Profile Logo
                                                 </Button>
-                                              )}
-                                            </div>
+                                                {field.value && (
+                                                  <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="shrink-0"
+                                                    onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                                  >
+                                                    <X className="h-4 w-4" />
+                                                  </Button>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                          {field.value && (
+                                            <LogoPreview url={field.value} size={formValues.logoSize || 200} />
                                           )}
                                         </div>
-                                        {field.value && (
-                                          <LogoPreview url={field.value} size={formValues.logoSize || 200} />
-                                        )}
-                                      </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
                               <FormField
                                 control={form.control}
                                 name="logoSize"
@@ -1538,7 +1574,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             </div>
           </TabsContent>
           <TabsContent value="analytics">
-            <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />
+            {!isTemplate && (
+              <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />
+            )}
           </TabsContent>
         </Tabs>
       </div>
