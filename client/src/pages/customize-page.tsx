@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate, FileObject } from "@shared/schema";
+import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,28 +18,43 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, MessageCircle, Users } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useLocation, useRoute } from "wouter";
+import { useLocation } from "wouter";
 import { FilePreview as OriginalFilePreview } from "@/pages/share-page";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon, Film, FileText } from "lucide-react";
-import { DropboxChooser } from "@/components/ui/dropbox-chooser";
-import { SortableFiles } from "@/components/ui/sortable-files";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Lock } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { FontSelect } from "@/components/ui/font-select";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import { TipTapEditor } from "@/components/ui/tiptap-editor";
 import { convertDropboxUrl } from "@/lib/utils";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { PageThumbnail } from "@/components/ui/page-thumbnail"; // Updated import path
+
+// Extended FileObject type to match schema
+interface FileObject {
+  name: string;
+  preview_url: string;
+  url: string;
+  isFullWidth: boolean;
+  title?: string;
+  description?: string;
+}
+
+// Extended form values type to include all fields
+interface FormValues extends InsertSharePage {
+  footerText?: string;
+  footerBackgroundColor?: string;
+  footerTextColor?: string;
+  showFooter?: boolean;
+  footerLogoUrl?: string;
+  footerLogoSize?: number;
+  footerLogoLink?: string;
+  logoUrl?: string;
+  logoSize?: number;
+}
+
 
 function loadGoogleFont(fontFamily: string) {
   const link = document.createElement('link');
@@ -448,7 +463,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     queryKey: [apiEndpoint],
   });
 
-  const form = useForm<InsertSharePage | InsertTemplate>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(isTemplate ? insertTemplateSchema : insertSharePageSchema),
     defaultValues: {
       title: "",
@@ -515,7 +530,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   }, [formValues.titleFont, formValues.descriptionFont]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: InsertSharePage | InsertTemplate) => {
+    mutationFn: async (data: FormValues) => {
       const response = await apiRequest("PATCH", apiEndpoint, {
         ...data,
         titleFont: data.titleFont || "Inter",
@@ -737,9 +752,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           window.history.pushState({}, '', newUrl);
         }}>
           <TabsContent value="customize" className="space-y-6">
-            <div className="grid lg:grid-cols-[30%_70%] gap-8">
+            <div className="grid lg:grid-cols-[40%_60%] gap-8">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6">
+                <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
                   <div className="space-y-6">
                     <Card>
                       <CardHeader>
@@ -821,7 +836,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                       min={50}
                                       max={800}
                                       step={10}
-                                      value={[field.value ?? 200]}
+                                                                            value={[field.value ?? 200]}
                                       onValueChange={(value) => field.onChange(value[0])}
                                       className="flex-1"
                                     />
@@ -1370,133 +1385,42 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 </form>
               </Form>
 
-              <div className="relative h-[calc(100vh-5rem)]">
-                <div className="h-full">
-                  <Card className="w-full h-full overflow-hidden">
-                    <CardContent className="p-0 relative h-full">
-                      <div
-                        className="absolute inset-0 overflow-y-auto"
-                        style={{
-                          backgroundColor: formValues.backgroundColor || "#ffffff",
-                          background: formValues.backgroundColorSecondary
-                            ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
-                            : formValues.backgroundColor || "#ffffff",
-                        }}
-                      >
-                        <div className="p-8 min-h-full">
-                          {formValues.logoUrl && (
-                            <div className="mb-8 flex justify-center">
-                              <img
-                                src={convertDropboxUrl(formValues.logoUrl)}
-                                alt="Logo"
-                                className="mx-auto object-contain"
-                                style={{
-                                  maxWidth: formValues.logoSize || 200,
-                                  maxHeight: formValues.logoSize || 200
-                                }}
-                              />
-                            </div>
-                          )}
-                          <div className="text-center mb-8">
-                            <h1
-                              className="mb-4 font-bold"
-                              style={{
-                                fontFamily: formValues.titleFont || "Inter",
-                                fontSize: `${formValues.titleFontSize || 24}px`,
-                                color: formValues.textColor
-                              }}
-                            >
-                              {formValues.title || "Untitled Share Page"}
-                            </h1>
-                            {formValues.description && (
-                              <p
-                                className="opacity-90"
-                                style={{
-                                  fontFamily: formValues.descriptionFont || "Inter",
-                                  fontSize: `${formValues.descriptionFontSize || 16}px`,
-                                  color: formValues.textColor
-                                }}
-                              >
-                                {formValues.description}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-4">
-                            {(formValues.files as FileObject[])?.map((file, index) => (
-                              <OriginalFilePreview
-                                key={index}
-                                file={file}
-                                textColor={formValues.textColor}
-                                containerClassName={cn(
-                                  "w-full",
-                                  file.isFullWidth ? "" : "max-w-4xl mx-auto"
-                                )}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        {formValues.showFooter && (formValues.footerText || formValues.footerBackgroundColor || formValues.footerLogoUrl) && (
-                          <footer className="w-full mt-8">
-                            <div
-                              className="w-full py-6 px-4"
-                              style={{
-                                backgroundColor: formValues.footerBackgroundColor || "#f3f4f6",
-                                color: formValues.footerTextColor || "#000000",
-                              }}
-                            >
-                              <div className="max-w-4xl mx-auto">
-                                {formValues.footerLogoUrl && (
-                                  <div className="mb-4 flex justify-center">
-                                    {formValues.footerLogoLink ? (
-                                      <a
-                                        href={formValues.footerLogoLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        <img
-                                          src={convertDropboxUrl(formValues.footerLogoUrl)}
-                                          alt="Footer Logo"
-                                          className="mx-auto object-contain"
-                                          style={{
-                                            maxWidth: formValues.footerLogoSize || 150,
-                                            maxHeight: formValues.footerLogoSize || 150
-                                          }}
-                                        />
-                                      </a>
-                                    ) : (
-                                      <img
-                                        src={convertDropboxUrl(formValues.footerLogoUrl)}
-                                        alt="Footer Logo"
-                                        className="mx-auto object-contain"
-                                        style={{
-                                          maxWidth: formValues.footerLogoSize || 150,
-                                          maxHeight: formValues.footerLogoSize || 150
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                )}
-                                {formValues.footerText && (
-                                  <div
-                                    className="prose prose-sm max-w-none"
-                                    style={{ color: formValues.footerTextColor || "#000000" }}
-                                    dangerouslySetInnerHTML={{ __html: formValues.footerText }}
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          </footer>
-                        )}
-                      </div>
+              <div className="relative hidden lg:block">
+                <div className="sticky top-[5.5rem] overflow-auto max-h-[calc(100vh-7rem)]">
+                  <Card className="border-2 border-primary/20">
+                    <CardHeader>
+                      <CardTitle>Preview</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <PageThumbnail
+                        title={formValues.title}
+                        description={formValues.description}
+                        files={formValues.files}
+                        backgroundColor={formValues.backgroundColor}
+                        backgroundColorSecondary={formValues.backgroundColorSecondary}
+                        textColor={formValues.textColor}
+                        titleFont={formValues.titleFont}
+                        descriptionFont={formValues.descriptionFont}
+                        titleFontSize={formValues.titleFontSize}
+                        descriptionFontSize={formValues.descriptionFontSize}
+                        logoUrl={formValues.logoUrl}
+                        logoSize={formValues.logoSize}
+                        footerText={formValues.footerText}
+                        footerTextColor={formValues.footerTextColor}
+                        footerBackgroundColor={formValues.footerBackgroundColor}
+                        showFooter={formValues.showFooter}
+                        footerLogoUrl={formValues.footerLogoUrl}
+                        footerLogoSize={formValues.footerLogoSize}
+                        footerLogoLink={formValues.footerLogoLink}
+                      />
                     </CardContent>
                   </Card>
                 </div>
               </div>
             </div>
           </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            {!isTemplate && <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />}
+          <TabsContent value="analytics">
+            <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />
           </TabsContent>
         </Tabs>
       </div>
