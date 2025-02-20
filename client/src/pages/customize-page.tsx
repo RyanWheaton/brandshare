@@ -663,7 +663,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <TabsList className="bg-transparent border">
+              <TabsTrigger value="customize">Customize</TabsTrigger>
+              <TabsTrigger value="analytics" disabled={isTemplate}>Analytics</TabsTrigger>
+            </TabsList>
+            <Button
+              variant="outline"
+              onClick={openSharePage}
+              className="gap-2"
+              disabled={!item || isTemplate}
+            >
+              <ExternalLink className="h-4 w-4" />
+              View Page
+            </Button>
             <Button
               variant="outline"
               onClick={copyToClipboard}
@@ -676,15 +689,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 <Copy className="h-4 w-4" />
               )}
               Copy URL
-            </Button>
-            <Button
-              variant="outline"
-              onClick={openSharePage}
-              className="gap-2"
-              disabled={!item || isTemplate}
-            >
-              <ExternalLink className="h-4 w-4" />
-              View Page
             </Button>
             <Button
               type="button"
@@ -725,11 +729,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           const newUrl = `${window.location.pathname}?tab=${value}`;
           window.history.pushState({}, '', newUrl);
         }}>
-          <TabsList>
-            <TabsTrigger value="customize">Customize</TabsTrigger>
-            <TabsTrigger value="analytics" disabled={isTemplate}>Analytics</TabsTrigger>
-          </TabsList>
-
           <TabsContent value="customize" className="space-y-6">
             <div className="grid lg:grid-cols-[30%_70%] gap-8">
               <Form {...form}>
@@ -831,7 +830,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           />
                         </div>
 
-                        <Separator />
+                        <Separator/>
 
                         <div className="spacey-4">
                           <h4 className="text-sm font-medium">Content</h4>
