@@ -41,7 +41,7 @@ import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { useEffect, useRef } from "react";
 
 
-// Update DUMMY_FILES to ensure preview_url is always present
+// Update DUMMY_FILES to ensure we only use sample images
 const DUMMY_FILES = [
   {
     name: "sample-image-1.jpg",
