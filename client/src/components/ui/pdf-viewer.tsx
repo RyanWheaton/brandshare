@@ -18,21 +18,32 @@ interface ProgressData {
   total: number;
 }
 
+// Function to validate and sanitize PDF URL
+const validatePDFUrl = (url: string): string => {
+  try {
+    const sanitizedUrl = new URL(url);
+    return sanitizedUrl.toString();
+  } catch (error) {
+    throw new Error('Invalid URL format');
+  }
+};
+
 // Function to fetch PDF data with enhanced error handling
 const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
   try {
-    const response = await fetch(pdfUrl, {
+    const validatedUrl = validatePDFUrl(pdfUrl);
+    console.log('Fetching PDF from validated URL:', validatedUrl);
+
+    const response = await fetch(validatedUrl, {
       method: 'GET',
       mode: 'cors',
       credentials: 'omit',
       signal: controller.signal,
       headers: {
         'Accept': 'application/pdf,*/*',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
       },
     });
 
@@ -54,9 +65,43 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
       if (error.name === 'AbortError') {
         throw new Error('Request timed out');
       }
+      console.error('PDF fetch error:', error);
       throw error;
     }
     throw new Error('An unknown error occurred while fetching the PDF');
+  }
+};
+
+// Enhanced Dropbox URL conversion
+const convertDropboxUrl = (originalUrl: string): string => {
+  if (!originalUrl.includes('dropbox.com')) return originalUrl;
+
+  try {
+    let convertedUrl = originalUrl;
+
+    // Handle various Dropbox URL formats
+    if (originalUrl.includes('www.dropbox.com')) {
+      // Convert to dl.dropboxusercontent.com
+      convertedUrl = originalUrl
+        .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+        .replace('?dl=0', '')
+        .replace('?dl=1', '')
+        .replace('?raw=1', '');
+
+      // Special handling for /s/ links
+      if (convertedUrl.includes('/s/')) {
+        convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
+      }
+
+      // Add dl=1 parameter for direct download
+      convertedUrl += '?dl=1';
+    }
+
+    console.log('Converted Dropbox URL:', convertedUrl);
+    return convertedUrl;
+  } catch (err) {
+    console.error('Error converting Dropbox URL:', err);
+    return originalUrl;
   }
 };
 
@@ -72,39 +117,6 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const [scale, setScale] = useState(1);
   const [retryCount, setRetryCount] = useState(0);
   const loadingTaskRef = useRef<pdfjsLib.PDFDocumentLoadingTask | null>(null);
-
-  // Enhanced Dropbox URL conversion
-  const convertDropboxUrl = (originalUrl: string): string => {
-    if (!originalUrl.includes('dropbox.com')) return originalUrl;
-
-    try {
-      let convertedUrl = originalUrl;
-
-      // Handle various Dropbox URL formats
-      if (originalUrl.includes('www.dropbox.com')) {
-        // Convert to dl.dropboxusercontent.com
-        convertedUrl = originalUrl
-          .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-          .replace('?dl=0', '')
-          .replace('?dl=1', '')
-          .replace('?raw=1', '');
-
-        // Special handling for /s/ links
-        if (convertedUrl.includes('/s/')) {
-          convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
-        }
-
-        // Add dl=1 parameter for direct download
-        convertedUrl += (convertedUrl.includes('?') ? '&' : '?') + 'dl=1';
-      }
-
-      console.log('Converted Dropbox URL:', convertedUrl);
-      return convertedUrl;
-    } catch (err) {
-      console.error('Error converting Dropbox URL:', err);
-      return originalUrl;
-    }
-  };
 
   // Calculate optimal scale
   const calculateOptimalScale = (viewport: { width: number; height: number }) => {
@@ -183,6 +195,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         console.log(`Attempting to load PDF (attempt ${retryCount + 1}/${maxRetries}):`, pdfUrl);
 
         const pdfData = await fetchPDFData(pdfUrl);
+
+        if (!isSubscribed) return;
 
         loadingTaskRef.current = getDocument({
           data: pdfData,
