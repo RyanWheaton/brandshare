@@ -64,22 +64,37 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     }
   };
 
-  // Function to fetch PDF data with retry logic
+  // Function to fetch PDF data with enhanced error handling and retry logic
   const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     try {
+      console.log('Attempting to fetch PDF from URL:', pdfUrl);
+
       const response = await fetch(pdfUrl, {
         method: 'GET',
         mode: 'cors',
         credentials: 'omit',
+        redirect: 'follow',
+        signal: controller.signal,
         headers: {
-          'Accept': 'application/pdf',
+          'Accept': 'application/pdf,*/*',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         },
       });
 
+      clearTimeout(timeout);
+
       if (!response.ok) {
+        console.error('HTTP error response:', response.status, response.statusText);
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('application/pdf') && !contentType.includes('application/octet-stream')) {
+        console.warn('Unexpected content type:', contentType);
       }
 
       const arrayBuffer = await response.arrayBuffer();
@@ -87,8 +102,15 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         throw new Error('Received empty PDF data');
       }
 
+      console.log('Successfully fetched PDF data, size:', arrayBuffer.byteLength);
       return arrayBuffer;
     } catch (error) {
+      clearTimeout(timeout);
+
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
+
       console.error('Error fetching PDF:', error);
       throw error;
     }
