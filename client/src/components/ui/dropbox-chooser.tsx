@@ -56,7 +56,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       },
       linkType: "direct", // This ensures we get direct links
       multiselect: false, // Only allow single file selection
-      extensions: ['images'], // Only allow image files
+      extensions: ['images', '.pdf'], // Allow both images and PDF files
     });
   }, [onFilesSelected]);
 
