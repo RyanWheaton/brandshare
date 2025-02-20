@@ -18,6 +18,48 @@ interface ProgressData {
   total: number;
 }
 
+// Function to fetch PDF data with enhanced error handling
+const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+  try {
+    const response = await fetch(pdfUrl, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/pdf,*/*',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength === 0) {
+      throw new Error('Received empty PDF data');
+    }
+
+    return arrayBuffer;
+  } catch (error: unknown) {
+    clearTimeout(timeout);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
+      throw error;
+    }
+    throw new Error('An unknown error occurred while fetching the PDF');
+  }
+};
+
 export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,60 +103,6 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     } catch (err) {
       console.error('Error converting Dropbox URL:', err);
       return originalUrl;
-    }
-  };
-
-  // Function to fetch PDF data with enhanced error handling
-  const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-    try {
-      console.log('Attempting to fetch PDF from URL:', pdfUrl);
-
-      const response = await fetch(pdfUrl, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-        redirect: 'follow',
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/pdf,*/*',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-      });
-
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        console.error('HTTP error response:', response.status, response.statusText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && !contentType.includes('application/pdf') && !contentType.includes('application/octet-stream')) {
-        console.warn('Unexpected content type:', contentType);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('Received empty PDF data');
-      }
-
-      console.log('Successfully fetched PDF data, size:', arrayBuffer.byteLength);
-      return arrayBuffer;
-    } catch (error: unknown) {
-      clearTimeout(timeout);
-
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new Error('Request timed out');
-        }
-        console.error('Error fetching PDF:', error);
-        throw error;
-      }
-      throw new Error('An unknown error occurred while fetching the PDF');
     }
   };
 
@@ -177,13 +165,11 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     const baseDelay = 1000; // 1 second
 
     async function loadPDF() {
-      // Cleanup previous loading task if exists
       if (loadingTaskRef.current) {
         loadingTaskRef.current.destroy();
         loadingTaskRef.current = null;
       }
 
-      // Cleanup previous PDF document
       if (pdfDoc) {
         pdfDoc.destroy();
       }
@@ -196,44 +182,10 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         const pdfUrl = convertDropboxUrl(url);
         console.log(`Attempting to load PDF (attempt ${retryCount + 1}/${maxRetries}):`, pdfUrl);
 
-        // First validate URL with HEAD request
-        const checkResponse = await fetch(pdfUrl, {
-          method: 'HEAD',
-          mode: 'cors',
-          credentials: 'omit',
-          headers: {
-            'Accept': 'application/pdf,*/*'
-          }
-        });
+        const pdfData = await fetchPDFData(pdfUrl);
 
-        if (!checkResponse.ok) {
-          throw new Error(`Failed to validate PDF URL: ${checkResponse.status} ${checkResponse.statusText}`);
-        }
-
-        // Then fetch the actual PDF data
-        const response = await fetch(pdfUrl, {
-          method: 'GET',
-          mode: 'cors',
-          credentials: 'omit',
-          headers: {
-            'Accept': 'application/pdf,*/*',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        if (arrayBuffer.byteLength === 0) {
-          throw new Error('Received empty PDF data');
-        }
-
-        // Load PDF with PDF.js
         loadingTaskRef.current = getDocument({
-          data: arrayBuffer,
+          data: pdfData,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
           cMapPacked: true,
         });
@@ -264,11 +216,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load PDF';
 
         if (retryCount < maxRetries - 1) {
-          // Calculate exponential backoff delay
           const delay = Math.min(baseDelay * Math.pow(2, retryCount), 8000);
           console.log(`Retrying in ${delay}ms...`);
-
-          setError(`Loading failed. Retrying in ${Math.round(delay/1000)}s... (Attempt ${retryCount + 1}/${maxRetries})`);
 
           setTimeout(() => {
             if (isSubscribed) {
@@ -328,7 +277,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   }, [pdfDoc, isLoading, currentPage]);
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className={`pdf-viewer relative flex flex-col items-center justify-center h-full ${className}`}
     >
