@@ -64,7 +64,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     }
   };
 
-  // Function to fetch PDF data with enhanced error handling and retry logic
+  // Function to fetch PDF data with enhanced error handling
   const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
@@ -104,15 +104,17 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
       console.log('Successfully fetched PDF data, size:', arrayBuffer.byteLength);
       return arrayBuffer;
-    } catch (error) {
+    } catch (error: unknown) {
       clearTimeout(timeout);
 
-      if (error.name === 'AbortError') {
-        throw new Error('Request timed out');
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out');
+        }
+        console.error('Error fetching PDF:', error);
+        throw error;
       }
-
-      console.error('Error fetching PDF:', error);
-      throw error;
+      throw new Error('An unknown error occurred while fetching the PDF');
     }
   };
 
