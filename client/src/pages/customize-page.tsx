@@ -894,7 +894,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     value={field.value || ''}
                                     onChange={field.onChange}
                                     placeholder="Enter a description..."
-                                    className="min-h-[200px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[200px]"
+                                    className="min-h-[200px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[200px] [&_.tiptap]:text-foreground [&_.tiptap]:prose-headings:text-foreground [&_.tiptap]:prose-p:text-foreground"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1345,7 +1345,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   value={field.value || ''}
                                   onChange={field.onChange}
                                   placeholder="Enter footer text..."
-                                  className="min-h-[150px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[150px]"
+                                  className="min-h-[150px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[150px] [&_.tiptap]:text-foreground [&_.tiptap]:prose-headings:text-foreground [&_.tiptap]:prose-p:text-foreground"
                                 />
                               </FormControl>
                               <FormMessage />
