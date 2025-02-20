@@ -462,6 +462,18 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const { user } = useAuth();
   const abortController = useRef<AbortController | null>(null);
 
+  // Parse and validate id at the start
+  const id = params?.id ? parseInt(params.id) : null;
+  const isValidId = id !== null && !isNaN(id);
+
+  // Redirect if invalid id
+  if (!isValidId) {
+    setLocation("/");
+    return null;
+  }
+
+  const apiEndpoint = isTemplate ? `/api/templates/${id}` : `/api/pages/${id}`;
+
   // Cleanup function for WebSocket and pending requests
   useEffect(() => {
     return () => {
@@ -491,19 +503,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     };
   }, [id]);
 
-  if (!params?.id || isNaN(parseInt(params.id))) {
-    setLocation("/");
-    return null;
-  }
-
-  const id = parseInt(params.id);
-  const apiEndpoint = isTemplate ? `/api/templates/${id}` : `/api/pages/${id}`;
-
   const { data: item, isLoading } = useQuery<SharePage | SharePageTemplate>({
     queryKey: [apiEndpoint],
     retry: false, // Don't retry on failure
     gcTime: 0, // Immediately garbage collect
     staleTime: Infinity, // Prevent unnecessary refetches
+    enabled: isValidId, // Only run query if we have a valid id
   });
 
   const form = useForm<FormValues>({
