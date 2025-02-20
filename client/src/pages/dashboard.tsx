@@ -44,20 +44,20 @@ import { useEffect, useRef } from "react";
 // Update DUMMY_FILES to ensure preview_url is always present
 const DUMMY_FILES = [
   {
-    name: "sample-image.jpg",
-    preview_url: "https://picsum.photos/800/600",
-    url: "https://picsum.photos/800/600",
+    name: "sample-image-1.jpg",
+    preview_url: "https://picsum.photos/800/600?random=1",
+    url: "https://picsum.photos/800/600?random=1",
     isFullWidth: false,
-    title: "Sample Image",
+    title: "Sample Image 1",
     description: "A beautiful sample image"
   },
   {
-    name: "sample-pdf.pdf",
-    preview_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    name: "sample-image-2.jpg",
+    preview_url: "https://picsum.photos/800/600?random=2",
+    url: "https://picsum.photos/800/600?random=2",
     isFullWidth: false,
-    title: "Sample PDF",
-    description: "A sample PDF document"
+    title: "Sample Image 2",
+    description: "Another beautiful sample image"
   }
 ];
 
