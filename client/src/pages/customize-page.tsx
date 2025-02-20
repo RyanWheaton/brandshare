@@ -664,10 +664,17 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             )}
           </div>
           <div className="flex items-center gap-4">
-            <TabsList className="bg-transparent border">
-              <TabsTrigger value="customize">Customize</TabsTrigger>
-              <TabsTrigger value="analytics" disabled={isTemplate}>Analytics</TabsTrigger>
-            </TabsList>
+            <Tabs value={activeTab} onValueChange={(value) => {
+              setActiveTab(value);
+              // Update URL without full page reload
+              const newUrl = `${window.location.pathname}?tab=${value}`;
+              window.history.pushState({}, '', newUrl);
+            }}>
+              <TabsList className="bg-transparent border">
+                <TabsTrigger value="customize">Customize</TabsTrigger>
+                <TabsTrigger value="analytics" disabled={isTemplate}>Analytics</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <Button
               variant="outline"
               onClick={openSharePage}
@@ -723,7 +730,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       </div>
 
       <div className="flex-1 container mx-auto p-4">
-        <Tabs defaultValue={activeTab} className="space-y-6" onValueChange={(value) => {
+        <Tabs value={activeTab} onValueChange={(value) => {
           setActiveTab(value);
           // Update URL without full page reload
           const newUrl = `${window.location.pathname}?tab=${value}`;
