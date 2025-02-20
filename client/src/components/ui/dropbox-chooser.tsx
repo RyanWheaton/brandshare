@@ -32,9 +32,12 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       success: (files) => {
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => {
-          // Use the central convertDropboxUrl function for both preview and direct URLs
-          const directUrl = convertDropboxUrl(file.link);
-          const previewUrl = convertDropboxUrl(file.link);
+          const isImage = /\.(jpg|jpeg|png|gif)$/i.test(file.name);
+
+          // Use forPreview=true for preview URLs of images
+          const previewUrl = convertDropboxUrl(file.link, true);
+          // Use forPreview=false for direct download URLs
+          const directUrl = convertDropboxUrl(file.link, false);
 
           return {
             name: file.name,
@@ -50,7 +53,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       },
       linkType: "direct", // This ensures we get direct links
       multiselect: true, // Allow multiple file selection
-      extensions: ['images', '.pdf', '.mp4', '.mov'], // Allow both images, PDFs, and videos
+      extensions: ['images', '.pdf', '.mp4', '.mov'], // Allow images, PDFs, and videos
     });
   }, [onFilesSelected]);
 

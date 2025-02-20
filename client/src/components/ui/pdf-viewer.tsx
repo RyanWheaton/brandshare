@@ -4,6 +4,7 @@ import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
 import 'pdfjs-dist/web/pdf_viewer.css';
+import { convertDropboxUrl } from "@/lib/utils";
 
 // Configure PDF.js worker with a reliable CDN
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -72,38 +73,6 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
   }
 };
 
-// Enhanced Dropbox URL conversion
-const convertDropboxUrl = (originalUrl: string): string => {
-  if (!originalUrl.includes('dropbox.com')) return originalUrl;
-
-  try {
-    let convertedUrl = originalUrl;
-
-    // Handle various Dropbox URL formats
-    if (originalUrl.includes('www.dropbox.com')) {
-      // Convert to dl.dropboxusercontent.com
-      convertedUrl = originalUrl
-        .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-        .replace('?dl=0', '')
-        .replace('?dl=1', '')
-        .replace('?raw=1', '');
-
-      // Special handling for /s/ links
-      if (convertedUrl.includes('/s/')) {
-        convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
-      }
-
-      // Add dl=1 parameter for direct download
-      convertedUrl += '?dl=1';
-    }
-
-    console.log('Converted Dropbox URL:', convertedUrl);
-    return convertedUrl;
-  } catch (err) {
-    console.error('Error converting Dropbox URL:', err);
-    return originalUrl;
-  }
-};
 
 export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
