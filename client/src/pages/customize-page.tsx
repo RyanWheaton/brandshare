@@ -771,6 +771,22 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
                   <div className="space-y-4">
                     <Accordion type="multiple" className="space-y-4">
+                      <AccordionItem value="files" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4">
+                            <FileList
+                              files={formValues.files}
+                              onUpdateFile={handleFileUpdate}
+                              onAddFiles={(newFiles) => {
+                                form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+                              }}
+                              form={form}
+                            />
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
                       <AccordionItem value="header" className="border rounded-lg">
                         <AccordionTrigger className="px-6">Header Settings</AccordionTrigger>
                         <AccordionContent>
@@ -1095,112 +1111,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         </AccordionContent>
                       </AccordionItem>
 
-                      <AccordionItem value="files" className="border rounded-lg">
-                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
-                        <AccordionContent>
-                          <div className="px-6 pb-4">
-                            <FileList
-                              files={formValues.files}
-                              onUpdateFile={handleFileUpdate}
-                              onAddFiles={(newFiles) => {
-                                form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
-                              }}
-                              form={form}
-                            />
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-
-                      {!isTemplate && (
-                        <AccordionItem value="security" className="border rounded-lg">
-                          <AccordionTrigger className="px-6">Security Settings</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="px-6 pb-4 space-y-8">
-                              <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className={cn(
-                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                    )}>Password Protection</FormLabel>
-                                    <FormDescription>
-                                      Set a password to restrict access to this share page
-                                    </FormDescription>
-                                    <FormControl>
-                                      <div className="flex items-center gap-2">
-                                        <Input
-                                          type="password"
-                                          {...field}
-                                          value={field.value || ''}
-                                          placeholder="Enter a password"
-                                        />
-                                        {field.value && (
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => form.setValue('password', '', { shouldDirty: true })}
-                                          >
-                                            <X className="h-4 w-4" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="expiresAt"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className={cn(
-                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                    )}>Expiration Date</FormLabel>
-                                    <FormDescription>
-                                      Set a date when this share page will no longer be accessible
-                                    </FormDescription>
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <FormControl>
-                                          <Button
-                                            variant="outline"
-                                            className={cn(
-                                              "w-full pl-3 text-left font-normal",
-                                              !field.value && "text-muted-foreground"
-                                            )}
-                                          >
-                                            {field.value ? (
-                                              format(new Date(field.value), "PPP")
-                                            ) : (
-                                              <span>Pick a date</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                          </Button>
-                                        </FormControl>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                          mode="single"
-                                          selected={field.value ? new Date(field.value) : undefined}
-                                          onSelect={(date) => field.onChange(date?.toISOString())}
-                                          disabled={(date) => date < new Date()}
-                                          initialFocus
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      )}
-
                       <AccordionItem value="footer" className="border rounded-lg">
                         <AccordionTrigger className="px-6">Footer Settings</AccordionTrigger>
                         <AccordionContent>
@@ -1401,6 +1311,96 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           </div>
                         </AccordionContent>
                       </AccordionItem>
+
+                      {!isTemplate && (
+                        <AccordionItem value="security" className="border rounded-lg">
+                          <AccordionTrigger className="px-6">Security Settings</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="px-6 pb-4 space-y-8">
+                              <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Password Protection</FormLabel>
+                                    <FormDescription>
+                                      Set a password to restrict access to this share page
+                                    </FormDescription>
+                                    <FormControl>
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          type="password"
+                                          {...field}
+                                          value={field.value || ''}
+                                          placeholder="Enter a password"
+                                        />
+                                        {field.value && (
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => form.setValue('password', '', { shouldDirty: true })}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="expiresAt"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Expiration Date</FormLabel>
+                                    <FormDescription>
+                                      Set a date when this share page will no longer be accessible
+                                    </FormDescription>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full pl-3 text-left font-normal",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value ? (
+                                              format(new Date(field.value), "PPP")
+                                            ) : (
+                                              <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                          mode="single"
+                                          selected={field.value ? new Date(field.value) : undefined}
+                                          onSelect={(date) => field.onChange(date?.toISOString())}
+                                          disabled={(date) => date < new Date()}
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
                     </Accordion>
                   </div>
                 </form>
