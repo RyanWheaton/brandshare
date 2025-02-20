@@ -756,17 +756,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 <FormControl>
                                   <div className="space-y-2">
                                     <div className="flex items-center gap-2">
-                                      <Input {...field} placeholder="Enter logo URL or use Dropbox" />
                                       <DropboxChooser
                                         onFilesSelected={(files) => {
                                           if (files.length > 0) {
                                             form.setValue('logoUrl', files[0].url, { shouldDirty: true });
                                           }
                                         }}
-                                        className="shrink-0"
                                       >
-                                        <Button type="button" variant="outline" size="icon">
+                                        <Button type="button" variant="outline" className="gap-2">
                                           <Upload className="h-4 w-4" />
+                                          Choose Logo from Dropbox
                                         </Button>
                                       </DropboxChooser>
                                       {user?.logoUrl && (
@@ -833,7 +832,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <Separator />
 
                         <div className="space-y-4">
-                          <h4 className="text-sm font-medium">Content</h4>
+                          <h4 className="text-smfont-medium">Content</h4>
                           <FormField
                             control={form.control}
                             name="title"
@@ -1199,30 +1198,18 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               <FormControl>
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2">
-                                    <Input {...field} placeholder="Enter logo URL or use Dropbox" />
                                     <DropboxChooser
                                       onFilesSelected={(files) => {
                                         if (files.length > 0) {
                                           form.setValue('footerLogoUrl', files[0].url, { shouldDirty: true });
                                         }
                                       }}
-                                      className="shrink-0"
                                     >
-                                      <Button type="button" variant="outline" size="icon">
+                                      <Button type="button" variant="outline" className="gap-2">
                                         <Upload className="h-4 w-4" />
+                                        Choose Footer Logo from Dropbox
                                       </Button>
                                     </DropboxChooser>
-                                    {user?.logoUrl && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => form.setValue('footerLogoUrl', user.logoUrl!, { shouldDirty: true })}
-                                        className="gap-2 shrink-0"
-                                      >
-                                        <Image className="h-4 w-4" />
-                                        Use Profile Logo
-                                      </Button>
-                                    )}
                                     {field.value && (
                                       <Button
                                         type="button"
