@@ -29,7 +29,7 @@ export function TipTapEditor({ value, onChange, className }: TipTapEditorProps) 
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-primary underline',
+          class: 'text-primary underline hover:text-primary/80',
         },
       }),
       TextAlign.configure({
@@ -40,6 +40,11 @@ export function TipTapEditor({ value, onChange, className }: TipTapEditorProps) 
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none'
+      }
+    }
   });
 
   if (!editor) {
@@ -144,7 +149,7 @@ export function TipTapEditor({ value, onChange, className }: TipTapEditorProps) 
       </div>
       <EditorContent 
         editor={editor} 
-        className="prose prose-sm max-w-none p-4 focus:outline-none" 
+        className="prose prose-sm dark:prose-invert max-w-none p-4 focus:outline-none [&_.is-editor-empty]:text-muted-foreground" 
       />
     </div>
   );
