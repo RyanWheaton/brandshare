@@ -894,6 +894,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     value={field.value || ''}
                                     onChange={field.onChange}
                                     placeholder="Enter a description..."
+                                    className="min-h-[200px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[200px]"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1343,7 +1344,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 <TipTapEditor
                                   value={field.value || ''}
                                   onChange={field.onChange}
-                                  className="min-h-[150px]"
+                                  placeholder="Enter footer text..."
+                                  className="min-h-[150px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[150px]"
                                 />
                               </FormControl>
                               <FormMessage />
