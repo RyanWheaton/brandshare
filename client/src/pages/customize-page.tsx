@@ -755,7 +755,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 </FormDescription>
                                 <FormControl>
                                   <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col gap-2"> {/* Changed to flex-col */}
                                       <DropboxChooser
                                         onFilesSelected={(files) => {
                                           if (files.length > 0) {
@@ -763,7 +763,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                           }
                                         }}
                                       >
-                                        <Button type="button" variant="outline" className="gap-2">
+                                        <Button type="button" variant="outline" className="w-full gap-2">
                                           <Upload className="h-4 w-4" />
                                           Choose Logo from Dropbox
                                         </Button>
@@ -773,7 +773,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                           type="button"
                                           variant="outline"
                                           onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
-                                          className="gap-2 shrink-0"
+                                          className="w-full gap-2"
                                         >
                                           <Image className="h-4 w-4" />
                                           Use Profile Logo
@@ -832,7 +832,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <Separator />
 
                         <div className="space-y-4">
-                          <h4 className="text-smfont-medium">Content</h4>
+                          <h4 className="text-sm font-medium">Content</h4>
                           <FormField
                             control={form.control}
                             name="title"
@@ -1197,7 +1197,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               </FormDescription>
                               <FormControl>
                                 <div className="space-y-2">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-col gap-2"> {/* Changed to flex-col */}
                                     <DropboxChooser
                                       onFilesSelected={(files) => {
                                         if (files.length > 0) {
@@ -1205,11 +1205,22 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         }
                                       }}
                                     >
-                                      <Button type="button" variant="outline" className="gap-2">
+                                      <Button type="button" variant="outline" className="w-full gap-2">
                                         <Upload className="h-4 w-4" />
                                         Choose Footer Logo from Dropbox
                                       </Button>
                                     </DropboxChooser>
+                                    {user?.logoUrl && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => form.setValue('footerLogoUrl', user.logoUrl!, { shouldDirty: true })}
+                                        className="w-full gap-2"
+                                      >
+                                        <Image className="h-4 w-4" />
+                                        Use Profile Logo
+                                      </Button>
+                                    )}
                                     {field.value && (
                                       <Button
                                         type="button"
