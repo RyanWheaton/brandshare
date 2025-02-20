@@ -3,6 +3,7 @@ import { Button } from "./button";
 import { Plus } from "lucide-react";
 import type { FileObject } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { convertDropboxUrl } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -31,21 +32,14 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       success: (files) => {
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => {
-          let previewUrl = file.link;
-          if (file.name.toLowerCase().endsWith('.pdf')) {
-            previewUrl = file.link.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-            if (!previewUrl.includes('dl=1')) {
-              previewUrl += previewUrl.includes('?') ? '&dl=1' : '?dl=1';
-            }
-          } else {
-            // For other files (images), use raw=1 for preview
-            previewUrl = file.link.replace('?dl=0', '?raw=1');
-          }
+          // Use the central convertDropboxUrl function for both preview and direct URLs
+          const directUrl = convertDropboxUrl(file.link);
+          const previewUrl = convertDropboxUrl(file.link);
 
           return {
             name: file.name,
             preview_url: previewUrl,
-            url: file.link.replace('?dl=0', '?dl=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com'),
+            url: directUrl,
             isFullWidth: false,
           };
         });
@@ -55,8 +49,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         // Handle cancel if needed
       },
       linkType: "direct", // This ensures we get direct links
-      multiselect: false, // Only allow single file selection
-      extensions: ['images', '.pdf'], // Allow both images and PDF files
+      multiselect: true, // Allow multiple file selection
+      extensions: ['images', '.pdf', '.mp4', '.mov'], // Allow both images, PDFs, and videos
     });
   }, [onFilesSelected]);
 
