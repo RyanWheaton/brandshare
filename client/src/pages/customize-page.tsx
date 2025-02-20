@@ -755,7 +755,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 </FormDescription>
                                 <FormControl>
                                   <div className="space-y-2">
-                                    <div className="flex flex-col gap-2"> {/* Changed to flex-col */}
+                                    <div className="flex items-center gap-2">
                                       <DropboxChooser
                                         onFilesSelected={(files) => {
                                           if (files.length > 0) {
@@ -769,26 +769,28 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         </Button>
                                       </DropboxChooser>
                                       {user?.logoUrl && (
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
-                                          className="w-full gap-2"
-                                        >
-                                          <Image className="h-4 w-4" />
-                                          Use Profile Logo
-                                        </Button>
-                                      )}
-                                      {field.value && (
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="icon"
-                                          className="shrink-0"
-                                          onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
+                                            className="flex-1 gap-2"
+                                          >
+                                            <Image className="h-4 w-4" />
+                                            Use Profile Logo
+                                          </Button>
+                                          {field.value && (
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="icon"
+                                              className="shrink-0"
+                                              onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
                                     {field.value && (
@@ -823,7 +825,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 <FormDescription>
                                   Adjust logo size (maintains aspect ratio)
                                 </FormDescription>
-                                <FormMessage />
+                               <FormMessage />
                               </FormItem>
                             )}
                           />
@@ -1197,7 +1199,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               </FormDescription>
                               <FormControl>
                                 <div className="space-y-2">
-                                  <div className="flex flex-col gap-2"> {/* Changed to flex-col */}
+                                  <div className="flex flex-col gap-2">
                                     <DropboxChooser
                                       onFilesSelected={(files) => {
                                         if (files.length > 0) {
@@ -1211,26 +1213,28 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                       </Button>
                                     </DropboxChooser>
                                     {user?.logoUrl && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => form.setValue('footerLogoUrl', user.logoUrl!, { shouldDirty: true })}
-                                        className="w-full gap-2"
-                                      >
-                                        <Image className="h-4 w-4" />
-                                        Use Profile Logo
-                                      </Button>
-                                    )}
-                                    {field.value && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        className="shrink-0"
-                                        onClick={() => form.setValue('footerLogoUrl', '', { shouldDirty: true })}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          onClick={() => form.setValue('footerLogoUrl', user.logoUrl!, { shouldDirty: true })}
+                                          className="flex-1 gap-2"
+                                        >
+                                          <Image className="h-4 w-4" />
+                                          Use Profile Logo
+                                        </Button>
+                                        {field.value && (
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="shrink-0"
+                                            onClick={() => form.setValue('footerLogoUrl', '', { shouldDirty: true })}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                   {field.value && (
