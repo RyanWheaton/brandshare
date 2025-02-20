@@ -39,6 +39,12 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { FontSelect } from "@/components/ui/font-select";
 import { Slider } from "@/components/ui/slider";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Extended FileObject type to match schema
 interface FileObject {
@@ -763,640 +769,639 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             <div className="grid lg:grid-cols-[40%_60%] gap-8">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Header</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-8">
-                        <div className="space-y-4">
-                          <h4 className="text-sm font-medium">Logo Settings</h4>
-                          <FormField
-                            control={form.control}
-                            name="logoUrl"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Upload Logo</FormLabel>
-                                <FormDescription>
-                                  Upload your logo to display above the title
-                                </FormDescription>
-                                <FormControl>
-                                  <div className="space-y-2">
-                                    <div className="flex flex-col gap-2">
-                                      <DropboxChooser
-                                        onFilesSelected={(files) => {
-                                          if (files.length > 0) {
-                                            form.setValue('logoUrl', files[0].url, { shouldDirty: true });
-                                          }
-                                        }}
-                                      >
-                                        <Button type="button" variant="outline" className="w-full gap-2">
-                                          <Upload className="h-4 w-4" />
-                                          Choose Logo from Dropbox
-                                        </Button>
-                                      </DropboxChooser>
-                                      {user?.logoUrl && (
-                                        <div className="flex items-center gap-2">
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
-                                            className="flex-1 gap-2"
+                  <div className="space-y-4">
+                    <Accordion type="multiple" className="space-y-4">
+                      <AccordionItem value="header" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Header Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-8">
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium">Logo Settings</h4>
+                              <FormField
+                                control={form.control}
+                                name="logoUrl"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Upload Logo</FormLabel>
+                                    <FormDescription>
+                                      Upload your logo to display above the title
+                                    </FormDescription>
+                                    <FormControl>
+                                      <div className="space-y-2">
+                                        <div className="flex flex-col gap-2">
+                                          <DropboxChooser
+                                            onFilesSelected={(files) => {
+                                              if (files.length > 0) {
+                                                form.setValue('logoUrl', files[0].url, { shouldDirty: true });
+                                              }
+                                            }}
                                           >
-                                            <Image className="h-4 w-4" />
-                                            Use Profile Logo
-                                          </Button>
+                                            <Button type="button" variant="outline" className="w-full gap-2">
+                                              <Upload className="h-4 w-4" />
+                                              Choose Logo from Dropbox
+                                            </Button>
+                                          </DropboxChooser>
+                                          {user?.logoUrl && (
+                                            <div className="flex items-center gap-2">
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
+                                                className="flex-1 gap-2"
+                                              >
+                                                <Image className="h-4 w-4" />
+                                                Use Profile Logo
+                                              </Button>
+                                              {field.value && (
+                                                <Button
+                                                  type="button"
+                                                  variant="outline"
+                                                  size="icon"
+                                                  className="shrink-0"
+                                                  onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                                >
+                                                  <X className="h-4 w-4" />
+                                                </Button>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                        {field.value && (
+                                          <LogoPreview url={field.value} size={formValues.logoSize || 200} />
+                                        )}
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="logoSize"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Logo Size</FormLabel>
+                                    <FormControl>
+                                      <div className="flex items-center gap-4">
+                                        <Slider
+                                          min={50}
+                                          max={800}
+                                          step={10}
+                                          value={[field.value ?? 200]}
+                                          onValueChange={(value) => field.onChange(value[0])}
+                                          className="flex-1"
+                                        />
+                                        <span className="text-sm text-muted-foreground w-12 text-right">
+                                          {field.value}px
+                                        </span>
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                            </div>
+
+                            <Separator/>
+
+                            <div className="spacey-4">
+                              <h4 className="text-sm font-medium">Content</h4>
+                              <FormField
+                                control={form.control}
+                                name="title"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Title</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Description</FormLabel>
+                                    <FormDescription>
+                                      Add a description to display below the title
+                                    </FormDescription>
+                                    <FormControl>
+                                      <TipTapEditor
+                                        value={field.value || ''}
+                                        onChange={field.onChange}
+                                        placeholder="Enter a description..."
+                                        className="min-h-[200px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[200px] [&_.tiptap]:text-foreground [&_.tiptap]:prose-headings:text-foreground [&_.tiptap]:prose-p:text-foreground"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      <AccordionItem value="body" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Body Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-8">
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium">Appearance</h4>
+                              <div className="grid gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="backgroundColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Background Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker
+                                          value={field.value || '#ffffff'}
+                                          onChange={(value) => field.onChange(value)}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="backgroundColorSecondary"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] &&"after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Secondary Background Color (Optional)</FormLabel>
+                                      <FormDescription>
+                                        Add a second color to create a vertical gradient background
+                                      </FormDescription>
+                                      <FormControl>
+                                        <div className="flex gap-2">
+                                          <ColorPicker
+                                            value={field.value || '#ffffff'}
+                                            onChange={(value) => field.onChange(value)}
+                                            className="flex-1"
+                                          />
                                           {field.value && (
                                             <Button
                                               type="button"
                                               variant="outline"
                                               size="icon"
                                               className="shrink-0"
-                                              onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
+                                              onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
                                             >
                                               <X className="h-4 w-4" />
                                             </Button>
                                           )}
                                         </div>
-                                      )}
-                                    </div>
-                                    {field.value && (
-                                      <LogoPreview url={field.value} size={formValues.logoSize || 200} />
-                                    )}
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="logoSize"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Logo Size</FormLabel>
-                                <FormControl>
-                                  <div className="flex items-center gap-4">
-                                    <Slider
-                                      min={50}
-                                      max={800}
-                                      step={10}
-                                      value={[field.value ?? 200]}
-                                      onValueChange={(value) => field.onChange(value[0])}
-                                      className="flex-1"
-                                    />
-                                    <span className="text-sm text-muted-foreground w-12 text-right">
-                                      {field.value}px
-                                    </span>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                        </div>
-
-                        <Separator/>
-
-                        <div className="spacey-4">
-                          <h4 className="text-sm font-medium">Content</h4>
-                          <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Title</FormLabel>
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Description</FormLabel>
-                                <FormDescription>
-                                  Add a description to display below the title
-                                </FormDescription>
-                                <FormControl>
-                                  <TipTapEditor
-                                    value={field.value || ''}
-                                    onChange={field.onChange}
-                                    placeholder="Enter a description..."
-                                    className="min-h-[200px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[200px] [&_.tiptap]:text-foreground [&_.tiptap]:prose-headings:text-foreground [&_.tiptap]:prose-p:text-foreground"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Body</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-8">
-                        <div className="space-y-4">
-                          <h4 className="text-sm font-medium">Appearance</h4>
-                          <div className="grid gap-4">
-                            <FormField
-                              control={form.control}
-                              name="backgroundColor"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                  )}>Background Color</FormLabel>
-                                  <FormControl>
-                                    <ColorPicker
-                                      value={field.value || '#ffffff'}
-                                      onChange={(value) => field.onChange(value)}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="backgroundColorSecondary"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] &&"after:content-['*'] after:ml-0.5 after:text-primary"
-                                  )}>Secondary Background Color (Optional)</FormLabel>
-                                  <FormDescription>
-                                    Add a second color to create a vertical gradient background
-                                  </FormDescription>
-                                  <FormControl>
-                                    <div className="flex gap-2">
-                                      <ColorPicker
-                                        value={field.value || '#ffffff'}
-                                        onChange={(value) => field.onChange(value)}
-                                        className="flex-1"
-                                      />
-                                      {field.value && (
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="icon"
-                                          className="shrink-0"
-                                          onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="textColor"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                  )}>Text Color</FormLabel>
-                                  <FormControl>
-                                    <ColorPicker
-                                      value={field.value || '#000000'}
-                                      onChange={(value) => field.onChange(value)}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-4">
-                          <h4 className="text-sm font-medium">Typography</h4>
-                          <div className="grid gap-4">
-                            <FormField
-                              control={form.control}
-                              name="titleFont"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                  )}>Title Font</FormLabel>
-                                  <FormControl>
-                                    <FontSelect
-                                      value={field.value || "Inter"}
-                                      onValueChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="titleFontSize"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                  )}>Title Font Size</FormLabel>
-                                  <FormControl>
-                                    <div className="flex items-center gap-4">
-                                      <Slider
-                                        min={12}
-                                        max={48}
-                                        step={1}
-                                        value={[field.value ?? 24]}
-                                        onValueChange={(value)=> field.onChange(value[0])}
-                                        className="flex-1"
-                                      />
-                                      <span className="w-12 text-right">{field.value ?? 24}px</span>
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="descriptionFont"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                  )}>Body Font</FormLabel>
-                                  <FormControl>
-                                    <FontSelect
-                                      value={field.value || "Inter"}
-                                      onValueChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="descriptionFontSize"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className={cn(
-                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                  )}>Description Font Size</FormLabel>
-                                  <FormControl>
-                                    <div className="flex items-center gap-4">
-                                      <Slider
-                                        min={12}
-                                        max={48}
-                                        step={1}
-                                        value={[field.value ?? 16]}
-                                        onValueChange={(value) => field.onChange(value[0])}
-                                        className="flex-1"
-                                      />
-                                      <span className="w-12 text-right">{field.value ?? 16}px</span>
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Files</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <FileList
-                          files={formValues.files}
-                          onUpdateFile={handleFileUpdate}
-                          onAddFiles={(files) => {
-                            form.setValue('files', [...formValues.files, ...files], { shouldDirty: true });
-                          }}
-                          form={form}
-                        />
-                      </CardContent>
-                    </Card>
-
-                    {!isTemplate && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Security Settings</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-8">
-                          <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Password Protection</FormLabel>
-                                <FormDescription>
-                                  Set a password to restrict access to this share page
-                                </FormDescription>
-                                <FormControl>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="password"
-                                      {...field}
-                                      value={field.value || ''}
-                                      placeholder="Enter a password"
-                                    />
-                                    {field.value && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => form.setValue('password', '', { shouldDirty: true })}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="expiresAt"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Expiration Date</FormLabel>
-                                <FormDescription>
-                                  Set a date when this share page will no longer be accessible
-                                </FormDescription>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <FormControl>
-                                      <Button
-                                        variant="outline"
-                                        className={cn(
-                                          "w-full pl-3 text-left font-normal",
-                                          !field.value && "text-muted-foreground"
-                                        )}
-                                      >
-                                        {field.value ? (
-                                          format(new Date(field.value), "PPP")
-                                        ) : (
-                                          <span>Pick a date</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                      </Button>
-                                    </FormControl>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                      mode="single"
-                                      selected={field.value ? new Date(field.value) : undefined}
-                                      onSelect={(date) => field.onChange(date?.toISOString())}
-                                      disabled={(date) => date < new Date()}
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Footer Settings</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-8">
-                        <FormField
-                          control={form.control}
-                          name="showFooter"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Show Footer</FormLabel>
-                                <FormDescription>
-                                  Toggle footer visibility on the share page
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
                                 />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
 
-                        <FormField
-                          control={form.control}
-                          name="footerLogoUrl"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className={cn(
-                                form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                              )}>Footer Logo</FormLabel>
-                              <FormDescription>
-                                Upload a logo to display in the footer
-                              </FormDescription>
-                              <FormControl>
-                                <div className="space-y-2">
-                                  <div className="flex flex-col gap-2">
-                                    <DropboxChooser
-                                      onFilesSelected={(files) => {
-                                        if (files.length > 0) {
-                                          form.setValue('footerLogoUrl', files[0].url, { shouldDirty: true });
-                                        }
-                                      }}
-                                    >
-                                      <Button type="button" variant="outline" className="w-full gap-2">
-                                        <Upload className="h-4 w-4" />
-                                        Choose Footer Logo from Dropbox
-                                      </Button>
-                                    </DropboxChooser>
-                                    {user?.logoUrl && (
+                                <FormField
+                                  control={form.control}
+                                  name="textColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Text Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker
+                                          value={field.value || '#000000'}
+                                          onChange={(value) => field.onChange(value)}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium">Typography</h4>
+                              <div className="grid gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="titleFont"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Title Font</FormLabel>
+                                      <FormControl>
+                                        <FontSelect
+                                          value={field.value || "Inter"}
+                                          onValueChange={field.onChange}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="titleFontSize"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Title Font Size</FormLabel>
+                                      <FormControl>
+                                        <div className="flex items-center gap-4">
+                                          <Slider
+                                            min={12}
+                                            max={48}
+                                            step={1}
+                                            value={[field.value ?? 24]}
+                                            onValueChange={(value)=> field.onChange(value[0])}
+                                            className="flex-1"
+                                          />
+                                          <span className="w-12 text-right">{field.value ?? 24}px</span>
+                                        </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="descriptionFont"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Body Font</FormLabel>
+                                      <FormControl>
+                                        <FontSelect
+                                          value={field.value || "Inter"}
+                                          onValueChange={field.onChange}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="descriptionFontSize"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Description Font Size</FormLabel>
+                                      <FormControl>
+                                        <div className="flex items-center gap-4">
+                                          <Slider
+                                            min={12}
+                                            max={48}
+                                            step={1}
+                                            value={[field.value ?? 16]}
+                                            onValueChange={(value) => field.onChange(value[0])}
+                                            className="flex-1"
+                                          />
+                                          <span className="w-12 text-right">{field.value ?? 16}px</span>
+                                        </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                              </div>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      <AccordionItem value="files" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4">
+                            <FileList
+                              files={formValues.files}
+                              onUpdateFile={handleFileUpdate}
+                              onAddFiles={(newFiles) => {
+                                form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+                              }}
+                              form={form}
+                            />
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {!isTemplate && (
+                        <AccordionItem value="security" className="border rounded-lg">
+                          <AccordionTrigger className="px-6">Security Settings</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="px-6 pb-4 space-y-8">
+                              <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Password Protection</FormLabel>
+                                    <FormDescription>
+                                      Set a password to restrict access to this share page
+                                    </FormDescription>
+                                    <FormControl>
                                       <div className="flex items-center gap-2">
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          onClick={() => form.setValue('footerLogoUrl', user.logoUrl!, { shouldDirty: true })}
-                                          className="flex-1 gap-2"
-                                        >
-                                          <Image className="h-4 w-4" />
-                                          Use Profile Logo
-                                        </Button>
+                                        <Input
+                                          type="password"
+                                          {...field}
+                                          value={field.value || ''}
+                                          placeholder="Enter a password"
+                                        />
                                         {field.value && (
                                           <Button
                                             type="button"
                                             variant="outline"
                                             size="icon"
-                                            className="shrink-0"
-                                            onClick={() => form.setValue('footerLogoUrl', '', { shouldDirty: true })}
+                                            onClick={() => form.setValue('password', '', { shouldDirty: true })}
                                           >
                                             <X className="h-4 w-4" />
                                           </Button>
                                         )}
                                       </div>
-                                    )}
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="expiresAt"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Expiration Date</FormLabel>
+                                    <FormDescription>
+                                      Set a date when this share page will no longer be accessible
+                                    </FormDescription>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full pl-3 text-left font-normal",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value ? (
+                                              format(new Date(field.value), "PPP")
+                                            ) : (
+                                              <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                          mode="single"
+                                          selected={field.value ? new Date(field.value) : undefined}
+                                          onSelect={(date) => field.onChange(date?.toISOString())}
+                                          disabled={(date) => date < new Date()}
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      <AccordionItem value="footer" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Footer Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-8">
+                            <FormField
+                              control={form.control}
+                              name="showFooter"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Show Footer</FormLabel>
+                                    <FormDescription>
+                                      Toggle footer visibility on the share page
+                                    </FormDescription>
                                   </div>
-                                  {field.value && (
-                                    <LogoPreview url={field.value} size={formValues.footerLogoSize || 150} />
-                                  )}
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="footerLogoLink"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className={cn(
-                                form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                              )}>Footer Logo Link</FormLabel>
-                              <FormDescription>
-                                Add a URL to make the footer logo clickable (optional)
-                              </FormDescription>
-                              <FormControl>
-                                <Input {...field} placeholder="Enter URL (e.g., https://example.com)" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            <FormField
+                              control={form.control}
+                              name="footerLogoUrl"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Footer Logo</FormLabel>
+                                  <FormDescription>
+                                    Upload a logo to display in the footer
+                                  </FormDescription>
+                                  <FormControl>
+                                    <div className="space-y-2">
+                                      <div className="flex flex-col gap-2">
+                                        <DropboxChooser
+                                          onFilesSelected={(files) => {
+                                            if (files.length > 0) {
+                                              form.setValue('footerLogoUrl', files[0].url, { shouldDirty: true });
+                                            }
+                                          }}
+                                        >
+                                          <Button type="button" variant="outline" className="w-full gap-2">
+                                            <Upload className="h-4 w-4" />
+                                            Choose Footer Logo from Dropbox
+                                          </Button>
+                                        </DropboxChooser>
+                                        {user?.logoUrl && (
+                                          <div className="flex items-center gap-2">
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              onClick={() => form.setValue('footerLogoUrl', user.logoUrl!, { shouldDirty: true })}
+                                              className="flex-1 gap-2"
+                                            >
+                                              <Image className="h-4 w-4" />
+                                              Use Profile Logo
+                                            </Button>
+                                            {field.value && (
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                className="shrink-0"
+                                                onClick={() => form.setValue('footerLogoUrl', '', { shouldDirty: true })}
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                      {field.value && (
+                                        <LogoPreview url={field.value} size={formValues.footerLogoSize || 150} />
+                                      )}
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="footerLogoSize"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Footer Logo Size</FormLabel>
-                              <FormControl>
-                                <div className="flex items-center gap-4">
-                                  <Slider
-                                    min={50}
-                                    max={800}
-                                    step={10}
-                                    value={[field.value ?? 150]}
-                                    onValueChange={(value) => field.onChange(value[0])}
-                                    className="flex-1"
-                                  />
-                                  <span className="w-12 text-right">{field.value ?? 150}px</span>
-                                </div>
-                              </FormControl>
-                              <FormDescription>
-                                Adjust footer logo size (maintains aspect ratio)
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            <FormField
+                              control={form.control}
+                              name="footerLogoLink"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Footer Logo Link</FormLabel>
+                                  <FormDescription>
+                                    Add a URL to make the footer logo clickable (optional)
+                                  </FormDescription>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Enter URL (e.g., https://example.com)" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="footerText"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className={cn(
-                                form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                              )}>Footer Text</FormLabel>
-                              <FormDescription>
-                                Add formatted text to be displayed in the footer
-                              </FormDescription>
-                              <FormControl>
-                                <TipTapEditor
-                                  value={field.value || ''}
-                                  onChange={field.onChange}
-                                  placeholder="Enter footer text..."
-                                  className="min-h-[150px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[150px] [&_.tiptap]:text-foreground [&_.tiptap]:prose-headings:text-foreground [&_.tiptap]:prose-p:text-foreground"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            <FormField
+                              control={form.control}
+                              name="footerLogoSize"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Footer Logo Size</FormLabel>
+                                  <FormControl>
+                                    <div className="flex items-center gap-4">
+                                      <Slider
+                                        min={50}
+                                        max={800}
+                                        step={10}
+                                        value={[field.value ?? 150]}
+                                        onValueChange={(value) => field.onChange(value[0])}
+                                        className="flex-1"
+                                      />
+                                      <span className="w-12 text-right">{field.value ?? 150}px</span>
+                                    </div>
+                                  </FormControl>
+                                  <FormDescription>
+                                    Adjust footer logo size (maintains aspect ratio)
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="footerBackgroundColor"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Footer Background Color</FormLabel>
-                                <FormControl>
-                                  <ColorPicker
-                                    value={field.value || '#f3f4f6'}
-                                    onChange={(value) => field.onChange(value)}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                            <FormField
+                              control={form.control}
+                              name="footerText"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Footer Text</FormLabel>
+                                  <FormDescription>
+                                    Add formatted text to be displayed in the footer
+                                  </FormDescription>
+                                  <FormControl>
+                                    <TipTapEditor
+                                      value={field.value || ''}
+                                      onChange={field.onChange}
+                                      placeholder="Enter footer text..."
+                                      className="min-h-[150px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[150px] [&_.tiptap]:text-foreground [&_.tiptap]:prose-headings:text-foreground [&_.tiptap]:prose-p:text-foreground"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                          <FormField
-                            control={form.control}
-                            name="footerTextColor"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={cn(
-                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                )}>Footer Text Color</FormLabel>
-                                <FormControl>
-                                  <ColorPicker
-                                    value={field.value || '#000000'}
-                                    onChange={(value) => field.onChange(value)}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="footerBackgroundColor"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Footer Background Color</FormLabel>
+                                    <FormControl>
+                                      <ColorPicker
+                                        value={field.value || '#f3f4f6'}
+                                        onChange={(value) => field.onChange(value)}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                    <Separator className="my-4" />
-
+                              <FormField
+                                control={form.control}
+                                name="footerTextColor"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Footer Text Color</FormLabel>
+                                    <FormControl>
+                                      <ColorPicker
+                                        value={field.value || '#000000'}
+                                        onChange={(value) => field.onChange(value)}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
                   </div>
                 </form>
               </Form>
