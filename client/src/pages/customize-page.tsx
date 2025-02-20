@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle, FileText, Film } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -30,7 +30,16 @@ import { AlertCircle } from "lucide-react";
 import { TipTapEditor } from "@/components/ui/tiptap-editor";
 import { convertDropboxUrl } from "@/lib/utils";
 import { ColorPicker } from "@/components/ui/color-picker";
-import { PageThumbnail } from "@/components/ui/page-thumbnail"; // Updated import path
+import { PageThumbnail } from "@/components/ui/page-thumbnail";
+import { DropboxChooser } from "@/components/ui/dropbox-chooser";
+import { SortableFiles } from "@/components/ui/sortable-files";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { FontSelect } from "@/components/ui/font-select";
+import { Slider } from "@/components/ui/slider";
 
 // Extended FileObject type to match schema
 interface FileObject {
@@ -836,7 +845,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                       min={50}
                                       max={800}
                                       step={10}
-                                                                            value={[field.value ?? 200]}
+                                      value={[field.value ?? 200]}
                                       onValueChange={(value) => field.onChange(value[0])}
                                       className="flex-1"
                                     />
@@ -1387,7 +1396,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
               <div className="relative hidden lg:block">
                 <div className="sticky top-[5.5rem] overflow-auto max-h-[calc(100vh-7rem)]">
-                  <Card className="border-2 border-primary/20">
+                  <Card className={cn("border-2 border-primary/20")}>
                     <CardHeader>
                       <CardTitle>Preview</CardTitle>
                     </CardHeader>
