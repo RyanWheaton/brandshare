@@ -1395,9 +1395,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               <div className="relative hidden lg:block">
                 <div className="sticky top-[5.5rem]">
                   <Card className="w-full">
-                    <CardHeader>
-                      <CardTitle>Preview</CardTitle>
-                    </CardHeader>
                     <CardContent className="p-0">
                       <div className="h-[calc(100vh-12rem)] overflow-y-auto">
                         <div
