@@ -22,9 +22,10 @@ interface DropboxChooserProps {
   onFilesSelected: (files: FileObject[]) => void;
   disabled?: boolean;
   className?: string;
+  children?: React.ReactNode;
 }
 
-export function DropboxChooser({ onFilesSelected, disabled, className }: DropboxChooserProps) {
+export function DropboxChooser({ onFilesSelected, disabled, className, children }: DropboxChooserProps) {
   const handleDropboxSelect = React.useCallback(() => {
     window.Dropbox?.choose({
       success: (files) => {
@@ -60,15 +61,18 @@ export function DropboxChooser({ onFilesSelected, disabled, className }: Dropbox
   }, [onFilesSelected]);
 
   return (
-    <Button
-      onClick={handleDropboxSelect}
-      disabled={disabled}
-      variant="outline"
-      size="sm"
-      className={cn(className)}
-    >
-      <Plus className="mr-2 h-4 w-4" />
-      Choose Logo from Dropbox
-    </Button>
+    <div onClick={handleDropboxSelect} className={cn(className)}>
+      {children || (
+        <Button
+          disabled={disabled}
+          variant="outline"
+          size="sm"
+          className={cn(className)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Select Files from Dropbox
+        </Button>
+      )}
+    </div>
   );
 }
