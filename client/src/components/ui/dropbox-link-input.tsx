@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Loader2 } from "lucide-react";
@@ -58,37 +58,64 @@ function validateFileType(filename: string, fileType?: string): boolean {
 export function DropboxLinkInput({ onSuccess, className, value, onChange, fileType }: DropboxLinkInputProps) {
   const [inputValue, setInputValue] = useState(value || "");
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setInputValue(value || "");
   }, [value]);
 
+  // Set up abort controller and cleanup
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        console.log("Aborting pending Dropbox file requests...");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
   const addDropboxFile = useMutation({
     mutationFn: async (dropboxUrl: string) => {
-      // Extract filename from Dropbox URL
-      const urlParts = dropboxUrl.split('/');
-      const filename = urlParts[urlParts.length - 1].split('?')[0];
+      try {
+        // Create new AbortController for this request
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
 
-      if (!validateFileType(filename, fileType)) {
-        throw new Error(`Unsupported file type. ${fileType === "image/*" ? "Only image files are allowed." : `Supported types are: ${SUPPORTED_FILE_TYPES.join(', ')}`}`);
+        // Extract filename from Dropbox URL
+        const urlParts = dropboxUrl.split('/');
+        const filename = urlParts[urlParts.length - 1].split('?')[0];
+
+        if (!validateFileType(filename, fileType)) {
+          throw new Error(`Unsupported file type. ${fileType === "image/*" ? "Only image files are allowed." : `Supported types are: ${SUPPORTED_FILE_TYPES.join(', ')}`}`);
+        }
+
+        const response = await fetch('/api/files/dropbox', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ dropboxUrl }),
+          signal: abortControllerRef.current.signal
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to add Dropbox file');
+        }
+
+        return response.json();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Add Dropbox file request aborted, skipping error handling.");
+          return null;
+        }
+        throw error;
       }
-
-      const response = await fetch('/api/files/dropbox', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ dropboxUrl }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to add Dropbox file');
-      }
-
-      return response.json();
     },
     onSuccess: (data) => {
+      if (data === null) return; // Skip if request was aborted
       queryClient.invalidateQueries({ queryKey: ['/api/files'] });
       toast({
         title: "Success",
@@ -98,6 +125,7 @@ export function DropboxLinkInput({ onSuccess, className, value, onChange, fileTy
       onSuccess?.(data.file);
     },
     onError: (error: Error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast({
         title: "Error",
         description: error.message,
