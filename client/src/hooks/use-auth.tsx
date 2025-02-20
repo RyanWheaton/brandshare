@@ -27,15 +27,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Set up abort controller
   useEffect(() => {
-    if (!abortControllerRef.current) {
-      abortControllerRef.current = new AbortController();
-    }
+    // Create a new controller for this component instance
+    abortControllerRef.current = new AbortController();
 
     return () => {
       if (abortControllerRef.current) {
         console.log("Aborting pending auth API requests...");
         abortControllerRef.current.abort();
-        // Don't set to null, just leave the aborted controller
+        // Create a new controller after aborting to ensure we have a fresh one for any cleanup requests
+        abortControllerRef.current = new AbortController();
       }
     };
   }, []);
@@ -53,10 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation<SelectUser, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
+      // Ensure we have a valid controller
+      if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+        abortControllerRef.current = new AbortController();
+      }
+
       try {
-        if (!abortControllerRef.current) {
-          abortControllerRef.current = new AbortController();
-        }
         const res = await apiRequest(
           "POST", 
           "/api/login", 
@@ -92,10 +94,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation<SelectUser, Error, InsertUser>({
     mutationFn: async (credentials: InsertUser) => {
+      // Ensure we have a valid controller
+      if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+        abortControllerRef.current = new AbortController();
+      }
+
       try {
-        if (!abortControllerRef.current) {
-          abortControllerRef.current = new AbortController();
-        }
         const res = await apiRequest(
           "POST", 
           "/api/register", 
@@ -108,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           console.log("Register request aborted");
-          throw error; // Rethrow abort error to be handled by onError
+          throw error;
         }
         throw error;
       }
@@ -131,10 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation<void, Error, void>({
     mutationFn: async () => {
+      // Ensure we have a valid controller
+      if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+        abortControllerRef.current = new AbortController();
+      }
+
       try {
-        if (!abortControllerRef.current) {
-          abortControllerRef.current = new AbortController();
-        }
         await apiRequest(
           "POST", 
           "/api/logout", 
@@ -144,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           console.log("Logout request aborted");
-          throw error; // Rethrow abort error to be handled by onError
+          throw error;
         }
         throw error;
       }

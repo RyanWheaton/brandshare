@@ -50,15 +50,15 @@ export default function AdminDashboard() {
 
   // Set up abort controller
   useEffect(() => {
-    if (!abortControllerRef.current) {
-      abortControllerRef.current = new AbortController();
-    }
+    // Create a new controller for this component instance
+    abortControllerRef.current = new AbortController();
 
     return () => {
       if (abortControllerRef.current) {
         console.log("Aborting pending admin API requests...");
         abortControllerRef.current.abort();
-        abortControllerRef.current = null;
+        // Create a new controller after aborting
+        abortControllerRef.current = new AbortController();
       }
     };
   }, []);
@@ -71,10 +71,12 @@ export default function AdminDashboard() {
 
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ userId, password }: { userId: number; password: string }) => {
+      // Ensure we have a valid controller
+      if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+        abortControllerRef.current = new AbortController();
+      }
+
       try {
-        if (!abortControllerRef.current) {
-          abortControllerRef.current = new AbortController();
-        }
         const response = await apiRequest(
           "POST",
           `/api/admin/users/${userId}/reset-password`,
@@ -111,12 +113,14 @@ export default function AdminDashboard() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
+      // Ensure we have a valid controller
+      if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+        abortControllerRef.current = new AbortController();
+      }
+
       try {
-        if (!abortControllerRef.current) {
-          abortControllerRef.current = new AbortController();
-        }
         const response = await apiRequest(
-          "DELETE", 
+          "DELETE",
           `/api/admin/users/${userId}`,
           undefined,
           abortControllerRef.current.signal
@@ -183,8 +187,8 @@ export default function AdminDashboard() {
                 <TableCell>{user.emailVerified ? "Yes" : "No"}</TableCell>
                 <TableCell className="text-right">{user.totalSharePages}</TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Dialog 
-                    open={resetPasswordUserId === user.id} 
+                  <Dialog
+                    open={resetPasswordUserId === user.id}
                     onOpenChange={(open) => {
                       if (!open) setResetPasswordUserId(null);
                       setNewPassword("");
