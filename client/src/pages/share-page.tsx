@@ -646,10 +646,9 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
                 fontSize: `${page.descriptionFontSize || 16}px`,
                 fontFamily: `var(--description-font)`
               }}
-              className="opacity-90"
-            >
-              {page.description}
-            </p>
+              className="opacity-90 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: page.description }}
+            />
           )}
         </header>
 

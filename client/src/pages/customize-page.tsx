@@ -886,8 +886,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 <FormLabel className={cn(
                                   form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                 )}>Description</FormLabel>
+                                <FormDescription>
+                                  Add a description to display below the title
+                                </FormDescription>
                                 <FormControl>
-                                  <Textarea {...field} />
+                                  <TipTapEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    placeholder="Enter a description..."
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1439,8 +1446,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     fontSize: `${formValues.descriptionFontSize || 16}px`,
                                     color: formValues.textColor
                                   }}
+                                  dangerouslySetInnerHTML={{ __html: formValues.description }}
                                 >
-                                  {formValues.description}
                                 </p>
                               )}
                             </div>
