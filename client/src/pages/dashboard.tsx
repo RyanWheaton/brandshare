@@ -285,21 +285,22 @@ export default function Dashboard() {
   const startTime = useRef<number>(Date.now());
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Set up abort controller
+  // Set up abort controller with better cleanup
   useEffect(() => {
-    // Ensure only one instance of AbortController exists
+    // Create new controller only if we don't have one
     if (!abortControllerRef.current) {
       abortControllerRef.current = new AbortController();
     }
 
+    // Cleanup function
     return () => {
       if (abortControllerRef.current) {
         console.log("Aborting pending API requests due to navigation...");
         abortControllerRef.current.abort();
-        abortControllerRef.current = null;
+        // Don't set to null, just leave the aborted controller
       }
     };
-  }, []);
+  }, []); // Empty dependency array as we want this to run once
 
   const { data: pages = [], isLoading: pagesLoading } = useQuery<(SharePage & { stats: any })[]>({
     queryKey: ["/api/pages"],
@@ -322,7 +323,7 @@ export default function Dashboard() {
           abortControllerRef.current = new AbortController();
         }
         await apiRequest(
-          "DELETE", 
+          "DELETE",
           `/api/pages/${id}`,
           undefined,
           abortControllerRef.current.signal
@@ -360,7 +361,7 @@ export default function Dashboard() {
           abortControllerRef.current = new AbortController();
         }
         await apiRequest(
-          "DELETE", 
+          "DELETE",
           `/api/templates/${id}`,
           undefined,
           abortControllerRef.current.signal
@@ -537,48 +538,61 @@ export default function Dashboard() {
     }
   };
 
-  // Add visit duration tracking
+  // Add visit duration tracking with better error handling
   useEffect(() => {
-    const startTime = Date.now();
-    console.log("Starting visit duration tracking at:", new Date(startTime).toISOString());
+    const pageStartTime = Date.now();
+    console.log("Starting visit duration tracking at:", new Date(pageStartTime).toISOString());
 
     const recordVisitDuration = async () => {
-      const duration = Math.round((Date.now() - startTime) / 1000); // Convert to seconds
-      if (duration > 1) { // Only record if duration is meaningful
+      try {
+        const duration = Math.round((Date.now() - pageStartTime) / 1000);
+        if (duration < 1) return; // Skip if duration is too short
+
         console.log("Recording visit duration:", duration, "seconds");
-        try {
-          if (!abortControllerRef.current) {
-            abortControllerRef.current = new AbortController();
-          }
-          await apiRequest("POST", `/api/p/${location}/visit-duration`, {
+
+        // Create a new AbortController specifically for this request
+        const controller = new AbortController();
+
+        await apiRequest(
+          "POST",
+          `/api/p/${location}/visit-duration`,
+          {
             duration,
             timestamp: new Date().toISOString()
-          }, abortControllerRef.current.signal);
-          console.log("Successfully recorded visit duration");
-        } catch (error) {
-          if (error instanceof DOMException && error.name === "AbortError") {
-            console.log("Visit duration recording aborted due to navigation");
-            return;
-          }
-          console.error("Failed to record visit duration:", error);
+          },
+          controller.signal
+        );
+
+        console.log("Successfully recorded visit duration");
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Visit duration recording aborted, this is expected during navigation");
+          return;
         }
+        // Only log other errors
+        console.error("Failed to record visit duration:", error);
       }
     };
 
-    // Record duration when page visibility changes
+    // Handler for visibility change
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        console.log("Page visibility changed to hidden, recording duration");
-        recordVisitDuration();
+        recordVisitDuration().catch(() => {
+          // Ignore errors during visibility change
+          console.log("Ignoring error during visibility change");
+        });
       }
     };
 
-    // Record duration when component unmounts or before unload
+    // Handler for page unload
     const handleBeforeUnload = () => {
-      console.log("Page is being unloaded, recording duration");
-      recordVisitDuration();
+      recordVisitDuration().catch(() => {
+        // Ignore errors during unload
+        console.log("Ignoring error during page unload");
+      });
     };
 
+    // Add event listeners
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
 
@@ -586,13 +600,13 @@ export default function Dashboard() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      // Attempt to record the duration, but don't wait for it
+
+      // Final attempt to record duration
       recordVisitDuration().catch(() => {
-        // Ignore any errors during cleanup
         console.log("Ignoring error during cleanup of visit duration tracking");
       });
     };
-  }, [location]); // Add location dependency
+  }, [location]); // Only re-run when location changes
 
   if (pagesLoading || templatesLoading) {
     return (
