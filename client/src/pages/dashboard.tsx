@@ -18,6 +18,7 @@ import {
   Save,
   FileText,
   Clock,
+  Users,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -491,7 +492,19 @@ export default function Dashboard() {
         animate="animate"
       >
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold">Welcome, {user?.username}</h1>
+          {user?.logoUrl ? (
+            <div className="h-10 w-40 relative">
+              <img
+                src={user.logoUrl}
+                alt="User Logo"
+                className="h-full w-auto object-contain"
+              />
+            </div>
+          ) : (
+            <div className="h-10 w-40 bg-muted rounded-md flex items-center justify-center">
+              <span className="text-muted-foreground text-sm">No Logo</span>
+            </div>
+          )}
           <Button
             variant="outline"
             size="sm"
