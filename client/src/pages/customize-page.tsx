@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, MessageCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { FilePreview as OriginalFilePreview } from "@/pages/share-page";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -427,6 +427,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const [activeTab, setActiveTab] = useState<string>("customize");
   const { user } = useAuth();
 
+  // Get tab from URL query params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && (tabParam === 'customize' || tabParam === 'analytics')) {
+      setActiveTab(tabParam);
+    }
+  }, []);
+
   if (!params?.id || isNaN(parseInt(params.id))) {
     setLocation("/");
     return null;
@@ -710,7 +719,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       </div>
 
       <div className="flex-1 container mx-auto p-4">
-        <Tabs defaultValue="customize" className="space-y-6" onValueChange={(value) => setActiveTab(value)}>
+        <Tabs defaultValue={activeTab} className="space-y-6" onValueChange={(value) => {
+          setActiveTab(value);
+          // Update URL without full page reload
+          const newUrl = `${window.location.pathname}?tab=${value}`;
+          window.history.pushState({}, '', newUrl);
+        }}>
           <TabsList>
             <TabsTrigger value="customize">Customize</TabsTrigger>
             <TabsTrigger value="analytics" disabled={isTemplate}>Analytics</TabsTrigger>
