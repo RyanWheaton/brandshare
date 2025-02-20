@@ -460,7 +460,18 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const [isCopied, setIsCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("customize");
   const { user } = useAuth();
-  const abortController = useRef<AbortController | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Create AbortController on mount
+  useEffect(() => {
+    abortControllerRef.current = new AbortController();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   // Parse and validate id at the start
   const id = params?.id ? parseInt(params.id) : null;
@@ -474,16 +485,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   const apiEndpoint = isTemplate ? `/api/templates/${id}` : `/api/pages/${id}`;
 
-  // Cleanup function for WebSocket and pending requests
-  useEffect(() => {
-    return () => {
-      // Cleanup any pending requests when component unmounts
-      if (abortController.current) {
-        abortController.current.abort();
-      }
-    };
-  }, []);
-
   // Get tab from URL query params
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -493,22 +494,22 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     }
   }, []);
 
-  // Create new AbortController for new requests
+  // Update analytics on tab change
   useEffect(() => {
-    abortController.current = new AbortController();
-    return () => {
-      if (abortController.current) {
-        abortController.current.abort();
-      }
-    };
-  }, [id]);
+    if (activeTab === "analytics" && id) {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/pages/${id}/analytics`],
+        exact: true
+      });
+    }
+  }, [activeTab, id]);
 
   const { data: item, isLoading } = useQuery<SharePage | SharePageTemplate>({
     queryKey: [apiEndpoint],
-    retry: false, // Don't retry on failure
-    gcTime: 0, // Immediately garbage collect
-    staleTime: Infinity, // Prevent unnecessary refetches
-    enabled: isValidId, // Only run query if we have a valid id
+    retry: false,
+    gcTime: 0,
+    staleTime: Infinity,
+    enabled: isValidId,
   });
 
   const form = useForm<FormValues>({
@@ -579,11 +580,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      if (!abortControllerRef.current) {
+        abortControllerRef.current = new AbortController();
+      }
+
       const response = await apiRequest("PATCH", apiEndpoint, {
         ...data,
         titleFont: data.titleFont || "Inter",
         descriptionFont: data.descriptionFont || "Inter",
-        signal: abortController.current?.signal,
+        signal: abortControllerRef.current.signal,
         ...(isTemplate ? {} : {
           titleFontSize: data.titleFontSize || 24,
           descriptionFontSize: data.descriptionFontSize || 16,
@@ -608,15 +613,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       form.reset(form.getValues());
     },
     onError: (err) => {
-      // Silently handle aborted requests
-      if (abortController.current?.signal.aborted) return;
+      // Only show error if it's not due to navigation abort
+      if (abortControllerRef.current?.signal.aborted) return;
 
       toast({
         title: "Error",
         description: "Failed to save changes. Please try again.",
         variant: "destructive",
       });
-      console.error("Error during update:", err); // Log the error for debugging
+      console.error("Error during update:", err);
     }
   });
 
@@ -651,15 +656,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [form, updateMutation, toast]);
 
-  useEffect(() => {
-    if (activeTab === "analytics") {
-      console.log('Invalidating analytics query for pageId:', id);
-      queryClient.invalidateQueries({
-        queryKey: [`/api/pages/${id}/analytics`],
-        exact: true
-      });
-    }
-  }, [activeTab, id]);
 
   const copyToClipboard = async () => {
     if (!item) return;
@@ -841,64 +837,63 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               <h4 className="text-sm font-medium">Logo Settings</h4>
                               <FormField
                                 control={form.control}
-                                name="logoUrl"
-                                render={({ field }) =>(
+                                name="logoUrl"                                render={({ field }) =>(
                                   <FormItem>
-                                      <FormLabel className={cn(
-                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                      )}>Upload Logo</FormLabel>
-                                      <FormDescription>
-                                        Upload your logo to display above the title
-                                      </FormDescription>
-                                      <FormControl>
-                                        <div className="space-y-2">
-                                          <div className="flex flex-col gap-2">
-                                            <DropboxChooser
-                                              onFilesSelected={(files) => {
-                                                if (files.length > 0) {
-                                                  form.setValue('logoUrl', files[0].url, { shouldDirty: true });
-                                                }
-                                              }}
-                                            >
-                                              <Button type="button" variant="outline" className="w-full gap-2">
-                                                <Upload className="h-4 w-4" />
-                                                Choose Logo from Dropbox
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Upload Logo</FormLabel>
+                                    <FormDescription>
+                                      Upload your logo to display above the title
+                                    </FormDescription>
+                                    <FormControl>
+                                      <div className="space-y-2">
+                                        <div className="flex flex-col gap-2">
+                                          <DropboxChooser
+                                            onFilesSelected={(files) => {
+                                              if (files.length > 0) {
+                                                form.setValue('logoUrl', files[0].url, { shouldDirty: true });
+                                              }
+                                            }}
+                                          >
+                                            <Button type="button" variant="outline" className="w-full gap-2">
+                                              <Upload className="h-4 w-4" />
+                                              Choose Logo from Dropbox
+                                            </Button>
+                                          </DropboxChooser>
+                                          {user?.logoUrl && (
+                                            <div className="flex items-center gap-2">
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
+                                                className="flex-1 gap-2"
+                                              >
+                                                <Image className="h-4 w-4" />
+                                                Use Profile Logo
                                               </Button>
-                                            </DropboxChooser>
-                                            {user?.logoUrl && (
-                                              <div className="flex items-center gap-2">
+                                              {field.value && (
                                                 <Button
                                                   type="button"
                                                   variant="outline"
-                                                  onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
-                                                  className="flex-1 gap-2"
+                                                  size="icon"
+                                                  className="shrink-0"
+                                                  onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
                                                 >
-                                                  <Image className="h-4 w-4" />
-                                                  Use Profile Logo
+                                                  <X className="h-4 w-4" />
                                                 </Button>
-                                                {field.value && (
-                                                  <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="shrink-0"
-                                                    onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
-                                                  >
-                                                    <X className="h-4 w-4" />
-                                                  </Button>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                          {field.value && (
-                                            <LogoPreview url={field.value} size={formValues.logoSize || 200} />
+                                              )}
+                                            </div>
                                           )}
                                         </div>
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                                        {field.value && (
+                                          <LogoPreview url={field.value} size={formValues.logoSize || 200} />
+                                        )}
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
                               <FormField
                                 control={form.control}
                                 name="logoSize"
@@ -924,7 +919,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   </FormItem>
                                 )}
                               />
-
                             </div>
 
                             <Separator/>
