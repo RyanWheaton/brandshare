@@ -283,61 +283,166 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const startTime = useRef<number>(Date.now());
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Set up abort controller
+  useEffect(() => {
+    // Ensure only one instance of AbortController exists
+    if (!abortControllerRef.current) {
+      abortControllerRef.current = new AbortController();
+    }
+
+    return () => {
+      if (abortControllerRef.current) {
+        console.log("Aborting pending API requests due to navigation...");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const { data: pages = [], isLoading: pagesLoading } = useQuery<(SharePage & { stats: any })[]>({
     queryKey: ["/api/pages"],
+    gcTime: 0,
+    retry: false,
+    enabled: !!user, // Only fetch when user is logged in
   });
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<SharePageTemplate[]>({
     queryKey: ["/api/templates"],
+    gcTime: 0,
+    retry: false,
+    enabled: !!user, // Only fetch when user is logged in
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/pages/${id}`);
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        await apiRequest(
+          "DELETE", 
+          `/api/pages/${id}`,
+          undefined,
+          abortControllerRef.current.signal
+        );
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Delete request aborted, skipping error handling.");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) return; // Skip if request was aborted
       queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
       toast({
         title: "Share page deleted",
         description: "Your share page has been deleted successfully.",
       });
     },
+    onError: (error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast({
+        title: "Error",
+        description: "Failed to delete share page. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/templates/${id}`);
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        await apiRequest(
+          "DELETE", 
+          `/api/templates/${id}`,
+          undefined,
+          abortControllerRef.current.signal
+        );
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Delete Template request aborted, skipping error handling.");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) return; // Skip if request was aborted
       queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
       toast({
         title: "Template deleted",
         description: "Your template has been deleted successfully.",
       });
     },
+    onError: (error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast({
+        title: "Error",
+        description: "Failed to delete template. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const duplicateTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("POST", `/api/templates/${id}/duplicate`);
-      return response.json();
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        const response = await apiRequest("POST", `/api/templates/${id}/duplicate`, undefined, abortControllerRef.current.signal);
+        return response.json();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Duplicate Template request aborted, skipping error handling.");
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) return; // Skip if request was aborted
       queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
       toast({
         title: "Template duplicated",
         description: "Your template has been duplicated successfully.",
       });
     },
+    onError: (error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast({
+        title: "Error",
+        description: "Failed to duplicate template. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const createFromTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("POST", `/api/templates/${id}/create-page`);
-      return response.json();
+      try {
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
+        const response = await apiRequest("POST", `/api/templates/${id}/create-page`, undefined, abortControllerRef.current.signal);
+        return response.json();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Create From Template request aborted, skipping error handling.");
+          return null;
+        }
+        throw error;
+      }
     },
     onSuccess: (newPage) => {
+      if (newPage === null) return; // Skip if request was aborted
       queryClient.invalidateQueries({ queryKey: ["/api/pages"] });
       toast({
         title: "Share page created",
@@ -346,6 +451,14 @@ export default function Dashboard() {
       if (newPage?.id) {
         setLocation(`/customize/${newPage.id}`);
       }
+    },
+    onError: (error) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast({
+        title: "Error",
+        description: "Failed to create share page from template. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
