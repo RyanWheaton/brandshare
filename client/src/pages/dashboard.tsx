@@ -547,12 +547,19 @@ export default function Dashboard() {
       if (duration > 1) { // Only record if duration is meaningful
         console.log("Recording visit duration:", duration, "seconds");
         try {
+          if (!abortControllerRef.current) {
+            abortControllerRef.current = new AbortController();
+          }
           await apiRequest("POST", `/api/p/${location}/visit-duration`, {
             duration,
             timestamp: new Date().toISOString()
-          });
+          }, abortControllerRef.current.signal);
           console.log("Successfully recorded visit duration");
         } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            console.log("Visit duration recording aborted due to navigation");
+            return;
+          }
           console.error("Failed to record visit duration:", error);
         }
       }
@@ -579,7 +586,11 @@ export default function Dashboard() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      recordVisitDuration();
+      // Attempt to record the duration, but don't wait for it
+      recordVisitDuration().catch(() => {
+        // Ignore any errors during cleanup
+        console.log("Ignoring error during cleanup of visit duration tracking");
+      });
     };
   }, [location]); // Add location dependency
 
