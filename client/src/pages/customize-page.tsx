@@ -462,17 +462,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const { user } = useAuth();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Create AbortController on mount
-  useEffect(() => {
-    abortControllerRef.current = new AbortController();
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, []);
-
   // Parse and validate id at the start
   const id = params?.id ? parseInt(params.id) : null;
   const isValidId = id !== null && !isNaN(id);
@@ -485,13 +474,23 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   const apiEndpoint = isTemplate ? `/api/templates/${id}` : `/api/pages/${id}`;
 
-  // Get tab from URL query params
+  // Initialize AbortController and handle cleanup
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab');
-    if (tabParam && (tabParam === 'customize' || tabParam === 'analytics')) {
-      setActiveTab(tabParam);
-    }
+    // Create new controller for this component instance
+    abortControllerRef.current = new AbortController();
+
+    return () => {
+      // Cleanup on unmount
+      if (abortControllerRef.current) {
+        try {
+          abortControllerRef.current.abort();
+        } catch (error) {
+          console.error('Error aborting requests:', error);
+        } finally {
+          abortControllerRef.current = null;
+        }
+      }
+    };
   }, []);
 
   // Update analytics on tab change
@@ -580,30 +579,46 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      if (!abortControllerRef.current) {
-        abortControllerRef.current = new AbortController();
-      }
+      try {
+        // Ensure we have a valid controller
+        if (!abortControllerRef.current) {
+          abortControllerRef.current = new AbortController();
+        }
 
-      const response = await apiRequest("PATCH", apiEndpoint, {
-        ...data,
-        titleFont: data.titleFont || "Inter",
-        descriptionFont: data.descriptionFont || "Inter",
-        signal: abortControllerRef.current.signal,
-        ...(isTemplate ? {} : {
-          titleFontSize: data.titleFontSize || 24,
-          descriptionFontSize: data.descriptionFontSize || 16,
-          backgroundColorSecondary: data.backgroundColorSecondary || undefined,
-          footerText: data.footerText || "",
-          footerBackgroundColor: data.footerBackgroundColor || "#f3f4f6",
-          footerTextColor: data.footerTextColor || "#000000",
-          showFooter: data.showFooter ?? true,
-          footerLogoUrl: data.footerLogoUrl || "",
-          footerLogoSize: data.footerLogoSize || 150,
-        })
-      });
-      return response;
+        const response = await apiRequest("PATCH", apiEndpoint, {
+          ...data,
+          titleFont: data.titleFont || "Inter",
+          descriptionFont: data.descriptionFont || "Inter",
+          signal: abortControllerRef.current.signal,
+          ...(isTemplate ? {} : {
+            titleFontSize: data.titleFontSize || 24,
+            descriptionFontSize: data.descriptionFontSize || 16,
+            backgroundColorSecondary: data.backgroundColorSecondary || undefined,
+            footerText: data.footerText || "",
+            footerBackgroundColor: data.footerBackgroundColor || "#f3f4f6",
+            footerTextColor: data.footerTextColor || "#000000",
+            showFooter: data.showFooter ?? true,
+            footerLogoUrl: data.footerLogoUrl || "",
+            footerLogoSize: data.footerLogoSize || 150,
+            footerLogoLink: data.footerLogoLink || "",
+          })
+        });
+
+        return response;
+      } catch (error) {
+        // Check if the error is due to an aborted request
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Request was aborted cleanly');
+          return null;
+        }
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) {
+        // Request was aborted, do nothing
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
       queryClient.invalidateQueries({ queryKey: [isTemplate ? "/api/templates" : "/api/pages"] });
       toast({
@@ -614,7 +629,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     },
     onError: (err) => {
       // Only show error if it's not due to navigation abort
-      if (abortControllerRef.current?.signal.aborted) return;
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
 
       toast({
         title: "Error",
