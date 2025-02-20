@@ -755,7 +755,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 </FormDescription>
                                 <FormControl>
                                   <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col gap-2">
                                       <DropboxChooser
                                         onFilesSelected={(files) => {
                                           if (files.length > 0) {
@@ -825,7 +825,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                 <FormDescription>
                                   Adjust logo size (maintains aspect ratio)
                                 </FormDescription>
-                               <FormMessage />
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
@@ -833,7 +833,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                         <Separator />
 
-                        <div className="space-y-4">
+                        <div className="spacey-4">
                           <h4 className="text-sm font-medium">Content</h4>
                           <FormField
                             control={form.control}
