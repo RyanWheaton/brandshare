@@ -477,12 +477,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   // Initialize AbortController and handle cleanup
   useEffect(() => {
     // Create new controller for this component instance
-    abortControllerRef.current = new AbortController();
+    if (!abortControllerRef.current) {
+      abortControllerRef.current = new AbortController();
+    }
 
     return () => {
       // Cleanup on unmount
       if (abortControllerRef.current) {
         try {
+          console.log("Aborting pending API requests due to navigation...");
           abortControllerRef.current.abort();
         } catch (error) {
           console.error('Error aborting requests:', error);
@@ -508,7 +511,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     retry: false,
     gcTime: 0,
     staleTime: Infinity,
-    enabled: isValidId,
+    enabled: isValidId && activeTab === "customize", // Only fetch when tab is active
   });
 
   const form = useForm<FormValues>({
@@ -606,9 +609,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
         return response;
       } catch (error) {
-        // Check if the error is due to an aborted request
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Request was aborted cleanly');
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("Request aborted, skipping error handling.");
           return null;
         }
         throw error;
@@ -616,9 +618,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     },
     onSuccess: (data) => {
       if (data === null) {
-        // Request was aborted, do nothing
-        return;
+        console.log('Request was aborted, skipping success handling');
+        return; // Ignore aborted request responses
       }
+
       queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
       queryClient.invalidateQueries({ queryKey: [isTemplate ? "/api/templates" : "/api/pages"] });
       toast({
@@ -628,8 +631,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       form.reset(form.getValues());
     },
     onError: (err) => {
-      // Only show error if it's not due to navigation abort
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        console.log('Request was aborted cleanly');
         return;
       }
 
