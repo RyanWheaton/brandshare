@@ -196,12 +196,44 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         const pdfUrl = convertDropboxUrl(url);
         console.log(`Attempting to load PDF (attempt ${retryCount + 1}/${maxRetries}):`, pdfUrl);
 
-        // First fetch the PDF data
-        const pdfData = await fetchPDFData(pdfUrl);
+        // First validate URL with HEAD request
+        const checkResponse = await fetch(pdfUrl, {
+          method: 'HEAD',
+          mode: 'cors',
+          credentials: 'omit',
+          headers: {
+            'Accept': 'application/pdf,*/*'
+          }
+        });
 
-        // Then load it with PDF.js
+        if (!checkResponse.ok) {
+          throw new Error(`Failed to validate PDF URL: ${checkResponse.status} ${checkResponse.statusText}`);
+        }
+
+        // Then fetch the actual PDF data
+        const response = await fetch(pdfUrl, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit',
+          headers: {
+            'Accept': 'application/pdf,*/*',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        if (arrayBuffer.byteLength === 0) {
+          throw new Error('Received empty PDF data');
+        }
+
+        // Load PDF with PDF.js
         loadingTaskRef.current = getDocument({
-          data: pdfData,
+          data: arrayBuffer,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
           cMapPacked: true,
         });
