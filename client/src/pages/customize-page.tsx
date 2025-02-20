@@ -1396,7 +1396,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 <div className="sticky top-[5.5rem]">
                   <Card className="w-full">
                     <CardContent className="p-0">
-                      <div className="h-[calc(100vh-12rem)] overflow-y-auto">
+                      <div className="h-[calc(100vh-5.5rem)] overflow-y-auto">
                         <div
                           className="relative"
                           style={{
