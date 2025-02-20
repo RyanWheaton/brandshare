@@ -1,0 +1,106 @@
+
+# Fix: Signal Aborted Error in Vite + React Query App
+
+## 🔧 Issue: "Signal is aborted without reason"
+This error occurs when navigating between pages due to an aborted fetch request.
+
+---
+
+## ✅ Fix #1: Ensure AbortController is Not Aborting Valid Requests
+
+Modify your `useEffect` in `CustomizePage`:
+
+```tsx
+useEffect(() => {
+  // Ensure only one instance of AbortController exists
+  if (!abortControllerRef.current) {
+    abortControllerRef.current = new AbortController();
+  }
+
+  return () => {
+    if (abortControllerRef.current) {
+      console.log("Aborting pending API requests due to navigation...");
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  };
+}, []);
+```
+
+### 🔹 What This Fix Does:
+- Ensures the **AbortController is only created once per component lifecycle**.
+- Prevents **abortions from happening too soon**.
+
+---
+
+## ✅ Fix #2: Handle Aborted Requests Gracefully
+
+Modify your **API request mutation**:
+
+```tsx
+const updateMutation = useMutation({
+  mutationFn: async (data: FormValues) => {
+    try {
+      if (!abortControllerRef.current) {
+        abortControllerRef.current = new AbortController();
+      }
+
+      const response = await apiRequest("PATCH", apiEndpoint, {
+        ...data,
+        signal: abortControllerRef.current.signal,
+      });
+
+      return response;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        console.log("Request aborted, skipping error handling.");
+        return null; // Ignore aborted request errors
+      }
+      throw error;
+    }
+  },
+  onSuccess: (data) => {
+    if (data === null) return; // Ignore aborted request responses
+    queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
+    toast({ title: "Changes saved", description: "Your page has been updated successfully." });
+    form.reset(form.getValues());
+  },
+  onError: (err) => {
+    if (err instanceof DOMException && err.name === "AbortError") return;
+    toast({ title: "Error", description: "Failed to save changes. Please try again.", variant: "destructive" });
+    console.error("Error during update:", err);
+  }
+});
+```
+
+### 🔹 What This Fix Does:
+- **Ignores aborted request errors** (avoiding unnecessary UI errors).
+- **Ensures React Query does not trigger unnecessary retries** for aborted requests.
+
+---
+
+## ✅ Fix #3: Prevent Query Fetches on Page Switch
+
+Modify your `useQuery` calls:
+
+```tsx
+const { data: item, isLoading } = useQuery<SharePage | SharePageTemplate>({
+  queryKey: [apiEndpoint],
+  retry: false,
+  gcTime: 0,
+  staleTime: Infinity,
+  enabled: isValidId && activeTab === "customize", // ✅ Only fetch when the tab is active
+});
+```
+
+### 🔹 What This Fix Does:
+- **Prevents API calls when switching tabs**.
+- **Reduces unnecessary fetches that may be aborted**.
+
+---
+
+## 🎯 Final Thoughts
+Try these fixes in order:
+1️⃣ **Ensure AbortController doesn’t abort too soon** (Fix #1).  
+2️⃣ **Handle aborted requests gracefully** to prevent unnecessary errors (Fix #2).  
+3️⃣ **Prevent React Query from fetching data during navigation** (Fix #3).  
