@@ -178,14 +178,6 @@ function SharePageCard({ page, onDelete, onCopyLink }: {
 }) {
   const [, setLocation] = useLocation();
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on action buttons
-    if ((e.target as HTMLElement).closest('button')) {
-      return;
-    }
-    setLocation(`/customize/${page.id}`);
-  };
-
   return (
     <motion.div
       variants={fadeInVariant}
@@ -196,7 +188,6 @@ function SharePageCard({ page, onDelete, onCopyLink }: {
         whileHover={{ scale: 1.01 }}
         transition={{ duration: 0.2 }}
         className="cursor-pointer"
-        onClick={handleCardClick}
       >
         <div className="grid lg:grid-cols-[200px_1fr] gap-4">
           <div className="p-4">
@@ -230,22 +221,22 @@ function SharePageCard({ page, onDelete, onCopyLink }: {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setLocation(`/customize/${page.id}`);
+                    window.open(`/p/${page.slug}`, "_blank");
                   }}
                 >
-                  <Palette className="mr-2 h-4 w-4" />
-                  Customize
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View Page
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    window.open(`/p/${page.slug}`, "_blank");
+                    setLocation(`/customize/${page.id}?tab=analytics`);
                   }}
                 >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View Page
+                  <Eye className="mr-2 h-4 w-4" />
+                  Analytics
                 </Button>
                 <Button
                   variant="outline"
