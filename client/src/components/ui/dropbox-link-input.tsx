@@ -7,7 +7,6 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { FileObject } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { convertDropboxUrl } from "@/lib/utils";
 
 interface DropboxLinkInputProps {
   onSuccess?: (file: FileObject) => void;
@@ -31,7 +30,18 @@ function convertDropboxLink(url: string): string {
     throw new Error('Not a valid Dropbox URL');
   }
 
-  return convertDropboxUrl(url);
+  // Replace dl=0 with dl=1 and raw=1 with dl=1
+  let convertedUrl = url
+    .replace('dl=0', 'dl=1')
+    .replace('raw=1', 'dl=1')
+    .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+
+  // If no dl parameter exists, add it
+  if (!convertedUrl.includes('dl=1')) {
+    convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
+  }
+
+  return convertedUrl;
 }
 
 function getFileExtension(filename: string): string {
@@ -153,8 +163,8 @@ export function DropboxLinkInput({ onSuccess, className, value, onChange, fileTy
         onChange={handleChange}
         className="flex-1"
       />
-      <Button
-        type="submit"
+      <Button 
+        type="submit" 
         disabled={!inputValue || addDropboxFile.isPending}
       >
         {addDropboxFile.isPending && (
