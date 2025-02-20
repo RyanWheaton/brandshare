@@ -43,31 +43,29 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     return Math.min(scaleX, scaleY, 2);
   };
 
-  // Enhanced Dropbox URL conversion with better error handling
+  // Enhanced Dropbox URL conversion
   const convertDropboxUrl = (originalUrl: string): string => {
     if (!originalUrl.includes('dropbox.com')) return originalUrl;
 
     try {
-      // Convert shared link format
+      // First, try to use the raw=1 parameter approach
       let convertedUrl = originalUrl
-        .replace('www.dropbox.com/s/', 'dl.dropboxusercontent.com/s/')
-        .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+        .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+        .replace('?dl=0', '')
+        .replace('?dl=1', '')
+        .replace('?raw=1', '');
 
-      // Add or update necessary parameters
-      const urlObj = new URL(convertedUrl);
-      const params = new URLSearchParams(urlObj.search);
+      // Add raw=1 parameter
+      convertedUrl += (convertedUrl.includes('?') ? '&' : '?') + 'raw=1';
 
-      // Remove any existing dl or raw parameters
-      params.delete('dl');
-      params.delete('raw');
+      // If URL contains /s/, adjust it
+      if (convertedUrl.includes('/s/')) {
+        convertedUrl = convertedUrl
+          .replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
+      }
 
-      // Add new parameters
-      params.set('raw', '1');
-
-      // Reconstruct the URL
-      urlObj.search = params.toString();
-      console.log('Converted Dropbox URL:', urlObj.toString());
-      return urlObj.toString();
+      console.log('Converted Dropbox URL:', convertedUrl);
+      return convertedUrl;
     } catch (err) {
       console.error('Error converting Dropbox URL:', err);
       return originalUrl;
@@ -109,6 +107,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   // Effect for loading the PDF
   useEffect(() => {
     let isSubscribed = true;
+    let loadingTask: pdfjsLib.PDFDocumentLoadingTask | null = null;
 
     async function loadPDF() {
       if (pdfDoc) {
@@ -124,7 +123,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         const pdfUrl = convertDropboxUrl(url);
         console.log('Loading PDF from URL:', pdfUrl);
 
-        const loadingTask = getDocument({
+        loadingTask = getDocument({
           url: pdfUrl,
           withCredentials: false,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
@@ -133,8 +132,6 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
             'Accept': '*/*',
             'Cache-Control': 'no-cache',
           },
-          disableRange: true,
-          disableStream: true,
         });
 
         loadingTask.onProgress = function(progress: ProgressData) {
@@ -165,17 +162,22 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           setError(errorMessage);
           setIsLoading(false);
 
-          // Enhanced retry logic for specific errors
+          // Enhanced retry logic with clearer error messages
           if (retryCount < 3 && (
             errorMessage.includes('Failed to fetch') ||
             errorMessage.includes('network') ||
             errorMessage.includes('403') ||
             errorMessage.includes('Unexpected server response')
           )) {
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 8000);
             setTimeout(() => {
-              setRetryCount(prev => prev + 1);
-              loadPDF();
-            }, Math.min(1000 * Math.pow(2, retryCount), 8000));
+              if (isSubscribed) {
+                setRetryCount(prev => prev + 1);
+                loadPDF();
+              }
+            }, delay);
+          } else if (errorMessage.includes('403')) {
+            setError('Unable to access the PDF. This might be due to restricted access or an expired link.');
           }
         }
       }
@@ -185,6 +187,9 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
     return () => {
       isSubscribed = false;
+      if (loadingTask) {
+        loadingTask.destroy();
+      }
       if (pdfDoc) {
         pdfDoc.destroy();
       }
@@ -227,7 +232,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         <div className="flex items-center justify-center w-full h-full bg-muted p-4">
           <p className="text-sm text-red-500 text-center">
             {error}
-            {retryCount > 0 && ` (Retry ${retryCount}/3)`}
+            {retryCount > 0 && retryCount < 3 && ` (Retry ${retryCount}/3)`}
           </p>
         </div>
       )}
