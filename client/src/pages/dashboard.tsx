@@ -282,7 +282,6 @@ export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const startTime = useRef<number>(Date.now());
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Set up abort controller with better cleanup
@@ -538,75 +537,6 @@ export default function Dashboard() {
     }
   };
 
-  // Add visit duration tracking with better error handling
-  useEffect(() => {
-    const pageStartTime = Date.now();
-    console.log("Starting visit duration tracking at:", new Date(pageStartTime).toISOString());
-
-    const recordVisitDuration = async () => {
-      try {
-        const duration = Math.round((Date.now() - pageStartTime) / 1000);
-        if (duration < 1) return; // Skip if duration is too short
-
-        console.log("Recording visit duration:", duration, "seconds");
-
-        // Create a new AbortController specifically for this request
-        const controller = new AbortController();
-
-        await apiRequest(
-          "POST",
-          `/api/p/${location}/visit-duration`,
-          {
-            duration,
-            timestamp: new Date().toISOString()
-          },
-          controller.signal
-        );
-
-        console.log("Successfully recorded visit duration");
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          console.log("Visit duration recording aborted, this is expected during navigation");
-          return;
-        }
-        // Only log other errors
-        console.error("Failed to record visit duration:", error);
-      }
-    };
-
-    // Handler for visibility change
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        recordVisitDuration().catch(() => {
-          // Ignore errors during visibility change
-          console.log("Ignoring error during visibility change");
-        });
-      }
-    };
-
-    // Handler for page unload
-    const handleBeforeUnload = () => {
-      recordVisitDuration().catch(() => {
-        // Ignore errors during unload
-        console.log("Ignoring error during page unload");
-      });
-    };
-
-    // Add event listeners
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    // Cleanup
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-
-      // Final attempt to record duration
-      recordVisitDuration().catch(() => {
-        console.log("Ignoring error during cleanup of visit duration tracking");
-      });
-    };
-  }, [location]); // Only re-run when location changes
 
   if (pagesLoading || templatesLoading) {
     return (
