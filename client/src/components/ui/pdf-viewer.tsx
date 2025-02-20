@@ -31,7 +31,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const [retryCount, setRetryCount] = useState(0);
   const loadingTaskRef = useRef<pdfjsLib.PDFDocumentLoadingTask | null>(null);
 
-  // Enhanced Dropbox URL conversion with more robust handling
+  // Enhanced Dropbox URL conversion
   const convertDropboxUrl = (originalUrl: string): string => {
     if (!originalUrl.includes('dropbox.com')) return originalUrl;
 
@@ -50,10 +50,10 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         // Special handling for /s/ links
         if (convertedUrl.includes('/s/')) {
           convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
-        } else {
-          // Add raw=1 parameter for direct download
-          convertedUrl += (convertedUrl.includes('?') ? '&' : '?') + 'raw=1';
         }
+
+        // Add dl=1 parameter for direct download
+        convertedUrl += (convertedUrl.includes('?') ? '&' : '?') + 'dl=1';
       }
 
       console.log('Converted Dropbox URL:', convertedUrl);
@@ -64,7 +64,37 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     }
   };
 
-  // Function to calculate optimal scale
+  // Function to fetch PDF data with retry logic
+  const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
+    try {
+      const response = await fetch(pdfUrl, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          'Accept': 'application/pdf',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Received empty PDF data');
+      }
+
+      return arrayBuffer;
+    } catch (error) {
+      console.error('Error fetching PDF:', error);
+      throw error;
+    }
+  };
+
+  // Calculate optimal scale
   const calculateOptimalScale = (viewport: { width: number; height: number }) => {
     if (!containerRef.current) return 1;
 
@@ -77,7 +107,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     return Math.min(scaleX, scaleY, 2);
   };
 
-  // Enhanced page rendering with error handling
+  // Enhanced page rendering
   const renderPage = async (pageNumber: number) => {
     if (!pdfDoc || !canvasRef.current || !containerRef.current) return;
 
@@ -116,7 +146,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     }
   };
 
-  // Enhanced PDF loading with retry mechanism
+  // Load PDF with enhanced error handling and retry logic
   useEffect(() => {
     let isSubscribed = true;
     const maxRetries = 3;
@@ -138,21 +168,18 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         setIsLoading(true);
         setError(null);
         setLoadingProgress(0);
-        setCurrentPage(1);
 
         const pdfUrl = convertDropboxUrl(url);
         console.log(`Attempting to load PDF (attempt ${retryCount + 1}/${maxRetries}):`, pdfUrl);
 
+        // First fetch the PDF data
+        const pdfData = await fetchPDFData(pdfUrl);
+
+        // Then load it with PDF.js
         loadingTaskRef.current = getDocument({
-          url: pdfUrl,
-          withCredentials: false,
+          data: pdfData,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
           cMapPacked: true,
-          httpHeaders: {
-            'Accept': '*/*',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
         });
 
         loadingTaskRef.current.onProgress = function(progress: ProgressData) {
@@ -180,12 +207,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
         const errorMessage = err instanceof Error ? err.message : 'Failed to load PDF';
 
-        if (retryCount < maxRetries - 1 && (
-          errorMessage.includes('403') ||
-          errorMessage.includes('Failed to fetch') ||
-          errorMessage.includes('network') ||
-          errorMessage.includes('Unexpected server response')
-        )) {
+        if (retryCount < maxRetries - 1) {
           // Calculate exponential backoff delay
           const delay = Math.min(baseDelay * Math.pow(2, retryCount), 8000);
           console.log(`Retrying in ${delay}ms...`);
@@ -222,7 +244,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
     };
   }, [url, retryCount]);
 
-  // Effect for handling page changes
+  // Handle page changes
   useEffect(() => {
     if (pdfDoc && !isLoading) {
       renderPage(currentPage);
