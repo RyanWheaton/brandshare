@@ -1,0 +1,52 @@
+To enable users to change button colors on the share page of the app, please make the following updates:
+Update Button Color Properties in the Share Page Schema:
+Add properties for button colors to both sharePages and sharePageTemplates in the shared/schema.ts file. Include buttonBackgroundColor, buttonBorderColor, and buttonTextColor.
+export const sharePages = pgTable("share_pages", {
+  // other properties...
+  buttonBackgroundColor: text("button_background_color").default("#007bff"),
+  buttonBorderColor: text("button_border_color").default("#007bff"),
+  buttonTextColor: text("button_text_color").default("#ffffff"),
+});
+
+export const sharePageTemplates = pgTable("share_page_templates", {
+  // other properties...
+  buttonBackgroundColor: text("button_background_color").default("#007bff"),
+  buttonBorderColor: text("button_border_color").default("#007bff"),
+  buttonTextColor: text("button_text_color").default("#ffffff"),
+});
+Update Button Styles in Share Page Rendering:
+Modify the button rendering logic in client/src/pages/share-page.tsx. Use the new button color properties when setting styles for the buttons.
+
+const buttonStyle = {
+  backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+  borderColor: sharePage?.buttonBorderColor || "#007bff",
+  color: sharePage?.buttonTextColor || "#ffffff",
+};
+
+return (
+  <button style={buttonStyle} className="your-button-class">
+    {/* Button Content */}
+  </button>
+);
+Allow Customization in the Customize Page:
+If there's a customization interface (likely in client/src/pages/customize-page.tsx), add input fields for the new button color properties:
+Copy
+
+<input
+  type="color"
+  value={formValues.buttonBackgroundColor}
+  onChange={(e) => setFormValues({ ...formValues, buttonBackgroundColor: e.target.value })}
+/>
+<input
+  type="color"
+  value={formValues.buttonBorderColor}
+  onChange={(e) => setFormValues({ ...formValues, buttonBorderColor: e.target.value })}
+/>
+<input
+  type="color"
+  value={formValues.buttonTextColor}
+  onChange={(e) => setFormValues({ ...formValues, buttonTextColor: e.target.value })}
+/>
+Make sure to review the UI to ensure proper integration and functionality. These changes will enable users to effectively customize button colors on the share pages.
+Copy
+

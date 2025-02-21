@@ -243,6 +243,11 @@ export function FilePreview({
     backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
     borderColor: sharePage?.buttonBorderColor || "#007bff",
     color: sharePage?.buttonTextColor || "#ffffff",
+    ':hover': {
+      backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+      borderColor: sharePage?.buttonBorderColor || "#007bff",
+      opacity: 0.9,
+    }
   };
 
   return (
@@ -276,9 +281,8 @@ export function FilePreview({
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="secondary"
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 hover:opacity-90"
                   style={buttonStyle}
                   asChild
                 >
@@ -293,9 +297,8 @@ export function FilePreview({
                   </a>
                 </Button>
                 <Button
-                  variant="secondary"
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 hover:opacity-90"
                   style={buttonStyle}
                   onClick={() => setIsCommenting(!isCommenting)}
                 >
