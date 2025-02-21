@@ -1453,27 +1453,28 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               )}
                             </div>
                             <div className="space-y-4">
-                              {(formValues.files as FileObject[])?.map((file, index) => (
-                                <FilePreview
-                                  key={index}
-                                  file={file}
-                                  fileIndex={index}
-                                  textColor={formValues.textColor}
-                                  sharePage={formValues as SharePage}
-                                  buttonBackgroundColor={formValues.buttonBackgroundColor}
-                                  buttonBorderColor={formValues.buttonBorderColor}
-                                  buttonTextColor={formValues.buttonTextColor}
-                                />
-                                <OriginalFilePreview
-                                  key={index}
-                                  file={file}
-                                  textColor={formValues.textColor}
-                                  containerClassName={cn(
-                                    "w-full",
-                                    file.isFullWidth ? "" : "max-w-4xl mx-auto"
-                                  )}
-                                />
-                              ))}
+                              <div className="space-y-4">
+                                {formValues.files.map((file, index) => (
+                                  <div key={index}>
+                                    <FilePreview
+                                      file={file}
+                                      textColor={formValues.textColor}
+                                      pageId={item?.id}
+                                      fileIndex={index}
+                                      containerClassName="w-full"
+                                      sharePage={{
+                                        ...formValues,
+                                        id: item?.id || 0,
+                                        userId: user?.id || 0,
+                                        slug: (item as SharePage)?.slug || '',
+                                        createdAt: item?.createdAt || new Date().toISOString(),
+                                        updatedAt: item?.updatedAt || new Date().toISOString(),
+                                        lastViewedAt: item?.lastViewedAt || new Date().toISOString()
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                           {formValues.showFooter && (formValues.footerText || formValues.footerBackgroundColor || formValues.footerLogoUrl) && (
