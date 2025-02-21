@@ -77,7 +77,10 @@ type FilePreviewProps = {
   containerClassName?: string;
   pageId?: number;
   fileIndex?: number;
-  sharePage: SharePage; // Add sharePage prop
+  sharePage: SharePage;
+  buttonBackgroundColor?: string;
+  buttonBorderColor?: string;
+  buttonTextColor?: string;
 };
 
 function CommentsSkeleton() {

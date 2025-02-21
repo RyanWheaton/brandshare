@@ -1454,6 +1454,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             </div>
                             <div className="space-y-4">
                               {(formValues.files as FileObject[])?.map((file, index) => (
+                                <FilePreview
+                                  key={index}
+                                  file={file}
+                                  fileIndex={index}
+                                  textColor={formValues.textColor}
+                                  sharePage={formValues as SharePage}
+                                  buttonBackgroundColor={formValues.buttonBackgroundColor}
+                                  buttonBorderColor={formValues.buttonBorderColor}
+                                  buttonTextColor={formValues.buttonTextColor}
+                                />
                                 <OriginalFilePreview
                                   key={index}
                                   file={file}
