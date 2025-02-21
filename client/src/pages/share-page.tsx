@@ -235,12 +235,6 @@ export function FilePreview({
   };
 
   const buttonStyle = React.useMemo(() => {
-    console.log('Button style props:', {
-      backgroundColor: sharePage.buttonBackgroundColor,
-      borderColor: sharePage.buttonBorderColor,
-      textColor: sharePage.buttonTextColor
-    });
-
     return {
       backgroundColor: sharePage.buttonBackgroundColor || "#007bff",
       borderColor: sharePage.buttonBorderColor || "#007bff",
@@ -251,13 +245,6 @@ export function FilePreview({
       outline: "none"
     };
   }, [sharePage]);
-
-  const buttonHoverStyle = React.useMemo(() => ({
-    backgroundColor: `${sharePage.buttonBackgroundColor || "#007bff"} !important`,
-    borderColor: `${sharePage.buttonBorderColor || "#007bff"} !important`,
-    color: `${sharePage.buttonTextColor || "#ffffff"} !important`,
-    opacity: 0.9
-  }), [sharePage]);
 
   const handleDownload = () => {
     window.open(convertDropboxUrl(file.url), '_blank');
@@ -295,24 +282,18 @@ export function FilePreview({
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 hover:opacity-90"
                   onClick={handleDownload}
                   style={buttonStyle}
-                  css={{
-                    '&:hover': buttonHoverStyle
-                  }}
                 >
                   <Download className="w-4 h-4" />
                   <span>Download</span>
                 </Button>
                 <Button
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 hover:opacity-90"
                   onClick={() => setIsCommenting(!isCommenting)}
                   style={buttonStyle}
-                  css={{
-                    '&:hover': buttonHoverStyle
-                  }}
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>Comments</span>
