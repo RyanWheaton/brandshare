@@ -834,13 +834,13 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                   <div className="space-y-4">
                     <Accordion type="multiple" className="space-y-4">
                       <AccordionItem value="files" className="border rounded-lg">
-                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
-                        <AccordionContent>
+                        <AccordionTrigger className="px-6">Files</AccordionTrigger><AccordionContent>
                           <div className="px-6 pb-4 space-y-4">
                             <FormField
                               control={form.control}
                               name="fileCornerStyle"
-                              render={({ field }) => (                                <FormItem>
+                              render={({ field }) => (
+                                <FormItem>
                                   <FormLabel>File Corner Style</FormLabel>
                                   <FormDescription>
                                     Choose the corner style for files in the share page
@@ -1579,12 +1579,20 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     >
                                       <div className="flex flex-col gap-1">
                                         <div 
-                                          className={`flex items-center gap-2 p-2 ${formValues.fileCornerStyle === "rounded" ? "rounded-lg" : ""}`}
+                                          className={formValues.fileCornerStyle === "rounded" ? "rounded-lg overflow-hidden" : ""}
                                           style={{ color: formValues.textColor }}
                                         >
-                                          {file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.gif') ? (
+                                          {file.name.toLowerCase().endsWith('.pdf') ? (
+                                            <PDFViewer
+                                              url={convertDropboxUrl(file.url)}
+                                              className={cn(
+                                                "w-full",
+                                                formValues.fileCornerStyle === "rounded" ? "rounded-lg" : ""
+                                              )}
+                                            />
+                                          ) : file.name.match(/\.(jpg|jpeg|png|gif)$/i) ? (
                                             <img
-                                              src={convertDropboxUrl(file.preview_url)}
+                                              src={convertDropboxUrl(file.preview_url || file.url)}
                                               alt={file.title || file.name}
                                               className={cn(
                                                 "w-full h-auto",
@@ -1592,7 +1600,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                               )}
                                             />
                                           ) : (
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 p-2">
                                               <FileText className="h-4 w-4" />
                                               <span className="text-sm font-medium">{file.title || file.name}</span>
                                             </div>
