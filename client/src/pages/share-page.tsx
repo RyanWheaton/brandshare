@@ -114,6 +114,12 @@ export function FilePreview({
   const [commentInput, setCommentInput] = useState("");
   const [guestName, setGuestName] = useState("");
 
+  // Get the share page data from the parent component's query
+  const { data: sharePage } = useQuery<SharePage>({
+    queryKey: [`/api/p/${pageId}`],
+    enabled: pageId !== undefined,
+  });
+
   const { data: comments = [], isLoading: isLoadingComments } = useQuery<Annotation[]>({
     queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
     enabled: pageId !== undefined && fileIndex !== undefined,
@@ -266,6 +272,11 @@ export function FilePreview({
                   variant="outline"
                   size="sm"
                   className="gap-2"
+                  style={{
+                    backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+                    borderColor: sharePage?.buttonBorderColor || "#007bff",
+                    color: sharePage?.buttonTextColor || "#ffffff",
+                  }}
                   asChild
                 >
                   <a
@@ -282,6 +293,11 @@ export function FilePreview({
                   variant="outline"
                   size="sm"
                   className="gap-2"
+                  style={{
+                    backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+                    borderColor: sharePage?.buttonBorderColor || "#007bff",
+                    color: sharePage?.buttonTextColor || "#ffffff",
+                  }}
                   onClick={() => setIsCommenting(!isCommenting)}
                 >
                   <MessageCircle className="w-4 h-4" />

@@ -67,6 +67,9 @@ export const sharePages = pgTable("share_pages", {
   footerLogoUrl: text("footer_logo_url"),
   footerLogoSize: integer("footer_logo_size").default(150),
   footerLogoLink: text("footer_logo_link"),
+  buttonBackgroundColor: text("button_background_color").default("#007bff"),
+  buttonBorderColor: text("button_border_color").default("#007bff"),
+  buttonTextColor: text("button_text_color").default("#ffffff"),
 });
 
 export const annotations = pgTable("annotations", {
@@ -144,6 +147,9 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   footerLogoUrl: true,
   footerLogoSize: true,
   footerLogoLink: true,
+  buttonBackgroundColor: true,
+  buttonBorderColor: true,
+  buttonTextColor: true,
 }).extend({
   files: z.array(fileSchema),
   password: z.string().optional(),
@@ -162,6 +168,9 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   footerLogoUrl: z.string().optional(),
   footerLogoSize: z.number().min(50).max(800).default(150),
   footerLogoLink: z.string().optional(),
+  buttonBackgroundColor: z.string().optional(),
+  buttonBorderColor: z.string().optional(),
+  buttonTextColor: z.string().optional(),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({

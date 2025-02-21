@@ -56,7 +56,7 @@ interface FileObject {
   description?: string;
 }
 
-// Extended form values type to include all fields
+// Extended form values type to include all fields and new button colors
 interface FormValues extends InsertSharePage {
   footerText?: string;
   footerBackgroundColor?: string;
@@ -67,6 +67,9 @@ interface FormValues extends InsertSharePage {
   footerLogoLink?: string;
   logoUrl?: string;
   logoSize?: number;
+  buttonBackgroundColor?: string;
+  buttonBorderColor?: string;
+  buttonTextColor?: string;
 }
 
 
@@ -533,6 +536,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       footerLogoUrl: "",
       footerLogoSize: 150,
       footerLogoLink: "",
+      buttonBackgroundColor: "#007bff", // Default button color
+      buttonBorderColor: "#007bff", // Default button border color
+      buttonTextColor: "#ffffff", // Default button text color
+
       ...(isTemplate ? {} : {
         password: "",
         expiresAt: undefined,
@@ -558,6 +565,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       footerLogoUrl: (item as SharePage).footerLogoUrl || "",
       footerLogoSize: (item as SharePage).footerLogoSize || 150,
       footerLogoLink: (item as SharePage).footerLogoLink || "",
+      buttonBackgroundColor: (item as SharePage).buttonBackgroundColor || "#007bff",
+      buttonBorderColor: (item as SharePage).buttonBorderColor || "#007bff",
+      buttonTextColor: (item as SharePage).buttonTextColor || "#ffffff",
       ...(isTemplate ? {} : {
         password: (item as SharePage).password || "",
         expiresAt: (item as SharePage).expiresAt || undefined,
@@ -601,6 +611,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             footerLogoUrl: data.footerLogoUrl || "",
             footerLogoSize: data.footerLogoSize || 150,
             footerLogoLink: data.footerLogoLink || "",
+            buttonBackgroundColor: data.buttonBackgroundColor || "#007bff",
+            buttonBorderColor: data.buttonBorderColor || "#007bff",
+            buttonTextColor: data.buttonTextColor || "#ffffff",
           })
         });
 
@@ -854,7 +867,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               <h4 className="text-sm font-medium">Logo Settings</h4>
                               <FormField
                                 control={form.control}
-                                name="logoUrl"                                render={({ field }) =>(
+                                name="logoUrl"
+                                render={({ field }) =>(
                                   <FormItem>
                                     <FormLabel className={cn(
                                       form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
@@ -990,8 +1004,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <AccordionContent>
                           <div className="px-6 pb-4 space-y-8">
                             <div className="space-y-4">
-                              <h4 className="text-sm font-medium">Appearance</h4>
-                              <div className="grid gap-4">
+                              <h4 className="text-sm font-medium">Colors</h4>
+                              <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                   control={form.control}
                                   name="backgroundColor"
@@ -1001,52 +1015,27 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                       )}>Background Color</FormLabel>
                                       <FormControl>
-                                        <ColorPicker
-                                          value={field.value || '#ffffff'}
-                                          onChange={(value) => field.onChange(value)}
-                                        />
+                                        <ColorPicker {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )}
                                 />
-
                                 <FormField
                                   control={form.control}
                                   name="backgroundColorSecondary"
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormLabel className={cn(
-                                        form.formState.dirtyFields[field.name] &&"after:content-['*'] after:ml-0.5 after:text-primary"
-                                      )}>Secondary Background Color (Optional)</FormLabel>
-                                      <FormDescription>
-                                        Add a second color to create a vertical gradient background
-                                      </FormDescription>
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Secondary Background</FormLabel>
                                       <FormControl>
-                                        <div className="flex gap-2">
-                                          <ColorPicker
-                                            value={field.value || '#ffffff'}
-                                            onChange={(value) => field.onChange(value)}
-                                            className="flex-1"
-                                          />
-                                          {field.value && (
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              size="icon"
-                                              className="shrink-0"
-                                              onClick={() => form.setValue('backgroundColorSecondary', '', { shouldDirty: true })}
-                                            >
-                                              <X className="h-4 w-4" />
-                                            </Button>
-                                          )}
-                                        </div>
+                                        <ColorPicker {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )}
                                 />
-
                                 <FormField
                                   control={form.control}
                                   name="textColor"
@@ -1056,10 +1045,52 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
                                       )}>Text Color</FormLabel>
                                       <FormControl>
-                                        <ColorPicker
-                                          value={field.value || '#000000'}
-                                          onChange={(value) => field.onChange(value)}
-                                        />
+                                        <ColorPicker {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="buttonBackgroundColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Button Background Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="buttonBorderColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Button Border Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="buttonTextColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className={cn(
+                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                      )}>Button Text Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
@@ -1068,102 +1099,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               </div>
                             </div>
 
-                            <Separator />
-
-                            <div className="space-y-4">
-                              <h4 className="text-sm font-medium">Typography</h4>
-                              <div className="grid gap-4">
-                                <FormField
-                                  control={form.control}
-                                  name="titleFont"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className={cn(
-                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                      )}>Title Font</FormLabel>
-                                      <FormControl>
-                                        <FontSelect
-                                          value={field.value || "Inter"}
-                                          onValueChange={field.onChange}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={form.control}
-                                  name="titleFontSize"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className={cn(
-                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                      )}>Title Font Size</FormLabel>
-                                      <FormControl>
-                                        <div className="flex items-center gap-4">
-                                          <Slider
-                                            min={12}
-                                            max={48}
-                                            step={1}
-                                            value={[field.value ?? 24]}
-                                            onValueChange={(value)=> field.onChange(value[0])}
-                                            className="flex-1"
-                                          />
-                                          <span className="w-12 text-right">{field.value ?? 24}px</span>
-                                        </div>
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={form.control}
-                                  name="descriptionFont"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className={cn(
-                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                      )}>Body Font</FormLabel>
-                                      <FormControl>
-                                        <FontSelect
-                                          value={field.value || "Inter"}
-                                          onValueChange={field.onChange}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="descriptionFontSize"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className={cn(
-                                        form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
-                                      )}>Description Font Size</FormLabel>
-                                      <FormControl>
-                                        <div className="flex items-center gap-4">
-                                          <Slider
-                                            min={12}
-                                            max={48}
-                                            step={1}
-                                            value={[field.value ?? 16]}
-                                            onValueChange={(value) => field.onChange(value[0])}
-                                            className="flex-1"
-                                          />
-                                          <span className="w-12 text-right">{field.value ?? 16}px</span>
-                                        </div>
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                              </div>
-                            </div>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
