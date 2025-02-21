@@ -1,0 +1,87 @@
+Objective:
+Modify the app to store files in AWS S3 instead of relying on Dropbox for displaying images, videos, and PDFs. Users will select files using Dropbox Chooser, and the app will upload a copy to AWS S3. The app will then serve the files from S3 on the share pages instead of using Dropbox URLs.
+
+Tasks for AI Agent
+1. Set Up AWS S3 Storage
+Configure an AWS S3 bucket for file storage.
+Set up appropriate IAM roles and permissions to allow secure uploads from the app.
+Use AWS SDK (@aws-sdk/client-s3) in the backend to handle uploads.
+2. Modify File Upload Process
+User selects a file via Dropbox Chooser.
+Instead of using the Dropbox URL directly:
+Download the file from Dropbox (use the Dropbox API).
+Upload the file to AWS S3.
+Save the S3 URL in the database instead of the Dropbox URL.
+Ensure the app generates a unique file name for each upload to avoid conflicts.
+3. Update the Database Schema
+Modify the database structure to store AWS S3 URLs instead of (or in addition to) Dropbox URLs.
+Ensure each file entry includes:
+originalDropboxUrl (for reference)
+awsS3Url (to serve files from S3)
+4. Update Share Page Rendering
+Modify the app's frontend components to pull files from AWS S3 instead of Dropbox.
+Ensure all images, videos, and PDFs use the AWS S3 URL.
+5. Implement Cleanup & Error Handling
+If a file fails to upload to S3, notify the user and allow retry.
+Optional: Delete the original file from Dropbox after a successful upload to S3 (if needed).
+Ensure files are not duplicated, and properly handle updates if a user selects a different file.
+
+Technical Implementation Plan
+Backend:
+Install AWS SDK:
+bash
+CopyEdit
+npm install @aws-sdk/client-s3
+
+Create an API Route to Handle Uploads
+
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import fetch from "node-fetch";
+
+const s3 = new S3Client({ region: "us-east-1" });
+
+export async function uploadFileToS3(dropboxUrl: string, filename: string) {
+    // Download file from Dropbox
+    const response = await fetch(dropboxUrl);
+    const fileBuffer = await response.arrayBuffer();
+
+    // Upload to S3
+    const uploadParams = {
+        Bucket: "your-s3-bucket-name",
+        Key: `uploads/${filename}`,
+        Body: Buffer.from(fileBuffer),
+        ContentType: response.headers.get("content-type"),
+    };
+
+    await s3.send(new PutObjectCommand(uploadParams));
+    return `https://your-s3-bucket-name.s3.amazonaws.com/uploads/${filename}`;
+}
+
+Modify File Upload API to Handle Dropbox to S3 Transfer
+After the user selects a file via Dropbox Chooser, send the Dropbox URL to the backend.
+The backend will download the file from Dropbox and upload it to S3.
+Return the S3 URL to store in the database.
+Frontend:
+Modify Dropbox Chooser Handling
+function handleDropboxSelect(files) {
+    const dropboxFile = files[0]; // Assume only one file for now
+    fetch("/api/upload-to-s3", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dropboxUrl: dropboxFile.link, filename: dropboxFile.name }),
+    })
+    .then((res) => res.json())
+    .then((data) => {
+        setFileUrl(data.s3Url); // Use the S3 URL for display
+    });
+}
+
+Ensure Share Pages Use S3 URLs
+
+<img src={fileUrl} alt="Uploaded File" />
+Expected Outcome
+Users select a file from Dropbox.
+The app uploads the file to AWS S3 and saves the new URL.
+Share pages display files using S3 URLs instead of Dropbox links.
+
+
