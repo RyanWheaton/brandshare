@@ -22,7 +22,7 @@ import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { FilePreview as OriginalFilePreview } from "@/pages/share-page";
+import { FilePreview } from "@/pages/share-page";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -92,7 +92,7 @@ function FileItem({ file, onToggleFullWidth, textColor }: {
   return (
     <div className="flex items-center justify-between gap-4 p-2 bg-background border rounded-lg">
       <div className="flex items-center gap-2">
-        {isImage && <ImageIcon className="w-4 h-4" />}
+        {isImage && <Image className="w-4 h-4" />}
         {isVideo && <Film className="w-4 h-4" />}
         {!isImage && !isVideo && <FileText className="w-4 h-4" />}
         <span className="text-sm font-medium">{file.name}</span>
@@ -1458,7 +1458,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   <div key={index}>
                                     <FilePreview
                                       file={file}
-                                      textColor={formValues.textColor}
+                                      textColor={formValues.textColor || "#000000"}
                                       pageId={item?.id}
                                       fileIndex={index}
                                       containerClassName="w-full"
@@ -1467,9 +1467,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                         id: item?.id || 0,
                                         userId: user?.id || 0,
                                         slug: (item as SharePage)?.slug || '',
-                                        createdAt: item?.createdAt || new Date().toISOString(),
-                                        updatedAt: item?.updatedAt || new Date().toISOString(),
-                                        lastViewedAt: item?.lastViewedAt || new Date().toISOString()
+                                        createdAt: new Date().toISOString(),
+                                        updatedAt: new Date().toISOString(),
+                                        lastViewedAt: new Date().toISOString()
                                       }}
                                     />
                                   </div>
