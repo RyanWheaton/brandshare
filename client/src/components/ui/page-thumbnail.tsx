@@ -18,16 +18,17 @@ type PageThumbnailProps = {
   style?: React.CSSProperties;
   footerText?: string | null;
   footerTextColor?: string;
+  fileCornerStyle?: "rounded" | "square";
 };
 
-function FilePreviewThumb({ file }: { file: FileObject }) {
+function FilePreviewThumb({ file, cornerStyle = "rounded" }: { file: FileObject; cornerStyle?: "rounded" | "square" }) {
   const fileType = file.name.split('.').pop()?.toLowerCase();
   const isImage = fileType ? ['jpg', 'jpeg', 'png', 'gif'].includes(fileType) : false;
   const isVideo = fileType ? ['mp4', 'mov'].includes(fileType) : false;
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2 p-1 bg-muted/50 rounded text-[8px]">
+      <div className={`flex items-center gap-2 p-1 bg-muted/50 ${cornerStyle === "rounded" ? "rounded" : ""} text-[8px]`}>
         {isImage && <ImageIcon className="w-2 h-2" />}
         {isVideo && <Film className="w-2 h-2" />}
         {!isImage && !isVideo && <FileText className="w-2 h-2" />}
@@ -59,6 +60,7 @@ export function PageThumbnail({
   style = {},
   footerText,
   footerTextColor,
+  fileCornerStyle = "rounded",
 }: PageThumbnailProps) {
   // Update root style to set the font variables
   React.useEffect(() => {
@@ -107,6 +109,7 @@ export function PageThumbnail({
               <FilePreviewThumb 
                 key={index} 
                 file={file}
+                cornerStyle={fileCornerStyle}
               />
             ))}
             {files.length > 3 && (
