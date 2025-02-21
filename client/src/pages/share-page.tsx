@@ -236,15 +236,15 @@ export function FilePreview({
 
   const buttonStyle = React.useMemo(() => {
     return {
-      backgroundColor: sharePage.buttonBackgroundColor || "#007bff",
-      borderColor: sharePage.buttonBorderColor || "#007bff",
-      color: sharePage.buttonTextColor || "#ffffff",
-      border: `1px solid ${sharePage.buttonBorderColor || "#007bff"}`,
+      backgroundColor: (sharePage && sharePage.buttonBackgroundColor) ?? "#007bff",
+      borderColor: (sharePage && sharePage.buttonBorderColor) ?? "#007bff",
+      color: (sharePage && sharePage.buttonTextColor) ?? "#ffffff",
+      border: `1px solid ${(sharePage && sharePage.buttonBorderColor) ?? "#007bff"}`,
       transition: "opacity 0.2s ease-in-out",
       boxShadow: "none",
       outline: "none"
     };
-  }, [sharePage]);
+  }, [sharePage?.buttonBackgroundColor, sharePage?.buttonBorderColor, sharePage?.buttonTextColor]);
 
   const handleDownload = () => {
     window.open(convertDropboxUrl(file.url), '_blank');
