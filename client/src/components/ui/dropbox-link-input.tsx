@@ -31,20 +31,32 @@ function convertDropboxLink(url: string): string {
     throw new Error('Not a valid Dropbox URL');
   }
 
-  let convertedUrl = url
-    .replace('dl=0', 'dl=1')
-    .replace('raw=1', 'dl=1')
-    .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+  try {
+    let convertedUrl = url
+      .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+      .replace(/\?dl=0/, '?raw=1')
+      .replace(/\?dl=1/, '?raw=1')
+      .replace(/\?raw=0/, '?raw=1');
 
-  if (!convertedUrl.includes('dl=1')) {
-    convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
+    // Handle /s/ links
+    if (convertedUrl.includes('/s/')) {
+      convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
+    }
+
+    // Ensure we have the correct parameter
+    if (!convertedUrl.includes('raw=1')) {
+      convertedUrl += convertedUrl.includes('?') ? '&raw=1' : '?raw=1';
+    }
+
+    // Add cache-busting parameter
+    const timestamp = new Date().getTime();
+    convertedUrl += `&t=${timestamp}`;
+
+    return convertedUrl;
+  } catch (error) {
+    console.error('Error converting Dropbox URL:', error);
+    throw new Error('Failed to process Dropbox URL');
   }
-
-  // Add timestamp to force refresh
-  const timestamp = new Date().getTime();
-  convertedUrl += `&t=${timestamp}`;
-
-  return convertedUrl;
 }
 
 function getFileExtension(filename: string): string {
@@ -170,8 +182,8 @@ export function DropboxLinkInput({ onSuccess, className, value, onChange, fileTy
         onChange={handleChange}
         className="flex-1"
       />
-      <Button 
-        type="submit" 
+      <Button
+        type="submit"
         disabled={!inputValue || addDropboxFile.isPending}
       >
         {addDropboxFile.isPending && (

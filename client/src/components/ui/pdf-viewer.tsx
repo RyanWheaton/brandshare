@@ -28,7 +28,7 @@ const validatePDFUrl = (url: string): string => {
   }
 };
 
-// Function to fetch PDF data with enhanced error handling
+// Modify the fetchPDFData function to handle Dropbox URLs better
 const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
@@ -44,6 +44,8 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
       signal: controller.signal,
       headers: {
         'Accept': 'application/pdf,*/*',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
     });
 

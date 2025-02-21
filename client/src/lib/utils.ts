@@ -11,23 +11,24 @@ export function convertDropboxUrl(url: string): string {
   try {
     let convertedUrl = url
       .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-      .replace(/\?dl=0(&raw=1)?/, '?raw=1')
-      .replace(/\?dl=1(&raw=1)?/, '?raw=1')
-      .replace('?raw=0', '?raw=1');
+      // Handle both dl and raw parameters consistently
+      .replace(/\?dl=0/, '?raw=1')
+      .replace(/\?dl=1/, '?raw=1')
+      .replace(/\?raw=0/, '?raw=1');
 
-    // Handle /s/ links
+    // Handle /s/ links with proper format
     if (convertedUrl.includes('/s/')) {
       convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
     }
 
     // Ensure we have the correct parameter
-    if (!convertedUrl.includes('raw=1') && !convertedUrl.includes('dl=1')) {
+    if (!convertedUrl.includes('raw=1')) {
       convertedUrl += convertedUrl.includes('?') ? '&raw=1' : '?raw=1';
     }
 
-    // Add timestamp to prevent caching issues
+    // Add cache-busting timestamp
     const timestamp = new Date().getTime();
-    convertedUrl += convertedUrl.includes('?') ? `&t=${timestamp}` : `?t=${timestamp}`;
+    convertedUrl += `&t=${timestamp}`;
 
     return convertedUrl;
   } catch (error) {
@@ -36,7 +37,6 @@ export function convertDropboxUrl(url: string): string {
   }
 }
 
-// Helper to get file type
 export function getFileType(filename: string): 'image' | 'pdf' | 'video' | 'other' {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
   if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'image';
