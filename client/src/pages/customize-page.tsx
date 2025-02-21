@@ -22,7 +22,8 @@ import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { FilePreview as OriginalFilePreview } from "@/pages/share-page";
+// Remove the FilePreview import since we're not using it anymore
+// import { FilePreview as OriginalFilePreview } from "@/pages/share-page";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { PageThumbnail } from "@/components/ui/page-thumbnail";
+
 
 // Extended FileObject type to match schema
 interface FileObject {
@@ -54,6 +59,7 @@ interface FileObject {
   isFullWidth: boolean;
   title?: string;
   description?: string;
+  cornerStyle?: 'rounded' | 'square'; // Added cornerStyle
 }
 
 // Extended form values type to include all fields
@@ -67,8 +73,8 @@ interface FormValues extends InsertSharePage {
   footerLogoLink?: string;
   logoUrl?: string;
   logoSize?: number;
+  fileCornerStyle?: 'rounded' | 'square'; // Added fileCornerStyle
 }
-
 
 function loadGoogleFont(fontFamily: string) {
   const link = document.createElement('link');
@@ -537,6 +543,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         password: "",
         expiresAt: undefined,
       }),
+      fileCornerStyle: 'rounded', // Added default value
     },
     values: item ? {
       title: item.title,
@@ -562,6 +569,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         password: (item as SharePage).password || "",
         expiresAt: (item as SharePage).expiresAt || undefined,
       }),
+      fileCornerStyle: (item as SharePage).fileCornerStyle || 'rounded', //Added fileCornerStyle to values
     } : undefined,
   });
 
@@ -833,7 +841,55 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       <AccordionItem value="files" className="border rounded-lg">
                         <AccordionTrigger className="px-6">Files</AccordionTrigger>
                         <AccordionContent>
-                          <div className="px-6 pb-4">
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="fileCornerStyle"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>File Corner Style</FormLabel>
+                                  <FormDescription>
+                                    Choose the corner style for files in the share page
+                                  </FormDescription>
+                                  <FormControl>
+                                    <RadioGroup
+                                      onValueChange={field.onChange}
+                                      defaultValue={field.value}
+                                      className="grid grid-cols-2 gap-4"
+                                    >
+                                      <div>
+                                        <RadioGroupItem
+                                          value="rounded"
+                                          id="rounded"
+                                          className="peer sr-only"
+                                        />
+                                        <Label
+                                          htmlFor="rounded"
+                                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                        >
+                                          <div className="w-full h-8 rounded bg-muted" />
+                                          <span className="mt-2">Rounded</span>
+                                        </Label>
+                                      </div>
+                                      <div>
+                                        <RadioGroupItem
+                                          value="square"
+                                          id="square"
+                                          className="peer sr-only"
+                                        />
+                                        <Label
+                                          htmlFor="square"
+                                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                        >
+                                          <div className="w-full h-8 bg-muted" />
+                                          <span className="mt-2">Square</span>
+                                        </Label>
+                                      </div>
+                                    </RadioGroup>
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
                             <FileList
                               files={formValues.files}
                               onUpdateFile={handleFileUpdate}
@@ -854,7 +910,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               <h4 className="text-sm font-medium">Logo Settings</h4>
                               <FormField
                                 control={form.control}
-                                name="logoUrl"                                render={({ field }) =>(
+                                name="logoUrl"
+                                render={({ field }) => (
                                   <FormItem>
                                     <FormLabel className={cn(
                                       form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
@@ -1463,128 +1520,23 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 </form>
               </Form>
 
-              <div className="relative hidden lg:block">
-                <div className="sticky top-[5.5rem]">
-                  <Card className="w-full">
-                    <CardContent className="p-0">
-                      <div className="h-[calc(100vh-5.5rem)] overflow-y-auto">
-                        <div
-                          className="relative"
-                          style={{
-                            backgroundColor: formValues.backgroundColor || "#ffffff",
-                            background: formValues.backgroundColorSecondary
-                              ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
-                              : formValues.backgroundColor || "#ffffff",
-                          }}
-                        >
-                          <div className="p-8 min-h-full">
-                            {formValues.logoUrl && (
-                              <div className="mb-8 flex justify-center">
-                                <img
-                                  src={convertDropboxUrl(formValues.logoUrl)}
-                                  alt="Logo"
-                                  className="mx-auto object-contain"
-                                  style={{
-                                    maxWidth: formValues.logoSize || 200,
-                                    maxHeight: formValues.logoSize || 200
-                                  }}
-                                />
-                              </div>
-                            )}
-                            <div className="text-center mb-8">
-                              <h1
-                                className="mb-4 font-bold"
-                                style={{
-                                  fontFamily: formValues.titleFont || "Inter",
-                                  fontSize: `${formValues.titleFontSize || 24}px`,
-                                  color: formValues.textColor
-                                }}
-                              >
-                                {formValues.title || "Untitled Share Page"}
-                              </h1>
-                              {formValues.description && (
-                                <p
-                                  className="opacity-90"
-                                  style={{
-                                    fontFamily: formValues.descriptionFont || "Inter",
-                                    fontSize: `${formValues.descriptionFontSize || 16}px`,
-                                    color: formValues.textColor
-                                  }}
-                                  dangerouslySetInnerHTML={{ __html: formValues.description }}
-                                >
-                                </p>
-                              )}
-                            </div>
-                            <div className="space-y-4">
-                              {(formValues.files as FileObject[])?.map((file, index) => (
-                                <OriginalFilePreview
-                                  key={index}
-                                  file={file}
-                                  textColor={formValues.textColor}
-                                  containerClassName={cn(
-                                    "w-full",
-                                    file.isFullWidth ? "" : "max-w-4xl mx-auto"
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          {formValues.showFooter && (formValues.footerText || formValues.footerBackgroundColor || formValues.footerLogoUrl) && (
-                            <footer className="w-full mt-8">
-                              <div
-                                className="w-full py-6 px-4"
-                                style={{
-                                  backgroundColor: formValues.footerBackgroundColor || "#f3f4f6",
-                                  color: formValues.footerTextColor || "#000000",
-                                }}
-                              >
-                                <div className="max-w-4xl mx-auto">
-                                  {formValues.footerLogoUrl && (
-                                    <div className="mb-4 flex justify-center">
-                                      {formValues.footerLogoLink ? (
-                                        <a
-                                          href={formValues.footerLogoLink}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          <img
-                                            src={convertDropboxUrl(formValues.footerLogoUrl)}
-                                            alt="Footer Logo"
-                                            className="mx-auto object-contain"
-                                            style={{
-                                              maxWidth: formValues.footerLogoSize || 150,
-                                              maxHeight: formValues.footerLogoSize || 150
-                                            }}
-                                          />
-                                        </a>
-                                      ) : (
-                                        <img
-                                          src={convertDropboxUrl(formValues.footerLogoUrl)}
-                                          alt="Footer Logo"
-                                          className="mx-auto object-contain"
-                                          style={{
-                                            maxWidth: formValues.footerLogoSize || 150,
-                                            maxHeight: formValues.footerLogoSize || 150
-                                          }}
-                                        />
-                                      )}
-                                    </div>
-                                  )}
-                                  {formValues.footerText && (
-                                    <div
-                                      className="prose prose-sm max-w-none"
-                                      style={{ color: formValues.footerTextColor || "#000000" }}
-                                      dangerouslySetInnerHTML={{ __html: formValues.footerText }}
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            </footer>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+              <div className="space-y-8">
+                <div className="border rounded-lg p-4">
+                  <PageThumbnail
+                    title={formValues.title}
+                    description={formValues.description}
+                    files={formValues.files}
+                    backgroundColor={formValues.backgroundColor}
+                    backgroundColorSecondary={formValues.backgroundColorSecondary}
+                    textColor={formValues.textColor}
+                    titleFont={formValues.titleFont}
+                    descriptionFont={formValues.descriptionFont}
+                    titleFontSize={formValues.titleFontSize}
+                    descriptionFontSize={formValues.descriptionFontSize}
+                    footerText={formValues.footerText}
+                    footerTextColor={formValues.footerTextColor}
+                    fileCornerStyle={formValues.fileCornerStyle}
+                  />
                 </div>
               </div>
             </div>
