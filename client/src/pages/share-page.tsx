@@ -77,6 +77,7 @@ type FilePreviewProps = {
   containerClassName?: string;
   pageId?: number;
   fileIndex?: number;
+  sharePage: SharePage; // Add sharePage prop
 };
 
 function CommentsSkeleton() {
@@ -107,18 +108,13 @@ export function FilePreview({
   containerClassName = "",
   pageId,
   fileIndex,
+  sharePage, // Destructure sharePage prop
 }: FilePreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isCommenting, setIsCommenting] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [guestName, setGuestName] = useState("");
-
-  // Get the share page data from the parent component's query
-  const { data: sharePage } = useQuery<SharePage>({
-    queryKey: [`/api/p/${pageId}`],
-    enabled: pageId !== undefined,
-  });
 
   const { data: comments = [], isLoading: isLoadingComments } = useQuery<Annotation[]>({
     queryKey: [`/api/pages/${pageId}/files/${fileIndex}/annotations`],
@@ -238,19 +234,18 @@ export function FilePreview({
     );
   };
 
-  // Add console logging to debug button styles
   const buttonStyle = React.useMemo(() => {
     console.log('Button style props:', {
-      backgroundColor: sharePage?.buttonBackgroundColor,
-      borderColor: sharePage?.buttonBorderColor,
-      textColor: sharePage?.buttonTextColor
+      backgroundColor: sharePage.buttonBackgroundColor,
+      borderColor: sharePage.buttonBorderColor,
+      textColor: sharePage.buttonTextColor
     });
 
     return {
-      backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
-      borderColor: sharePage?.buttonBorderColor || "#007bff",
-      color: sharePage?.buttonTextColor || "#ffffff",
-      border: `1px solid ${sharePage?.buttonBorderColor || "#007bff"}`,
+      backgroundColor: sharePage.buttonBackgroundColor || "#007bff",
+      borderColor: sharePage.buttonBorderColor || "#007bff",
+      color: sharePage.buttonTextColor || "#ffffff",
+      border: `1px solid ${sharePage.buttonBorderColor || "#007bff"}`,
       transition: "opacity 0.2s ease-in-out",
       boxShadow: "none",
       outline: "none"
@@ -258,9 +253,9 @@ export function FilePreview({
   }, [sharePage]);
 
   const buttonHoverStyle = React.useMemo(() => ({
-    backgroundColor: `${sharePage?.buttonBackgroundColor || "#007bff"} !important`,
-    borderColor: `${sharePage?.buttonBorderColor || "#007bff"} !important`,
-    color: `${sharePage?.buttonTextColor || "#ffffff"} !important`,
+    backgroundColor: `${sharePage.buttonBackgroundColor || "#007bff"} !important`,
+    borderColor: `${sharePage.buttonBorderColor || "#007bff"} !important`,
+    color: `${sharePage.buttonTextColor || "#ffffff"} !important`,
     opacity: 0.9
   }), [sharePage]);
 
@@ -480,7 +475,6 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
   const lastRecordedTime = useRef<number>(Date.now());
   const recordingInterval = useRef<number>();
 
-  // Enhanced visit duration tracking
   useEffect(() => {
     console.log('Visit tracking started:', new Date().toISOString());
 
@@ -488,12 +482,10 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       if (document.hidden) {
         console.log('Page hidden, pausing tracking');
         isPageVisible.current = false;
-        // Record the duration up to this point
         recordVisitDuration();
       } else {
         console.log('Page visible, resuming tracking');
         isPageVisible.current = true;
-        // Reset start time when page becomes visible again
         visitStartTime.current = Date.now();
         lastRecordedTime.current = Date.now();
       }
@@ -507,7 +499,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
         }
 
         const now = Date.now();
-        const duration = Math.floor((now - lastRecordedTime.current) / 1000); // Convert to seconds
+        const duration = Math.floor((now - lastRecordedTime.current) / 1000);
 
         if (duration < 1) {
           console.log('Duration too short, skipping record');
@@ -533,14 +525,12 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
       }
     };
 
-    // Record duration every minute while the page is visible
     recordingInterval.current = window.setInterval(() => {
       if (isPageVisible.current) {
         recordVisitDuration();
       }
-    }, 60000); // Every minute
+    }, 60000);
 
-    // Set up event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', () => {
       console.log('Page unloading, recording final duration');
@@ -550,7 +540,6 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(recordingInterval.current);
-      // Record final duration when component unmounts
       recordVisitDuration();
     };
   }, [params.slug]);
@@ -696,6 +685,7 @@ export default function SharePageView({ params }: { params: { slug: string } }) 
               pageId={page.id}
               fileIndex={index}
               containerClassName="w-full"
+              sharePage={page} // Pass the page data as a prop
             />
           ))}
         </div>
