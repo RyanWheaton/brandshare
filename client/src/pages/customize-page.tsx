@@ -840,8 +840,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             <FormField
                               control={form.control}
                               name="fileCornerStyle"
-                              render={({ field }) => (
-                                <FormItem>
+                              render={({ field }) => (                                <FormItem>
                                   <FormLabel>File Corner Style</FormLabel>
                                   <FormDescription>
                                     Choose the corner style for files in the share page
@@ -1580,7 +1579,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     >
                                       <div className="flex flex-col gap-1">
                                         <div 
-                                          className={`flex items-center gap-2 p-2 bg-muted/50 ${formValues.fileCornerStyle === "rounded" ? "rounded-lg" : ""}`}
+                                          className={`flex items-center gap-2 p-2 ${formValues.fileCornerStyle === "rounded" ? "rounded-lg" : ""}`}
                                           style={{ color: formValues.textColor }}
                                         >
                                           {file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.gif') ? (
