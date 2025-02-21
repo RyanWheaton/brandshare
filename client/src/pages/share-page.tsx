@@ -238,23 +238,31 @@ export function FilePreview({
     );
   };
 
-  // Button styles based on share page settings
-  const buttonStyle = {
-    backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
-    borderColor: sharePage?.buttonBorderColor || "#007bff",
-    color: sharePage?.buttonTextColor || "#ffffff",
-    border: `1px solid ${sharePage?.buttonBorderColor || "#007bff"}`,
-    transition: "opacity 0.2s ease-in-out",
-    // Remove any default button styles
-    boxShadow: "none",
-    outline: "none",
-    "&:hover": {
-      opacity: "0.9",
-      backgroundColor: `${sharePage?.buttonBackgroundColor || "#007bff"} !important`,
-      borderColor: `${sharePage?.buttonBorderColor || "#007bff"} !important`,
-      color: `${sharePage?.buttonTextColor || "#ffffff"} !important`,
-    }
-  };
+  // Add console logging to debug button styles
+  const buttonStyle = React.useMemo(() => {
+    console.log('Button style props:', {
+      backgroundColor: sharePage?.buttonBackgroundColor,
+      borderColor: sharePage?.buttonBorderColor,
+      textColor: sharePage?.buttonTextColor
+    });
+
+    return {
+      backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+      borderColor: sharePage?.buttonBorderColor || "#007bff",
+      color: sharePage?.buttonTextColor || "#ffffff",
+      border: `1px solid ${sharePage?.buttonBorderColor || "#007bff"}`,
+      transition: "opacity 0.2s ease-in-out",
+      boxShadow: "none",
+      outline: "none"
+    };
+  }, [sharePage]);
+
+  const buttonHoverStyle = React.useMemo(() => ({
+    backgroundColor: `${sharePage?.buttonBackgroundColor || "#007bff"} !important`,
+    borderColor: `${sharePage?.buttonBorderColor || "#007bff"} !important`,
+    color: `${sharePage?.buttonTextColor || "#ffffff"} !important`,
+    opacity: 0.9
+  }), [sharePage]);
 
   const handleDownload = () => {
     window.open(convertDropboxUrl(file.url), '_blank');
@@ -292,18 +300,24 @@ export function FilePreview({
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  className="gap-2 transition-opacity hover:opacity-90"
-                  style={buttonStyle}
+                  className="gap-2"
                   onClick={handleDownload}
+                  style={buttonStyle}
+                  css={{
+                    '&:hover': buttonHoverStyle
+                  }}
                 >
                   <Download className="w-4 h-4" />
                   <span>Download</span>
                 </Button>
                 <Button
                   size="sm"
-                  className="gap-2 transition-opacity hover:opacity-90"
-                  style={buttonStyle}
+                  className="gap-2"
                   onClick={() => setIsCommenting(!isCommenting)}
+                  style={buttonStyle}
+                  css={{
+                    '&:hover': buttonHoverStyle
+                  }}
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>Comments</span>

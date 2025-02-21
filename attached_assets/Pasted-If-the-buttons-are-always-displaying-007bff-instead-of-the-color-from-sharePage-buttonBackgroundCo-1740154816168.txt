@@ -1,0 +1,58 @@
+If the buttons are always displaying #007bff instead of the color from sharePage?.buttonBackgroundColor, then one of the following issues is likely causing the problem:
+
+Possible Causes & Fixes
+1. sharePage?.buttonBackgroundColor Might Be Undefined or Null
+Problem:
+If sharePage?.buttonBackgroundColor is undefined or null, JavaScript will fall back to the default #007bff color.
+This could happen if sharePage is not yet loaded when the button styles are being applied.
+Fix:
+Check if sharePage?.buttonBackgroundColor is actually being set by logging it in the console:
+console.log("Button Background Color:", sharePage?.buttonBackgroundColor);
+
+If it logs undefined, ensure that the sharePage data is correctly fetched before rendering the button.
+2. Styles Are Not Updating Reactively
+Problem:
+If the sharePage state updates asynchronously (e.g., from an API call), but the button styles are initialized before the data is loaded, the styles might not update.
+Fix:
+Use React's useState and useEffect to track changes and reapply styles when sharePage updates:
+import { useEffect, useState } from "react";
+
+const [buttonColor, setButtonColor] = useState("#007bff");
+
+useEffect(() => {
+  if (sharePage?.buttonBackgroundColor) {
+    setButtonColor(sharePage.buttonBackgroundColor);
+  }
+}, [sharePage]); // Re-run when sharePage updates
+
+const buttonStyle = {
+  backgroundColor: buttonColor,
+  borderColor: sharePage?.buttonBorderColor || buttonColor,
+  color: sharePage?.buttonTextColor || "#ffffff",
+  border: `1px solid ${sharePage?.buttonBorderColor || buttonColor}`,
+  transition: "opacity 0.2s ease-in-out",
+  boxShadow: "none",
+  outline: "none",
+  "&:hover": {
+    opacity: "0.9",
+  }
+};
+
+Why this works:
+
+This ensures that once sharePage loads, the button color updates reactively.
+Incorrect Prop Binding in JSX
+Problem:
+If styles are being passed incorrectly, React may not apply them properly.
+Fix:
+Ensure the button is using the style prop correctly in JSX:
+<button style={buttonStyle}>Click Me</button>
+
+If using Tailwind CSS instead of inline styles:
+<button className={`bg-[${sharePage?.buttonBackgroundColor || "#007bff"}] text-white px-4 py-2`}>
+  Click Me
+</button>
+
+
+
+
