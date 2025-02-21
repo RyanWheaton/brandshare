@@ -70,8 +70,11 @@ interface FormValues extends InsertSharePage {
   buttonBackgroundColor?: string;
   buttonBorderColor?: string;
   buttonTextColor?: string;
+  titleFont?: string;
+  descriptionFont?: string;
+  titleFontSize?: number;
+  descriptionFontSize?: number;
 }
-
 
 function loadGoogleFont(fontFamily: string) {
   const link = document.createElement('link');
@@ -835,7 +838,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           setActiveTab(value);
           // Update URL without full page reload
           const newUrl = `${window.location.pathname}?tab=${value}`;
-          window.history.pushState({}, '', newUrl);
+          window.history.pushstate({}, '', newUrl);
         }}>
           <TabsContent value="customize" className="space-y-6">
             <div className="grid lg:grid-cols-[40%_60%] gap-8">
@@ -870,7 +873,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               <FormField
                                 control={form.control}
                                 name="logoUrl"
-                                render={({ field }) =>(
+                                render={({ field }) => (
                                   <FormItem>
                                     <FormLabel className={cn(
                                       form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
@@ -878,80 +881,50 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                     <FormDescription>
                                       Upload your logo to display above the title
                                     </FormDescription>
-                                    <FormControl>
-                                      <div className="space-y-2">
-                                        <div className="flex flex-col gap-2">
-                                          <DropboxChooser
-                                            onFilesSelected={(files) => {
-                                              if (files.length > 0) {
-                                                form.setValue('logoUrl', files[0].url, { shouldDirty: true });
-                                              }
-                                            }}
-                                          >
-                                            <Button type="button" variant="outline" className="w-full gap-2">
-                                              <Upload className="h-4 w-4" />
-                                              Choose Logo from Dropbox
-                                            </Button>
-                                          </DropboxChooser>
-                                          {user?.logoUrl && (
-                                            <div className="flex items-center gap-2">
-                                              <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => form.setValue('logoUrl', user.logoUrl!, { shouldDirty: true })}
-                                                className="flex-1 gap-2"
-                                              >
-                                                <Image className="h-4 w-4" />
-                                                Use Profile Logo
-                                              </Button>
-                                              {field.value && (
-                                                <Button
-                                                  type="button"
-                                                  variant="outline"
-                                                  size="icon"
-                                                  className="shrink-0"
-                                                  onClick={() => form.setValue('logoUrl', '', { shouldDirty: true })}
-                                                >
-                                                  <X className="h-4 w-4" />
-                                                </Button>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                        {field.value && (
-                                          <LogoPreview url={field.value} size={formValues.logoSize || 200} />
-                                        )}
-                                      </div>
-                                    </FormControl>
-                                    <FormMessage />
+                                    <DropboxChooser
+                                      onFilesSelected={(files) => {
+                                        form.setValue('logoUrl', files[0]?.url || '', { shouldDirty: true });
+                                      }}
+                                      className="w-full"
+                                    >
+                                      <Button type="button" variant="outline" className="w-full gap-2">
+                                        <Upload className="h-4 w-4" />
+                                        Upload Logo
+                                      </Button>
+                                    </DropboxChooser>
                                   </FormItem>
                                 )}
                               />
+
                               <FormField
                                 control={form.control}
                                 name="logoSize"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Logo Size</FormLabel>
-                                    <FormControl>
-                                      <div className="flex items-center gap-4">
-                                        <Slider
-                                          min={50}
-                                          max={800}
-                                          step={10}
-                                          value={[field.value ?? 200]}
-                                          onValueChange={(value) => field.onChange(value[0])}
-                                          className="flex-1"
-                                        />
-                                        <span className="text-sm text-muted-foreground w-12 text-right">
-                                          {field.value}px
-                                        </span>
-                                      </div>
-                                    </FormControl>
-                                    <FormMessage />
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Logo Size</FormLabel>
+                                    <FormDescription>
+                                      Adjust the size of your logo
+                                    </FormDescription>
+                                    <Slider
+                                      min={50}
+                                      max={400}
+                                      step={10}
+                                      value={[field.value]}
+                                      onValueChange={(values) => field.onChange(values[0])}
+                                      className="w-full"
+                                    />
                                   </FormItem>
                                 )}
                               />
+
+                              {formValues.logoUrl && (
+                                <div className="mt-4">
+                                  <h4 className="text-sm font-medium mb-2">Logo Preview</h4>
+                                  <LogoPreview url={formValues.logoUrl} size={formValues.logoSize} />
+                                </div>
+                              )}
                             </div>
 
                             <Separator/>
@@ -1001,7 +974,110 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         </AccordionContent>
                       </AccordionItem>
 
-                      <AccordionItem value="body" className="border rounded-lg">
+                      <AccordionItem value="typography" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Typography Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-8">
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium">Title Font Settings</h4>
+                              <FormField
+                                control={form.control}
+                                name="titleFont"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Title Font</FormLabel>
+                                    <FormDescription>
+                                      Choose a font for your page title
+                                    </FormDescription>
+                                    <FontSelect
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                    />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="titleFontSize"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Title Font Size</FormLabel>
+                                    <FormDescription>
+                                      Adjust the size of your title font (in pixels)
+                                    </FormDescription>
+                                    <Slider
+                                      min={16}
+                                      max={72}
+                                      step={1}
+                                      value={[field.value]}
+                                      onValueChange={(values) => field.onChange(values[0])}
+                                      className="w-full"
+                                    />
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {field.value}px
+                                    </p>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium">Description Font Settings</h4>
+                              <FormField
+                                control={form.control}
+                                name="descriptionFont"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Description Font</FormLabel>
+                                    <FormDescription>
+                                      Choose a font for your page description
+                                    </FormDescription>
+                                    <FontSelect
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                    />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="descriptionFontSize"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={cn(
+                                      form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                    )}>Description Font Size</FormLabel>
+                                    <FormDescription>
+                                      Adjust the size of your description font (in pixels)
+                                    </FormDescription>
+                                    <Slider
+                                      min={12}
+                                      max={48}
+                                      step={1}
+                                      value={[field.value]}
+                                      onValueChange={(values) => field.onChange(values[0])}
+                                      className="w-full"
+                                    />
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {field.value}px
+                                    </p>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      <AccordionItem value="colors" className="border rounded-lg">
                         <AccordionTrigger className="px-6">Body Settings</AccordionTrigger>
                         <AccordionContent>
                           <div className="px-6 pb-4 space-y-8">
