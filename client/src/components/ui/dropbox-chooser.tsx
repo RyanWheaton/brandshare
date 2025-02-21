@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "./button";
 import { Plus } from "lucide-react";
 import type { FileObject } from "@shared/schema";
-import { cn } from "@/lib/utils";
+import { cn, convertDropboxUrl, getFileType } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -31,28 +31,33 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       success: (files) => {
         // Convert Dropbox files to our FileObject format
         const convertedFiles: FileObject[] = files.map((file) => {
-          let previewUrl = file.link;
-          if (file.name.toLowerCase().endsWith('.pdf')) {
-            previewUrl = file.link.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
-            if (!previewUrl.includes('dl=1')) {
-              previewUrl += previewUrl.includes('?') ? '&dl=1' : '?dl=1';
-            }
-          } else {
-            // For other files (images), use raw=1 for preview
-            previewUrl = file.link.replace('?dl=0', '?raw=1');
+          const fileType = getFileType(file.name);
+
+          // For images, use raw=1 to get direct display URL
+          // For PDFs, use dl=1 to get downloadable URL
+          const url = convertDropboxUrl(file.link);
+          let previewUrl = url;
+
+          // For images, ensure we're using raw=1 for direct display
+          if (fileType === 'image') {
+            previewUrl = url.replace('dl=1', 'raw=1');
           }
 
           return {
             name: file.name,
             preview_url: previewUrl,
-            url: file.link.replace('?dl=0', '?dl=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com'),
+            url: url,
             isFullWidth: false,
           };
         });
+
+        // Log the converted files for debugging
+        console.log('Converted Dropbox files:', convertedFiles);
+
         onFilesSelected(convertedFiles);
       },
       cancel: () => {
-        // Handle cancel if needed
+        console.log('Dropbox file selection cancelled');
       },
       linkType: "direct", // This ensures we get direct links
       multiselect: false, // Only allow single file selection
