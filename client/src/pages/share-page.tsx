@@ -238,6 +238,13 @@ export function FilePreview({
     );
   };
 
+  // Button styles based on share page settings
+  const buttonStyle = {
+    backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+    borderColor: sharePage?.buttonBorderColor || "#007bff",
+    color: sharePage?.buttonTextColor || "#ffffff",
+  };
+
   return (
     <div className={containerClassName}>
       <Card className="overflow-hidden border-0 shadow-none bg-transparent">
@@ -268,7 +275,33 @@ export function FilePreview({
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {/* Moved buttons outside of the Card */}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-2"
+                  style={buttonStyle}
+                  asChild
+                >
+                  <a
+                    href={convertDropboxUrl(file.url)}
+                    download={file.name}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </a>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-2"
+                  style={buttonStyle}
+                  onClick={() => setIsCommenting(!isCommenting)}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Comments</span>
+                </Button>
               </div>
             </div>
           </div>
@@ -336,45 +369,6 @@ export function FilePreview({
           )}
         </CardContent>
       </Card>
-
-      {/* Add buttons section below the card */}
-      <div className="flex items-center gap-2 mt-4">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          style={{
-            backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
-            borderColor: sharePage?.buttonBorderColor || "#007bff",
-            color: sharePage?.buttonTextColor || "#ffffff",
-          }}
-          asChild
-        >
-          <a
-            href={convertDropboxUrl(file.url)}
-            download={file.name}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download</span>
-          </a>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          style={{
-            backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
-            borderColor: sharePage?.buttonBorderColor || "#007bff",
-            color: sharePage?.buttonTextColor || "#ffffff",
-          }}
-          onClick={() => setIsCommenting(!isCommenting)}
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span>Comments</span>
-        </Button>
-      </div>
     </div>
   );
 }
