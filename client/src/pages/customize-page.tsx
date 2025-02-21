@@ -22,8 +22,6 @@ import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-// Remove the FilePreview import since we're not using it anymore
-// import { FilePreview as OriginalFilePreview } from "@/pages/share-page";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -48,10 +46,8 @@ import {
 } from "@/components/ui/accordion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { PageThumbnail } from "@/components/ui/page-thumbnail";
 
 
-// Extended FileObject type to match schema
 interface FileObject {
   name: string;
   preview_url: string;
@@ -59,10 +55,9 @@ interface FileObject {
   isFullWidth: boolean;
   title?: string;
   description?: string;
-  cornerStyle?: 'rounded' | 'square'; // Added cornerStyle
+  cornerStyle?: 'rounded' | 'square';
 }
 
-// Extended form values type to include all fields
 interface FormValues extends InsertSharePage {
   footerText?: string;
   footerBackgroundColor?: string;
@@ -73,7 +68,7 @@ interface FormValues extends InsertSharePage {
   footerLogoLink?: string;
   logoUrl?: string;
   logoSize?: number;
-  fileCornerStyle?: 'rounded' | 'square'; // Added fileCornerStyle
+  fileCornerStyle?: 'rounded' | 'square';
 }
 
 function loadGoogleFont(fontFamily: string) {
@@ -543,7 +538,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         password: "",
         expiresAt: undefined,
       }),
-      fileCornerStyle: 'rounded', // Added default value
+      fileCornerStyle: 'rounded',
     },
     values: item ? {
       title: item.title,
@@ -569,7 +564,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         password: (item as SharePage).password || "",
         expiresAt: (item as SharePage).expiresAt || undefined,
       }),
-      fileCornerStyle: (item as SharePage).fileCornerStyle || 'rounded', //Added fileCornerStyle to values
+      fileCornerStyle: (item as SharePage).fileCornerStyle || 'rounded',
     } : undefined,
   });
 
@@ -1522,21 +1517,159 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
               <div className="space-y-8">
                 <div className="border rounded-lg p-4">
-                  <PageThumbnail
-                    title={formValues.title}
-                    description={formValues.description}
-                    files={formValues.files}
-                    backgroundColor={formValues.backgroundColor}
-                    backgroundColorSecondary={formValues.backgroundColorSecondary}
-                    textColor={formValues.textColor}
-                    titleFont={formValues.titleFont}
-                    descriptionFont={formValues.descriptionFont}
-                    titleFontSize={formValues.titleFontSize}
-                    descriptionFontSize={formValues.descriptionFontSize}
-                    footerText={formValues.footerText}
-                    footerTextColor={formValues.footerTextColor}
-                    fileCornerStyle={formValues.fileCornerStyle}
-                  />
+                  <div className="relative hidden lg:block">
+                    <div className="sticky top-[5.5rem]">
+                      <Card className="w-full">
+                        <CardContent className="p-0">
+                          <div className="h-[calc(100vh-5.5rem)] overflow-y-auto">
+                            <div
+                              className="relative"
+                              style={{
+                                backgroundColor: formValues.backgroundColor || "#ffffff",
+                                background: formValues.backgroundColorSecondary
+                                  ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
+                                  : formValues.backgroundColor || "#ffffff",
+                              }}
+                            >
+                              <div className="p-8 min-h-full">
+                                {formValues.logoUrl && (
+                                  <div className="mb-8 flex justify-center">
+                                    <img
+                                      src={convertDropboxUrl(formValues.logoUrl)}
+                                      alt="Logo"
+                                      className="mx-auto object-contain"
+                                      style={{
+                                        maxWidth: formValues.logoSize || 200,
+                                        maxHeight: formValues.logoSize || 200
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                                <div className="text-center mb-8">
+                                  <h1
+                                    className="mb-4 font-bold"
+                                    style={{
+                                      fontFamily: formValues.titleFont || "Inter",
+                                      fontSize: `${formValues.titleFontSize || 24}px`,
+                                      color: formValues.textColor
+                                    }}
+                                  >
+                                    {formValues.title || "Untitled Share Page"}
+                                  </h1>
+                                  {formValues.description && (
+                                    <p
+                                      className="opacity-90"
+                                      style={{
+                                        fontFamily: formValues.descriptionFont || "Inter",
+                                        fontSize: `${formValues.descriptionFontSize || 16}px`,
+                                        color: formValues.textColor
+                                      }}
+                                      dangerouslySetInnerHTML={{ __html: formValues.description }}
+                                    >
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="space-y-4">
+                                  {(formValues.files as FileObject[])?.map((file, index) => (
+                                    <div
+                                      key={index}
+                                      className={cn(
+                                        "w-full",
+                                        file.isFullWidth ? "" : "max-w-4xl mx-auto"
+                                      )}
+                                    >
+                                      <div className="flex flex-col gap-1">
+                                        <div 
+                                          className={`flex items-center gap-2 p-2 bg-muted/50 ${formValues.fileCornerStyle === "rounded" ? "rounded-lg" : ""}`}
+                                          style={{ color: formValues.textColor }}
+                                        >
+                                          {file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.gif') ? (
+                                            <img
+                                              src={convertDropboxUrl(file.preview_url)}
+                                              alt={file.title || file.name}
+                                              className={cn(
+                                                "w-full h-auto",
+                                                formValues.fileCornerStyle === "rounded" ? "rounded-lg" : ""
+                                              )}
+                                            />
+                                          ) : (
+                                            <div className="flex items-center gap-2">
+                                              <FileText className="h-4 w-4" />
+                                              <span className="text-sm font-medium">{file.title || file.name}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {file.description && (
+                                          <p 
+                                            className="text-sm opacity-75 px-2"
+                                            style={{ color: formValues.textColor }}
+                                          >
+                                            {file.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              {formValues.showFooter && (formValues.footerText || formValues.footerBackgroundColor || formValues.footerLogoUrl) && (
+                                <footer className="w-full mt-8">
+                                  <div
+                                    className="w-full py-6 px-4"
+                                    style={{
+                                      backgroundColor: formValues.footerBackgroundColor || "#f3f4f6",
+                                      color: formValues.footerTextColor || "#000000",
+                                    }}
+                                  >
+                                    <div className="max-w-4xl mx-auto">
+                                      {formValues.footerLogoUrl && (
+                                        <div className="mb-4 flex justify-center">
+                                          {formValues.footerLogoLink ? (
+                                            <a
+                                              href={formValues.footerLogoLink}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                            >
+                                              <img
+                                                src={convertDropboxUrl(formValues.footerLogoUrl)}
+                                                alt="Footer Logo"
+                                                className="mx-auto object-contain"
+                                                style={{
+                                                  maxWidth: formValues.footerLogoSize || 150,
+                                                  maxHeight: formValues.footerLogoSize || 150
+                                                }}
+                                              />
+                                            </a>
+                                          ) : (
+                                            <img
+                                              src={convertDropboxUrl(formValues.footerLogoUrl)}
+                                              alt="Footer Logo"
+                                              className="mx-auto object-contain"
+                                              style={{
+                                                maxWidth: formValues.footerLogoSize || 150,
+                                                maxHeight: formValues.footerLogoSize || 150
+                                              }}
+                                            />
+                                          )}
+                                        </div>
+                                      )}
+                                      {formValues.footerText && (
+                                        <div
+                                          className="prose prose-sm max-w-none"
+                                          style={{ color: formValues.footerTextColor || "#000000" }}
+                                          dangerouslySetInnerHTML={{ __html: formValues.footerText }}
+                                        />
+                                      )}
+                                    </div>
+                                  </div>
+                                </footer>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
