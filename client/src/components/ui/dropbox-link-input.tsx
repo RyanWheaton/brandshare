@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { FileObject } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 interface DropboxLinkInputProps {
   onSuccess?: (file: FileObject) => void;
@@ -30,16 +31,18 @@ function convertDropboxLink(url: string): string {
     throw new Error('Not a valid Dropbox URL');
   }
 
-  // Replace dl=0 with dl=1 and raw=1 with dl=1
   let convertedUrl = url
     .replace('dl=0', 'dl=1')
     .replace('raw=1', 'dl=1')
     .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
 
-  // If no dl parameter exists, add it
   if (!convertedUrl.includes('dl=1')) {
     convertedUrl += convertedUrl.includes('?') ? '&dl=1' : '?dl=1';
   }
+
+  // Add timestamp to force refresh
+  const timestamp = new Date().getTime();
+  convertedUrl += `&t=${timestamp}`;
 
   return convertedUrl;
 }
@@ -59,12 +62,18 @@ export function DropboxLinkInput({ onSuccess, className, value, onChange, fileTy
   const [inputValue, setInputValue] = useState(value || "");
   const { toast } = useToast();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [location] = useLocation();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setInputValue(value || "");
   }, [value]);
 
-  // Set up abort controller and cleanup
+  // Force refresh when location changes
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [location]);
+
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -78,12 +87,10 @@ export function DropboxLinkInput({ onSuccess, className, value, onChange, fileTy
   const addDropboxFile = useMutation({
     mutationFn: async (dropboxUrl: string) => {
       try {
-        // Create new AbortController for this request
         if (!abortControllerRef.current) {
           abortControllerRef.current = new AbortController();
         }
 
-        // Extract filename from Dropbox URL
         const urlParts = dropboxUrl.split('/');
         const filename = urlParts[urlParts.length - 1].split('?')[0];
 
@@ -115,7 +122,7 @@ export function DropboxLinkInput({ onSuccess, className, value, onChange, fileTy
       }
     },
     onSuccess: (data) => {
-      if (data === null) return; // Skip if request was aborted
+      if (data === null) return;
       queryClient.invalidateQueries({ queryKey: ['/api/files'] });
       toast({
         title: "Success",
