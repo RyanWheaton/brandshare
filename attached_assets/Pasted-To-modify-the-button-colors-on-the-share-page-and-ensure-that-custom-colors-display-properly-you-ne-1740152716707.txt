@@ -1,0 +1,40 @@
+To modify the button colors on the share page and ensure that custom colors display properly, you need to update the component that handles the share page editor and the button styling in the share page itself.
+1. Modify the Share Page Component
+You have an inline style for buttons in the share-page.tsx. Instead of using inline styles, you can define CSS classes that use the custom colors directly from the share page's properties. Here's how to change it:
+Replace the button style section in share-page.tsx where you define the buttonStyle:
+// Button styles based on share page settings
+const buttonStyle = {
+  backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+  borderColor: sharePage?.buttonBorderColor || "#007bff",
+  color: sharePage?.buttonTextColor || "#ffffff",
+  ':hover': {
+    backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
+    borderColor: sharePage?.buttonBorderColor || "#007bff",
+    opacity: 0.9,
+  }
+};
+2. Ensure Customization in the Customize Share Page Editor
+In the customize page editor (assumed to be in customize-page.tsx), make sure you're passing the button color properties when saving or updating the share page. Ensure the form includes fields for buttonBackgroundColor, buttonBorderColor, and buttonTextColor.
+Add them to the FormValues:
+interface FormValues extends InsertSharePage {
+  // other properties
+  buttonBackgroundColor?: string;
+  buttonBorderColor?: string;
+  buttonTextColor?: string;
+}
+In your form handling, ensure these values are taken from the user's input and saved to the share page object.
+Example Code for Customize Page
+Here’s an example snippet of how you might handle this in the customize page editor:
+const onSubmit = (data: FormValues) => {
+  // assuming you handle the API call here to update the share page
+  apiRequest("POST", "/api/pages", {
+    ...data,
+    buttonBackgroundColor: data.buttonBackgroundColor || "#007bff",
+    buttonBorderColor: data.buttonBorderColor || "#007bff",
+    buttonTextColor: data.buttonTextColor || "#ffffff",
+  });
+};
+Final Adjustment
+With these codes in place, your share page will properly use custom colors for the buttons as defined in the customization editor. Make sure to validate that the styling applies correctly, including checking that the properties are passed down from the share page state to the buttons accordingly.
+By defining button styles in a reusable way and ensuring your customization logic is capturing the new values, you keep your code clean and maintainable.
+

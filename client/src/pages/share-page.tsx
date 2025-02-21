@@ -243,10 +243,16 @@ export function FilePreview({
     backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
     borderColor: sharePage?.buttonBorderColor || "#007bff",
     color: sharePage?.buttonTextColor || "#ffffff",
-    ':hover': {
-      backgroundColor: sharePage?.buttonBackgroundColor || "#007bff",
-      borderColor: sharePage?.buttonBorderColor || "#007bff",
-      opacity: 0.9,
+    border: `1px solid ${sharePage?.buttonBorderColor || "#007bff"}`,
+    transition: "opacity 0.2s ease-in-out",
+    // Remove any default button styles
+    boxShadow: "none",
+    outline: "none",
+    "&:hover": {
+      opacity: "0.9",
+      backgroundColor: `${sharePage?.buttonBackgroundColor || "#007bff"} !important`,
+      borderColor: `${sharePage?.buttonBorderColor || "#007bff"} !important`,
+      color: `${sharePage?.buttonTextColor || "#ffffff"} !important`,
     }
   };
 
@@ -282,7 +288,7 @@ export function FilePreview({
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  className="gap-2 hover:opacity-90"
+                  className="gap-2 transition-opacity hover:opacity-90"
                   style={buttonStyle}
                   asChild
                 >
@@ -298,7 +304,7 @@ export function FilePreview({
                 </Button>
                 <Button
                   size="sm"
-                  className="gap-2 hover:opacity-90"
+                  className="gap-2 transition-opacity hover:opacity-90"
                   style={buttonStyle}
                   onClick={() => setIsCommenting(!isCommenting)}
                 >
