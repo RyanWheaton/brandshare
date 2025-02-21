@@ -847,14 +847,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <AccordionTrigger className="px-6">Files</AccordionTrigger>
                         <AccordionContent>
                           <div className="px-6 pb-4">
-                            <FileList
-                              files={formValues.files}
-                              onUpdateFile={handleFileUpdate}
-                              onAddFiles={(newFiles) => {
-                                form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
-                              }}
-                              form={form}
-                            />
+                            <div className="space-y-4">
+                              <FileList
+                                files={formValues.files}
+                                onUpdateFile={handleFileUpdate}
+                                onAddFiles={(newFiles) => {
+                                  form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+                                }}
+                                form={form}
+                              />
+                            </div>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
