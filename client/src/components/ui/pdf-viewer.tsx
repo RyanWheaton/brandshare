@@ -28,7 +28,7 @@ const validatePDFUrl = (url: string): string => {
   }
 };
 
-// Modify the fetchPDFData function to handle Dropbox URLs better
+// Modify the fetchPDFData function to better handle Dropbox URLs
 const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
@@ -37,22 +37,29 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
     const validatedUrl = validatePDFUrl(pdfUrl);
     console.log('Fetching PDF from validated URL:', validatedUrl);
 
+    // Add proper headers for Dropbox requests
     const response = await fetch(validatedUrl, {
       method: 'GET',
       mode: 'cors',
       credentials: 'omit',
       signal: controller.signal,
       headers: {
-        'Accept': 'application/pdf,*/*',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Accept': 'application/pdf',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
     });
 
     clearTimeout(timeout);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/pdf') && !contentType?.includes('application/octet-stream')) {
+      console.warn('Unexpected content type:', contentType);
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -74,30 +81,33 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
   }
 };
 
-// Enhanced Dropbox URL conversion
+// Enhanced Dropbox URL conversion with better handling for PDFs
 const convertDropboxUrl = (originalUrl: string): string => {
   if (!originalUrl.includes('dropbox.com')) return originalUrl;
 
   try {
     let convertedUrl = originalUrl;
 
-    // Handle various Dropbox URL formats
+    // Convert to direct download URL for PDFs
     if (originalUrl.includes('www.dropbox.com')) {
-      // Convert to dl.dropboxusercontent.com
       convertedUrl = originalUrl
         .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-        .replace('?dl=0', '')
-        .replace('?dl=1', '')
-        .replace('?raw=1', '');
+        .replace(/\?dl=0/, '')
+        .replace(/\?dl=1/, '')
+        .replace(/\?raw=1/, '');
 
       // Special handling for /s/ links
       if (convertedUrl.includes('/s/')) {
         convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
       }
 
-      // Add dl=1 parameter for direct download
+      // Add dl=1 parameter specifically for PDFs
       convertedUrl += '?dl=1';
     }
+
+    // Add cache buster to avoid caching issues
+    const timestamp = new Date().getTime();
+    convertedUrl += convertedUrl.includes('?') ? `&t=${timestamp}` : `?t=${timestamp}`;
 
     console.log('Converted Dropbox URL:', convertedUrl);
     return convertedUrl;
