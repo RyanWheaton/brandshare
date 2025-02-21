@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/accordion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-
+import { PDFViewer } from "@/components/ui/pdf-viewer";
 
 interface FileObject {
   name: string;
