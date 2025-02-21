@@ -256,6 +256,10 @@ export function FilePreview({
     }
   };
 
+  const handleDownload = () => {
+    window.open(convertDropboxUrl(file.url), '_blank');
+  };
+
   return (
     <div className={containerClassName}>
       <Card className="overflow-hidden border-0 shadow-none bg-transparent">
@@ -290,17 +294,10 @@ export function FilePreview({
                   size="sm"
                   className="gap-2 transition-opacity hover:opacity-90"
                   style={buttonStyle}
-                  asChild
+                  onClick={handleDownload}
                 >
-                  <a
-                    href={convertDropboxUrl(file.url)}
-                    download={file.name}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download</span>
-                  </a>
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
                 </Button>
                 <Button
                   size="sm"
