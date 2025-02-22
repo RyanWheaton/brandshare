@@ -5,6 +5,7 @@ import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl } from "@/lib/utils";
 import { Progress } from "./progress";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 declare global {
   interface Window {
@@ -32,17 +33,24 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [currentFileName, setCurrentFileName] = React.useState<string>('');
   const { toast } = useToast();
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        console.log("Aborting pending Dropbox file requests...");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const uploadToS3 = async (url: string, name: string): Promise<string> => {
-    console.log('Starting S3 upload process:', { name, url });
-    const controller = new AbortController();
-    let eventSource: EventSource | null = null;
-    let isCompleted = false;
-    let hasReceivedFinalProgress = false;
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
-
     try {
+      if (!abortControllerRef.current) {
+        abortControllerRef.current = new AbortController();
+      }
+
       const response = await fetch('/api/upload/dropbox', {
         method: 'POST',
         headers: {
@@ -53,7 +61,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           name,
           onProgress: true
         }),
-        signal: controller.signal
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -70,45 +78,55 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
       return new Promise<string>((resolve, reject) => {
         console.log('Starting progress tracking for upload:', uploadId);
-        eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
+        const eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
+        let isCompleted = false;
+        let hasReceivedFinalProgress = false;
 
         const cleanup = () => {
           if (eventSource && !isCompleted) {
             console.log('Cleaning up EventSource');
             eventSource.close();
-            eventSource = null;
-            controller.abort();
           }
         };
 
         const waitForUrlWithRetry = async () => {
-          if (isCompleted || retryCount >= MAX_RETRIES) return;
+          let retryCount = 0;
+          const maxRetries = 5;
+          let delay = 1000; // Start with 1 second delay
 
-          retryCount++;
-          console.log(`Attempting to fetch URL (attempt ${retryCount}/${MAX_RETRIES})`);
+          while (retryCount < maxRetries && !isCompleted) {
+            try {
+              console.log(`Attempting to fetch URL (attempt ${retryCount + 1}/${maxRetries})`);
+              const urlResponse = await fetch(`/api/upload/url/${uploadId}`);
 
-          try {
-            const urlResponse = await fetch(`/api/upload/url/${uploadId}`);
-            if (urlResponse.ok) {
-              const data = await urlResponse.json();
-              if (data.url) {
-                console.log('Successfully retrieved URL on retry:', data.url);
-                isCompleted = true;
-                if (eventSource) {
+              if (urlResponse.ok) {
+                const data = await urlResponse.json();
+                if (data.url) {
+                  console.log('Successfully retrieved URL:', data.url);
+                  isCompleted = true;
                   eventSource.close();
-                  eventSource = null;
+                  resolve(data.url);
+                  return;
                 }
-                resolve(data.url);
-                return;
+              }
+
+              retryCount++;
+              if (!isCompleted && retryCount < maxRetries) {
+                console.log(`URL not ready, waiting ${delay}ms before retry...`);
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 2; // Exponential backoff
+              }
+            } catch (error) {
+              console.error(`Error fetching URL on attempt ${retryCount + 1}:`, error);
+              retryCount++;
+              if (!isCompleted && retryCount < maxRetries) {
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 2;
               }
             }
-          } catch (error) {
-            console.error(`Failed to fetch URL on attempt ${retryCount}:`, error);
           }
 
-          if (retryCount < MAX_RETRIES) {
-            setTimeout(waitForUrlWithRetry, 2000); // Wait 2 seconds before retrying
-          } else {
+          if (!isCompleted) {
             cleanup();
             reject(new Error('Failed to retrieve upload URL after retries'));
           }
@@ -154,10 +172,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               console.log('Upload complete, received S3 URL:', data.url);
               isCompleted = true;
               clearTimeout(progressTimeout);
-              if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-              }
+              eventSource.close();
               resolve(data.url);
             }
           } catch (error) {
@@ -169,18 +184,18 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         });
 
         eventSource.addEventListener('error', (error) => {
-          if (isCompleted) return;
+          if (error instanceof Event && !isCompleted) {
+            if (hasReceivedFinalProgress) {
+              console.log('Got error after 100% progress, starting URL fetch retries');
+              waitForUrlWithRetry();
+              return;
+            }
 
-          if (hasReceivedFinalProgress) {
-            console.log('Got error after 100% progress, starting URL fetch retries');
-            waitForUrlWithRetry();
-            return;
+            console.error('EventSource error:', error);
+            clearTimeout(progressTimeout);
+            cleanup();
+            reject(new Error('Failed to get upload progress'));
           }
-
-          console.error('EventSource error:', error);
-          clearTimeout(progressTimeout);
-          cleanup();
-          reject(new Error('Failed to get upload progress'));
         });
 
         // Global timeout for entire upload process
@@ -200,7 +215,6 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         };
       });
     } catch (error) {
-      if (eventSource && !isCompleted) eventSource.close();
       console.error('Error in uploadToS3:', error);
       throw error;
     }
@@ -221,22 +235,15 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           setCurrentFileName('');
 
           const uploadedFiles: FileObject[] = [];
-          const errors: Array<{ file: string; error: string }> = [];
 
           for (const file of files) {
             try {
               setCurrentFileName(file.name);
               const url = convertDropboxUrl(file.link);
-              console.log('Processing file for upload:', {
-                name: file.name,
-                convertedUrl: url
-              });
+              console.log('Processing file for upload:', { name: file.name, convertedUrl: url });
 
               const s3Url = await uploadToS3(url, file.name);
-              console.log('S3 upload completed successfully:', {
-                name: file.name,
-                s3Url
-              });
+              console.log('S3 upload completed successfully:', { name: file.name, s3Url });
 
               const fileObject: FileObject = {
                 name: file.name,
@@ -250,38 +257,23 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-              errors.push({ file: file.name, error: errorMessage });
               console.error('Error uploading file:', file.name, error);
+              toast({
+                title: "Upload Failed",
+                description: `Failed to upload ${file.name}: ${errorMessage}`,
+                variant: "destructive",
+              });
             }
           }
 
-          // Always update state with successfully uploaded files
           if (uploadedFiles.length > 0) {
             console.log('Updating app state with uploaded files:', uploadedFiles);
             onFilesSelected(uploadedFiles);
-          }
+            queryClient.invalidateQueries({ queryKey: ['/api/files'] });
 
-          // Show appropriate toast message
-          if (errors.length > 0) {
-            if (uploadedFiles.length > 0) {
-              toast({
-                title: "Partial Upload Success",
-                description: `Successfully uploaded ${uploadedFiles.length} out of ${files.length} files.`,
-              });
-            }
-
-            // Show individual error messages
-            errors.forEach(({ file, error }) => {
-              toast({
-                title: `Failed to upload ${file}`,
-                description: error,
-                variant: "destructive",
-              });
-            });
-          } else {
             toast({
               title: "Success",
-              description: `Successfully uploaded ${files.length} files.`,
+              description: `Successfully uploaded ${uploadedFiles.length} files.`,
             });
           }
 
