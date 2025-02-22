@@ -132,7 +132,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   }, [onFilesSelected, toast]);
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("relative", className)}>
       <div onClick={handleDropboxSelect}>
         {children || (
           <>
@@ -140,7 +140,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               disabled={disabled || isUploading}
               variant="outline"
               size="sm"
-              className="w-full"
+              className={cn(className)}
             >
               {isUploading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -150,9 +150,9 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               {isUploading ? `Uploading ${currentFileName}... ${uploadProgress}%` : "Select Files from Dropbox"}
             </Button>
             {isUploading && (
-              <div className="mt-2 w-full bg-secondary/20 rounded-full h-2">
+              <div className="mt-2 w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  className="h-full bg-primary rounded-full transition-all duration-300 ease-in-out"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
