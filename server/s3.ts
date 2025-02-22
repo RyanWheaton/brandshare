@@ -41,7 +41,6 @@ export async function uploadFileToS3(
     Key: `uploads/${fileName}`,
     Body: fileBuffer,
     ContentType: contentType,
-    ACL: 'public-read' as const, // Type assertion to match ObjectCannedACL
   };
 
   try {
@@ -53,6 +52,10 @@ export async function uploadFileToS3(
     return url;
   } catch (error) {
     console.error('Error uploading to S3:', error);
+    // Rethrow with more details if it's an AWS error
+    if (error instanceof Error) {
+      throw new Error(`Failed to upload file to S3: ${error.message}`);
+    }
     throw new Error('Failed to upload file to S3');
   }
 }
