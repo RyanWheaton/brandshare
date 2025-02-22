@@ -116,11 +116,10 @@ export async function deleteFileFromS3(fileUrl: string): Promise<void> {
   }
 }
 
-// Upload file to S3 from a URL with progress tracking
+// Upload file to S3 from a URL
 export async function uploadFileToS3FromUrl(
   fileUrl: string,
-  originalFileName: string,
-  onProgress?: (progress: number) => void
+  originalFileName: string
 ): Promise<string> {
   try {
     console.log('Starting S3 upload from URL:', fileUrl);
@@ -129,42 +128,10 @@ export async function uploadFileToS3FromUrl(
       throw new Error(`Failed to fetch file from URL: ${response.statusText}`);
     }
 
-    const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    const reader = response.body?.getReader();
+    const buffer = Buffer.from(await response.arrayBuffer());
 
-    if (!reader) {
-      throw new Error('Failed to get reader from response');
-    }
-
-    let receivedLength = 0;
-    const chunks: Uint8Array[] = [];
-
-    // Read the response stream
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      chunks.push(value);
-      receivedLength += value.length;
-
-      if (onProgress && contentLength > 0) {
-        const progress = (receivedLength / contentLength) * 50; // First 50% is download
-        onProgress(progress);
-      }
-    }
-
-    // Combine all chunks into a single buffer
-    const buffer = Buffer.concat(chunks);
-
-    // Upload to S3 (remaining 50% of progress)
-    const url = await uploadFileToS3(buffer, originalFileName, contentType);
-
-    if (onProgress) {
-      onProgress(100); // Upload complete
-    }
-
-    return url;
+    return uploadFileToS3(buffer, originalFileName, contentType);
   } catch (error) {
     console.error('Error uploading from URL to S3:', error);
     throw new Error('Failed to upload file from URL to S3');

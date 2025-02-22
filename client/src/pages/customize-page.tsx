@@ -165,10 +165,6 @@ function FileList({
         })
       );
 
-      console.log('Adding new files to form state:', uploadedFiles);
-      const updatedFiles = [...files, ...uploadedFiles];
-      console.log('Updated files list:', updatedFiles);
-      form.setValue('files', updatedFiles, { shouldDirty: true });
       onAddFiles(uploadedFiles);
     } catch (error) {
       console.error('Upload failed:', error);
@@ -180,15 +176,6 @@ function FileList({
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const handleDropboxFiles = (newFiles: FileObject[]) => {
-    console.log('Received files from Dropbox:', newFiles);
-    const updatedFiles = [...files, ...newFiles];
-    console.log('Updating form state with files:', updatedFiles);
-    form.setValue('files', updatedFiles, { shouldDirty: true });
-    console.log('Form state after update:', form.getValues('files'));
-    onAddFiles(newFiles);
   };
 
   return (
@@ -203,7 +190,7 @@ function FileList({
             disabled={isUploading}
           />
           <DropboxChooser
-            onFilesSelected={handleDropboxFiles}
+            onFilesSelected={onAddFiles}
             className="shrink-0"
           >
             <Button type="button" variant="outline" className="gap-2">
@@ -223,13 +210,11 @@ function FileList({
       <SortableFiles
         files={files}
         onReorder={(newFiles) => {
-          console.log('Reordering files:', newFiles);
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
         onRemove={(index) => {
           const newFiles = [...files];
           newFiles.splice(index, 1);
-          console.log('Removing file, updated list:', newFiles);
           form.setValue('files', newFiles, { shouldDirty: true });
         }}
         onToggleFullWidth={(index) => {
