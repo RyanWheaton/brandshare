@@ -38,6 +38,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     const controller = new AbortController();
     let eventSource: EventSource | null = null;
     let isCompleted = false;
+    let hasReceivedFinalProgress = false;
 
     try {
       const response = await fetch('/api/upload/dropbox', {
@@ -83,10 +84,23 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           if (progressTimeout) clearTimeout(progressTimeout);
           if (!isCompleted) {
             progressTimeout = setTimeout(() => {
+              // If we've received 100% progress but no URL, wait a bit longer
+              if (hasReceivedFinalProgress && !isCompleted) {
+                console.log('Received 100% progress, waiting for URL...');
+                setTimeout(() => {
+                  if (!isCompleted) {
+                    console.log('No URL received after final progress, cleaning up');
+                    cleanup();
+                    reject(new Error('Upload completed but no URL received'));
+                  }
+                }, 5000); // Wait 5 more seconds for URL after 100%
+                return;
+              }
+
               console.log('Progress update timeout - cleaning up');
               cleanup();
               reject(new Error('Upload progress timeout'));
-            }, 15000); // 15 second timeout for progress updates
+            }, 20000); // 20 second timeout for progress updates
           }
         };
 
@@ -99,7 +113,12 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             resetProgressTimeout();
 
             if (data.progress !== undefined) {
-              setUploadProgress(Math.round(data.progress));
+              const progress = Math.round(data.progress);
+              setUploadProgress(progress);
+              if (progress === 100) {
+                hasReceivedFinalProgress = true;
+                console.log('Received 100% progress, waiting for URL');
+              }
             }
 
             if (data.url) {
@@ -122,6 +141,13 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
         eventSource.addEventListener('error', (error) => {
           if (isCompleted) return; // Ignore errors if upload is already complete
+
+          // If we have 100% progress but got an error, it might be a normal connection close
+          if (hasReceivedFinalProgress) {
+            console.log('Got error after 100% progress, might be normal completion');
+            return;
+          }
+
           console.error('EventSource error:', error);
           clearTimeout(progressTimeout);
           cleanup();
