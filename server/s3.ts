@@ -47,7 +47,9 @@ export async function uploadFileToS3(
     Key: `uploads/${fileName}`,
     Body: fileBuffer,
     ContentType: contentType,
-    ContentDisposition: 'inline', // Ensure proper handling in browser
+    ContentDisposition: 'inline',
+    ACL: 'public-read', // Make the object publicly readable
+    CacheControl: 'max-age=31536000', // Cache for 1 year
   };
 
   try {
@@ -80,7 +82,7 @@ export async function uploadFileToS3(
       if (error.name === 'NoSuchBucket') {
         throw new Error(`S3 bucket '${process.env.AWS_BUCKET_NAME}' does not exist`);
       } else if (error.name === 'AccessDenied') {
-        throw new Error('Access denied to S3 bucket. Please check IAM permissions');
+        throw new Error('Access denied to S3 bucket. Please check bucket permissions and ensure public access is allowed');
       }
       throw new Error(`Failed to upload file to S3: ${error.message}`);
     }
