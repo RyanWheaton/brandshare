@@ -9,6 +9,8 @@ import { z } from "zod";
 import geoip from 'geoip-lite';
 import multer from 'multer';
 import { uploadFileToS3 } from './s3';
+import { uploadFileToS3FromUrl } from './s3'; // Import the missing function
+
 
 // Configure multer to store files in memory
 const upload = multer({
@@ -94,9 +96,8 @@ async function validateFont(font: string): Promise<boolean> {
 
 // Add Dropbox URL validation schema
 const dropboxUrlSchema = z.object({
-  dropboxUrl: z.string().url().refine(url => url.includes('dropbox.com'), {
-    message: "Not a valid Dropbox URL"
-  })
+  url: z.string().url(),
+  name: z.string()
 });
 
 // User profile update schema
@@ -627,7 +628,33 @@ export function registerRoutes(app: Express): Server {
     });
   }) as RequestHandler);
 
+  // Add Dropbox URL validation schema and new endpoint for uploading Dropbox files to S3
+  app.post('/api/upload/dropbox', (async (req: CustomRequest, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
 
+    try {
+      const parsed = dropboxUrlSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request data" });
+      }
+
+      const { url, name } = parsed.data;
+      console.log('Starting Dropbox to S3 transfer:', { url, name });
+
+      const s3Url = await uploadFileToS3FromUrl(url, name);
+      console.log('Successfully transferred file to S3:', s3Url);
+
+      res.json({ url: s3Url });
+    } catch (error) {
+      console.error('Error transferring Dropbox file to S3:', error);
+      res.status(500).json({
+        error: "Failed to transfer file to S3",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }) as RequestHandler);
 
   const httpServer = createServer(app);
   return httpServer;

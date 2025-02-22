@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "./button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl, getFileType } from "@/lib/utils";
 
@@ -26,42 +26,65 @@ interface DropboxChooserProps {
 }
 
 export function DropboxChooser({ onFilesSelected, disabled, className, children }: DropboxChooserProps) {
-  const handleDropboxSelect = React.useCallback(() => {
+  const [isUploading, setIsUploading] = React.useState(false);
+
+  const uploadToS3 = async (url: string, name: string) => {
+    const response = await fetch('/api/upload/dropbox', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url, name }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.details || error.error || 'Failed to upload file to S3');
+    }
+
+    const data = await response.json();
+    return data.url;
+  };
+
+  const handleDropboxSelect = React.useCallback(async () => {
     window.Dropbox?.choose({
-      success: (files) => {
-        // Convert Dropbox files to our FileObject format
-        const convertedFiles: FileObject[] = files.map((file) => {
-          const fileType = getFileType(file.name);
+      success: async (files) => {
+        try {
+          setIsUploading(true);
 
-          // For images, use raw=1 to get direct display URL
-          // For PDFs, use dl=1 to get downloadable URL
-          const url = convertDropboxUrl(file.link);
-          let previewUrl = url;
+          // Upload each file to S3
+          const uploadedFiles: FileObject[] = await Promise.all(
+            files.map(async (file) => {
+              const fileType = getFileType(file.name);
+              const url = convertDropboxUrl(file.link);
 
-          // For images, ensure we're using raw=1 for direct display
-          if (fileType === 'image') {
-            previewUrl = url.replace('dl=1', 'raw=1');
-          }
+              // Upload to S3
+              const s3Url = await uploadToS3(url, file.name);
 
-          return {
-            name: file.name,
-            preview_url: previewUrl,
-            url: url,
-            isFullWidth: false,
-          };
-        });
+              return {
+                name: file.name,
+                preview_url: s3Url,
+                url: s3Url,
+                isFullWidth: false,
+                storageType: 's3' as const,
+              };
+            })
+          );
 
-        // Log the converted files for debugging
-        console.log('Converted Dropbox files:', convertedFiles);
-
-        onFilesSelected(convertedFiles);
+          onFilesSelected(uploadedFiles);
+        } catch (error) {
+          console.error('Error uploading files to S3:', error);
+          // You might want to show a toast notification here
+        } finally {
+          setIsUploading(false);
+        }
       },
       cancel: () => {
         console.log('Dropbox file selection cancelled');
       },
-      linkType: "direct", // This ensures we get direct links
-      multiselect: false, // Only allow single file selection
-      extensions: ['images', '.pdf'], // Allow both images and PDF files
+      linkType: "direct",
+      multiselect: false,
+      extensions: ['images', '.pdf'],
     });
   }, [onFilesSelected]);
 
@@ -69,13 +92,17 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     <div onClick={handleDropboxSelect} className={cn(className)}>
       {children || (
         <Button
-          disabled={disabled}
+          disabled={disabled || isUploading}
           variant="outline"
           size="sm"
           className={cn(className)}
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Select Files from Dropbox
+          {isUploading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="mr-2 h-4 w-4" />
+          )}
+          {isUploading ? "Uploading..." : "Select Files from Dropbox"}
         </Button>
       )}
     </div>
