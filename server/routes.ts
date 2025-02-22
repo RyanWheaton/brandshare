@@ -704,10 +704,18 @@ export function registerRoutes(app: Express): Server {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders(); // Make sure headers are sent immediately
+
+    // Send initial progress
+    res.write(`data: ${JSON.stringify({ progress: upload.progress })}\n\n`);
 
     const onProgress = (data: { progress: number; url?: string }) => {
+      console.log('Progress event:', data);
       res.write(`data: ${JSON.stringify(data)}\n\n`);
+      res.flush(); // Ensure data is sent immediately
+
       if (data.url) {
+        console.log('Upload complete, closing connection');
         upload.emitter.removeListener('progress', onProgress);
         res.end();
       }
@@ -717,6 +725,7 @@ export function registerRoutes(app: Express): Server {
 
     // Clean up on client disconnect
     req.on('close', () => {
+      console.log('Client disconnected, cleaning up listeners');
       upload.emitter.removeListener('progress', onProgress);
     });
   }) as RequestHandler);
