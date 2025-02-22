@@ -48,7 +48,6 @@ export async function uploadFileToS3(
     Body: fileBuffer,
     ContentType: contentType,
     ContentDisposition: 'inline',
-    ACL: 'public-read', // Make the object publicly readable
     CacheControl: 'max-age=31536000', // Cache for 1 year
   };
 
