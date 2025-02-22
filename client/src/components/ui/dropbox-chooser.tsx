@@ -5,6 +5,7 @@ import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { Progress } from "@/components/ui/progress";
 
 declare global {
   interface Window {
@@ -150,11 +151,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               {isUploading ? `Uploading ${currentFileName}... ${uploadProgress}%` : "Select Files from Dropbox"}
             </Button>
             {isUploading && (
-              <div className="mt-2 w-full h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-300 ease-in-out"
-                  style={{ width: `${uploadProgress}%` }}
-                />
+              <div className="mt-2">
+                <Progress value={uploadProgress} className="w-[200px]" />
               </div>
             )}
           </>
