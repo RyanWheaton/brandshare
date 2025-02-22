@@ -578,9 +578,12 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).json({ error: "Authentication required" });
     }
 
+    console.log('Received file upload request');
+
     // Use multer to handle the file upload
     upload.single('file')(req, res, async (err) => {
       if (err instanceof multer.MulterError) {
+        console.error('Multer error:', err);
         return res.status(400).json({ 
           error: "File upload error",
           details: err.message 
@@ -595,8 +598,15 @@ export function registerRoutes(app: Express): Server {
 
       // Check if we have a file
       if (!req.file) {
+        console.error('No file in request');
         return res.status(400).json({ error: "No file provided" });
       }
+
+      console.log('File received:', {
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
 
       try {
         const url = await uploadFileToS3(
@@ -605,6 +615,7 @@ export function registerRoutes(app: Express): Server {
           req.file.mimetype
         );
 
+        console.log('File successfully uploaded to S3:', url);
         res.json({ url });
       } catch (error) {
         console.error('Error uploading to S3:', error);
@@ -615,6 +626,7 @@ export function registerRoutes(app: Express): Server {
       }
     });
   }) as RequestHandler);
+
 
 
   const httpServer = createServer(app);
