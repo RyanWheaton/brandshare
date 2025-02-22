@@ -31,81 +31,78 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [currentFileName, setCurrentFileName] = React.useState<string>('');
 
-  const uploadToS3 = async (url: string, name: string) => {
+  const uploadToS3 = async (url: string, name: string): Promise<string> => {
     console.log('Starting S3 upload process for:', { name, url });
     const controller = new AbortController();
-    const response = await fetch('/api/upload/dropbox', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        url, 
-        name,
-        onProgress: true
-      }),
-      signal: controller.signal
-    });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Upload request failed:', error);
-      throw new Error(error.details || error.error || 'Failed to upload file to S3');
-    }
+    try {
+      const response = await fetch('/api/upload/dropbox', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          url, 
+          name,
+          onProgress: true
+        }),
+        signal: controller.signal
+      });
 
-    const uploadId = response.headers.get('Upload-ID');
-    if (!uploadId) {
-      console.error('No upload ID received in response headers');
-      throw new Error('No upload ID received from server');
-    }
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Upload request failed:', error);
+        throw new Error(error.details || error.error || 'Failed to upload file to S3');
+      }
 
-    console.log('Starting progress tracking for upload:', uploadId);
-    const eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
+      const uploadId = response.headers.get('Upload-ID');
+      if (!uploadId) {
+        console.error('No upload ID received in response headers');
+        throw new Error('No upload ID received from server');
+      }
 
-    return new Promise<string>((resolve, reject) => {
-      let retries = 0;
-      const maxRetries = 3;
+      return new Promise<string>((resolve, reject) => {
+        console.log('Starting progress tracking for upload:', uploadId);
+        const eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
 
-      eventSource.onmessage = (event) => {
-        try {
-          console.log('Progress event received:', event.data);
-          const data = JSON.parse(event.data);
+        eventSource.onmessage = (event) => {
+          try {
+            console.log('Raw progress event data:', event.data);
+            const data = JSON.parse(event.data);
+            console.log('Parsed progress data:', data);
 
-          if (data.progress !== undefined) {
-            setUploadProgress(Math.round(data.progress));
-          }
+            if (data.progress !== undefined) {
+              setUploadProgress(Math.round(data.progress));
+            }
 
-          // Check for completion with URL
-          if (data.url) {
-            console.log('Upload complete, URL received:', data.url);
-            eventSource.close();
-            resolve(data.url);
-          }
-        } catch (error) {
-          console.error('Error parsing progress event:', error);
-          retries++;
-          if (retries >= maxRetries) {
+            if (data.url) {
+              console.log('Upload complete, received S3 URL:', data.url);
+              eventSource.close();
+              resolve(data.url);
+            }
+          } catch (error) {
+            console.error('Error parsing progress event:', error);
             eventSource.close();
             reject(new Error('Failed to parse progress updates'));
           }
-        }
-      };
+        };
 
-      eventSource.onerror = (error) => {
-        console.error('EventSource error:', error);
-        retries++;
-        if (retries >= maxRetries) {
+        eventSource.onerror = (error) => {
+          console.error('EventSource error:', error);
           eventSource.close();
           reject(new Error('Failed to get upload progress'));
-        }
-      };
+        };
 
-      return () => {
-        console.log('Cleaning up EventSource');
-        eventSource.close();
-        controller.abort();
-      };
-    });
+        return () => {
+          console.log('Cleaning up EventSource');
+          eventSource.close();
+          controller.abort();
+        };
+      });
+    } catch (error) {
+      console.error('Error in uploadToS3:', error);
+      throw error;
+    }
   };
 
   const handleDropboxSelect = React.useCallback(async () => {
@@ -132,14 +129,12 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
                 convertedUrl: url
               });
 
-              // Wait for S3 upload and URL
               const s3Url = await uploadToS3(url, file.name);
-              console.log('File successfully uploaded to S3:', {
+              console.log('S3 upload completed successfully:', {
                 name: file.name,
                 s3Url
               });
 
-              // Create file object for UI
               const fileObject: FileObject = {
                 name: file.name,
                 preview_url: s3Url,
@@ -147,7 +142,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
                 isFullWidth: false,
                 storageType: 's3' as const,
               };
-              console.log('Created file object:', fileObject);
+              console.log('Created FileObject:', fileObject);
               uploadedFiles.push(fileObject);
             } catch (error) {
               console.error('Error uploading file:', file.name, error);
@@ -155,12 +150,11 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             }
           }
 
-          // Call onFilesSelected with all uploaded files
           if (uploadedFiles.length > 0) {
-            console.log('Calling onFilesSelected with uploaded files:', uploadedFiles);
+            console.log('Calling onFilesSelected with:', uploadedFiles);
             try {
               onFilesSelected(uploadedFiles);
-              console.log('onFilesSelected completed successfully');
+              console.log('onFilesSelected callback executed successfully');
             } catch (error) {
               console.error('Error in onFilesSelected callback:', error);
               throw error;

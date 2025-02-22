@@ -652,12 +652,12 @@ export function registerRoutes(app: Express): Server {
       const { url, name } = parsed.data;
       console.log('Starting Dropbox to S3 transfer:', { url, name });
 
-      // Set up progress tracking if requested
       let uploadId: string | undefined;
       if (req.body.onProgress) {
         uploadId = uuidv4();
         const emitter = new EventEmitter();
         uploadProgress.set(uploadId, { emitter, progress: 0 });
+        console.log('Created upload progress tracker:', uploadId);
         res.setHeader('Upload-ID', uploadId);
       }
 
@@ -665,20 +665,20 @@ export function registerRoutes(app: Express): Server {
         const upload = uploadProgress.get(uploadId!);
         if (upload) {
           upload.progress = progress;
+          console.log('Emitting progress event:', { uploadId, progress });
           upload.emitter.emit('progress', { progress });
         }
       } : undefined;
 
       const s3Url = await uploadFileToS3FromUrl(url, name, onProgress);
-      console.log('Successfully transferred file to S3:', s3Url);
+      console.log('Successfully transferred file to S3:', { name, s3Url });
 
-      // Emit completion event if tracking progress
       if (uploadId) {
         const upload = uploadProgress.get(uploadId);
         if (upload) {
-          console.log('Emitting final progress event with URL');
+          console.log('Emitting final progress event with URL:', { uploadId, s3Url });
           upload.emitter.emit('progress', { progress: 100, url: s3Url });
-          // Clean up after a delay
+
           setTimeout(() => {
             console.log('Cleaning up upload progress tracker:', uploadId);
             uploadProgress.delete(uploadId!);
