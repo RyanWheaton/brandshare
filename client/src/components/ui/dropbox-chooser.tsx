@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "./button";
 import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
-import { cn, convertDropboxUrl, getFileType } from "@/lib/utils";
+import { cn, convertDropboxUrl, getFileType } from "@/lib/utils"; // Added getFileType import
 import { Progress } from "./progress";
 
 declare global {
@@ -117,6 +117,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         try {
           setIsUploading(true);
           setUploadProgress(0);
+          setCurrentFileName('');
 
           const uploadedFiles: FileObject[] = [];
           for (const file of files) {
@@ -140,6 +141,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
                 url: s3Url,
                 isFullWidth: false,
                 storageType: 's3' as const,
+                type: getFileType(file.name)  // Add type based on file extension
               };
               console.log('Created file object:', fileObject);
               uploadedFiles.push(fileObject);
@@ -151,7 +153,13 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
           if (uploadedFiles.length > 0) {
             console.log('Calling onFilesSelected with uploaded files:', uploadedFiles);
-            onFilesSelected(uploadedFiles);
+            try {
+              await onFilesSelected(uploadedFiles);
+              console.log('onFilesSelected completed successfully');
+            } catch (error) {
+              console.error('Error in onFilesSelected callback:', error);
+              throw error;
+            }
           } else {
             console.warn('No files were successfully uploaded');
           }
