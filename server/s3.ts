@@ -5,7 +5,7 @@ import path from 'path';
 
 // Configure S3 client
 export const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: 'us-east-2', // Hardcode the correct region format
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
@@ -32,7 +32,6 @@ export async function uploadFileToS3(
   const fileName = generateUniqueFileName(originalFileName);
   console.log('Attempting to upload file to S3:', {
     bucket: process.env.AWS_BUCKET_NAME,
-    region: process.env.AWS_REGION,
     fileName,
     contentType
   });
@@ -49,7 +48,7 @@ export async function uploadFileToS3(
     const command = new PutObjectCommand(uploadParams);
     console.log('Executing S3 upload command...');
     await s3Client.send(command);
-    const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${fileName}`;
+    const url = `https://${process.env.AWS_BUCKET_NAME}.s3.us-east-2.amazonaws.com/uploads/${fileName}`;
     console.log('File uploaded successfully to S3:', url);
     return url;
   } catch (error) {
