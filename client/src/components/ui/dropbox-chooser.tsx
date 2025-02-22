@@ -36,6 +36,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const uploadToS3 = async (url: string, name: string): Promise<string> => {
     console.log('Starting S3 upload process for:', { name, url });
     const controller = new AbortController();
+    let eventSource: EventSource | null = null;
 
     try {
       const response = await fetch('/api/upload/dropbox', {
@@ -65,18 +66,34 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
       return new Promise<string>((resolve, reject) => {
         console.log('Starting progress tracking for upload:', uploadId);
-        const eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
+        eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
 
         const cleanup = () => {
-          console.log('Cleaning up EventSource');
-          eventSource.close();
+          if (eventSource) {
+            console.log('Cleaning up EventSource');
+            eventSource.close();
+            eventSource = null;
+          }
           controller.abort();
         };
+
+        let progressTimeout: NodeJS.Timeout;
+        const resetProgressTimeout = () => {
+          if (progressTimeout) clearTimeout(progressTimeout);
+          progressTimeout = setTimeout(() => {
+            console.log('Progress update timeout - cleaning up');
+            cleanup();
+            reject(new Error('Upload progress timeout'));
+          }, 30000); // 30 second timeout for progress updates
+        };
+
+        resetProgressTimeout();
 
         eventSource.addEventListener('message', (event) => {
           try {
             console.log('Progress event received:', event.data);
             const data = JSON.parse(event.data);
+            resetProgressTimeout();
 
             if (data.progress !== undefined) {
               setUploadProgress(Math.round(data.progress));
@@ -84,11 +101,13 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
             if (data.url) {
               console.log('Upload complete, received S3 URL:', data.url);
+              clearTimeout(progressTimeout);
               cleanup();
               resolve(data.url);
             }
           } catch (error) {
             console.error('Error parsing progress event:', error);
+            clearTimeout(progressTimeout);
             cleanup();
             reject(new Error('Failed to parse progress updates'));
           }
@@ -96,22 +115,27 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
         eventSource.addEventListener('error', (error) => {
           console.error('EventSource error:', error);
+          clearTimeout(progressTimeout);
           cleanup();
           reject(new Error('Failed to get upload progress'));
         });
 
-        const timeout = setTimeout(() => {
-          console.error('Upload timed out');
+        // Global timeout for entire upload process
+        const uploadTimeout = setTimeout(() => {
+          console.error('Upload timed out after 5 minutes');
+          clearTimeout(progressTimeout);
           cleanup();
           reject(new Error('Upload timed out'));
         }, 300000); // 5 minutes timeout
 
         return () => {
-          clearTimeout(timeout);
+          clearTimeout(progressTimeout);
+          clearTimeout(uploadTimeout);
           cleanup();
         };
       });
     } catch (error) {
+      if (eventSource) eventSource.close();
       console.error('Error in uploadToS3:', error);
       throw error;
     }
@@ -132,7 +156,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           setCurrentFileName('');
 
           const uploadedFiles: FileObject[] = [];
-          let hasErrors = false;
+          const errors: Array<{ file: string; error: string }> = [];
 
           for (const file of files) {
             try {
@@ -159,29 +183,37 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               console.log('Created FileObject:', fileObject);
               uploadedFiles.push(fileObject);
 
-              // Update app state with successfully uploaded files immediately
-              if (uploadedFiles.length > 0) {
-                console.log('Updating app state with uploaded files:', uploadedFiles);
-                onFilesSelected(uploadedFiles);
-              }
-
             } catch (error) {
-              hasErrors = true;
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              errors.push({ file: file.name, error: errorMessage });
               console.error('Error uploading file:', file.name, error);
-              toast({
-                title: "Upload Failed",
-                description: `Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                variant: "destructive",
-              });
             }
           }
 
-          if (hasErrors && uploadedFiles.length > 0) {
-            toast({
-              title: "Partial Success",
-              description: `Successfully uploaded ${uploadedFiles.length} out of ${files.length} files.`,
+          // Always update state with successfully uploaded files
+          if (uploadedFiles.length > 0) {
+            console.log('Updating app state with uploaded files:', uploadedFiles);
+            onFilesSelected(uploadedFiles);
+          }
+
+          // Show appropriate toast message
+          if (errors.length > 0) {
+            if (uploadedFiles.length > 0) {
+              toast({
+                title: "Partial Upload Success",
+                description: `Successfully uploaded ${uploadedFiles.length} out of ${files.length} files.`,
+              });
+            }
+
+            // Show individual error messages
+            errors.forEach(({ file, error }) => {
+              toast({
+                title: `Failed to upload ${file}`,
+                description: error,
+                variant: "destructive",
+              });
             });
-          } else if (!hasErrors) {
+          } else {
             toast({
               title: "Success",
               description: `Successfully uploaded ${files.length} files.`,
