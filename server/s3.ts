@@ -30,6 +30,13 @@ export async function uploadFileToS3(
   contentType: string
 ): Promise<string> {
   const fileName = generateUniqueFileName(originalFileName);
+  console.log('Attempting to upload file to S3:', {
+    bucket: process.env.AWS_BUCKET_NAME,
+    region: process.env.AWS_REGION,
+    fileName,
+    contentType
+  });
+
   const uploadParams = {
     Bucket: process.env.AWS_BUCKET_NAME!,
     Key: `uploads/${fileName}`,
@@ -39,8 +46,12 @@ export async function uploadFileToS3(
   };
 
   try {
-    await s3Client.send(new PutObjectCommand(uploadParams));
-    return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${fileName}`;
+    const command = new PutObjectCommand(uploadParams);
+    console.log('Executing S3 upload command...');
+    await s3Client.send(command);
+    const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${fileName}`;
+    console.log('File uploaded successfully to S3:', url);
+    return url;
   } catch (error) {
     console.error('Error uploading to S3:', error);
     throw new Error('Failed to upload file to S3');
