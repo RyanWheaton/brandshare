@@ -636,7 +636,7 @@ export function registerRoutes(app: Express): Server {
     });
   }) as RequestHandler);
 
-  // Add Dropbox URL validation schema and new endpoint for uploading Dropbox files to S3
+  // Add Dropbox URL validation endpoint for uploading Dropbox files to S3
   app.post('/api/upload/dropbox', (async (req: CustomRequest, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Authentication required" });
@@ -645,6 +645,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const parsed = dropboxUrlSchema.safeParse(req.body);
       if (!parsed.success) {
+        console.error('Invalid request data:', parsed.error);
         return res.status(400).json({ error: "Invalid request data" });
       }
 
@@ -675,9 +676,11 @@ export function registerRoutes(app: Express): Server {
       if (uploadId) {
         const upload = uploadProgress.get(uploadId);
         if (upload) {
+          console.log('Emitting final progress event with URL');
           upload.emitter.emit('progress', { progress: 100, url: s3Url });
           // Clean up after a delay
           setTimeout(() => {
+            console.log('Cleaning up upload progress tracker:', uploadId);
             uploadProgress.delete(uploadId!);
           }, 5000);
         }
@@ -695,24 +698,26 @@ export function registerRoutes(app: Express): Server {
 
   app.get('/api/upload/progress/:uploadId', (async (req: Request, res: Response) => {
     const uploadId = req.params.uploadId;
-    const upload = uploadProgress.get(uploadId);
+    console.log('Progress request received for upload:', uploadId);
 
+    const upload = uploadProgress.get(uploadId);
     if (!upload) {
+      console.warn('Upload progress not found for ID:', uploadId);
       return res.status(404).json({ error: "Upload not found" });
     }
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders(); // Make sure headers are sent immediately
+    res.flushHeaders();
 
-    // Send initial progress
+    console.log('Sending initial progress for upload:', uploadId);
     res.write(`data: ${JSON.stringify({ progress: upload.progress })}\n\n`);
 
     const onProgress = (data: { progress: number; url?: string }) => {
       console.log('Progress event:', data);
       res.write(`data: ${JSON.stringify(data)}\n\n`);
-      res.flush(); // Ensure data is sent immediately
+      res.flush();
 
       if (data.url) {
         console.log('Upload complete, closing connection');
@@ -723,7 +728,6 @@ export function registerRoutes(app: Express): Server {
 
     upload.emitter.on('progress', onProgress);
 
-    // Clean up on client disconnect
     req.on('close', () => {
       console.log('Client disconnected, cleaning up listeners');
       upload.emitter.removeListener('progress', onProgress);
