@@ -188,6 +188,7 @@ function FileList({
     console.log('Updating form state with files:', updatedFiles);
     form.setValue('files', updatedFiles, { shouldDirty: true });
     console.log('Form state after update:', form.getValues('files'));
+    onAddFiles(newFiles);
   };
 
   return (

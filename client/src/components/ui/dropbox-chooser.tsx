@@ -83,7 +83,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             }
 
             if (data.url) {
-              console.log('Upload complete, URL received:', data.url);
+              console.log('Upload complete, received S3 URL:', data.url);
               cleanup();
               resolve(data.url);
             }
@@ -167,7 +167,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           }
 
           if (uploadedFiles.length > 0) {
-            console.log('Calling onFilesSelected with:', uploadedFiles);
+            console.log('Successfully uploaded files, calling onFilesSelected with:', uploadedFiles);
             onFilesSelected(uploadedFiles);
             toast({
               title: "Success",
@@ -201,10 +201,11 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       <div onClick={handleDropboxSelect} className={cn(className)}>
         {children || (
           <Button
+            type="button"
             disabled={disabled || isUploading}
             variant="outline"
             size="sm"
-            className={cn(className)}
+            className={cn("gap-2", className)}
           >
             {isUploading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
