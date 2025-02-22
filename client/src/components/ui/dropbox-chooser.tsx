@@ -4,6 +4,7 @@ import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl } from "@/lib/utils";
 import { Progress } from "./progress";
+import { useToast } from "@/hooks/use-toast";
 
 declare global {
   interface Window {
@@ -30,6 +31,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [currentFileName, setCurrentFileName] = React.useState<string>('');
+  const { toast } = useToast();
 
   const uploadToS3 = async (url: string, name: string): Promise<string> => {
     console.log('Starting S3 upload process for:', { name, url });
@@ -98,7 +100,6 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           reject(new Error('Failed to get upload progress'));
         });
 
-        // Set timeout for the upload
         const timeout = setTimeout(() => {
           console.error('Upload timed out');
           cleanup();
@@ -157,19 +158,29 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               uploadedFiles.push(fileObject);
             } catch (error) {
               console.error('Error uploading file:', file.name, error);
-              throw error;
+              toast({
+                title: "Upload Failed",
+                description: `Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                variant: "destructive",
+              });
             }
           }
 
           if (uploadedFiles.length > 0) {
             console.log('Calling onFilesSelected with:', uploadedFiles);
             onFilesSelected(uploadedFiles);
-            console.log('onFilesSelected callback executed successfully');
-          } else {
-            console.warn('No files were successfully uploaded');
+            toast({
+              title: "Success",
+              description: `Successfully uploaded ${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''}`,
+            });
           }
         } catch (error) {
           console.error('Error in Dropbox upload process:', error);
+          toast({
+            title: "Error",
+            description: "Failed to process Dropbox files",
+            variant: "destructive",
+          });
         } finally {
           setIsUploading(false);
           setUploadProgress(0);
@@ -183,7 +194,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       multiselect: true,
       extensions: ['images', '.pdf'],
     });
-  }, [onFilesSelected]);
+  }, [onFilesSelected, toast]);
 
   return (
     <div className="space-y-2">
