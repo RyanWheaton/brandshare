@@ -41,7 +41,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       body: JSON.stringify({ 
         url, 
         name,
-        onProgress: true // Signal that we want progress updates
+        onProgress: true
       }),
       signal: controller.signal
     });
@@ -51,7 +51,6 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       throw new Error(error.details || error.error || 'Failed to upload file to S3');
     }
 
-    // Set up event source for progress updates
     const uploadId = response.headers.get('Upload-ID');
     if (!uploadId) {
       throw new Error('No upload ID received from server');
@@ -105,7 +104,12 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   };
 
   const handleDropboxSelect = React.useCallback(async () => {
-    window.Dropbox?.choose({
+    if (!window.Dropbox) {
+      console.error('Dropbox chooser not loaded');
+      return;
+    }
+
+    window.Dropbox.choose({
       success: async (files) => {
         try {
           setIsUploading(true);
@@ -114,22 +118,35 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           // Upload each file to S3
           const uploadedFiles: FileObject[] = [];
           for (const file of files) {
-            setCurrentFileName(file.name);
-            const url = convertDropboxUrl(file.link);
-            const s3Url = await uploadToS3(url, file.name);
+            try {
+              setCurrentFileName(file.name);
+              const url = convertDropboxUrl(file.link);
+              console.log('Starting upload for file:', file.name);
+              const s3Url = await uploadToS3(url, file.name);
+              console.log('Upload completed, S3 URL:', s3Url);
 
-            uploadedFiles.push({
-              name: file.name,
-              preview_url: s3Url,
-              url: s3Url,
-              isFullWidth: false,
-              storageType: 's3' as const,
-            });
+              // Create the file object
+              const fileObject: FileObject = {
+                name: file.name,
+                preview_url: s3Url,
+                url: s3Url,
+                isFullWidth: false,
+                storageType: 's3' as const,
+              };
+              uploadedFiles.push(fileObject);
+            } catch (error) {
+              console.error('Error uploading file:', file.name, error);
+              throw error; // Re-throw to be caught by outer try-catch
+            }
           }
 
-          onFilesSelected(uploadedFiles);
+          // Only call onFilesSelected if we have successfully uploaded files
+          if (uploadedFiles.length > 0) {
+            console.log('Calling onFilesSelected with:', uploadedFiles);
+            onFilesSelected(uploadedFiles);
+          }
         } catch (error) {
-          console.error('Error uploading files to S3:', error);
+          console.error('Error in Dropbox upload process:', error);
           // You might want to show a toast notification here
         } finally {
           setIsUploading(false);
@@ -141,7 +158,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         console.log('Dropbox file selection cancelled');
       },
       linkType: "direct",
-      multiselect: false,
+      multiselect: true, // Enable multiple file selection
       extensions: ['images', '.pdf'],
     });
   }, [onFilesSelected]);
