@@ -122,7 +122,8 @@ async function uploadFileToS3(file: File): Promise<{ url: string; name: string }
   });
 
   if (!response.ok) {
-    throw new Error('Failed to upload file to S3');
+    const error = await response.json();
+    throw new Error(error.details || error.error || 'Failed to upload file to S3');
   }
 
   const data = await response.json();
@@ -169,7 +170,7 @@ function FileList({
       console.error('Upload failed:', error);
       toast({
         title: "Upload Failed",
-        description: "There was an error uploading your files. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error uploading your files. Please try again.",
         variant: "destructive",
       });
     } finally {
