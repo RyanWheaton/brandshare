@@ -34,9 +34,19 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [currentFileName, setCurrentFileName] = React.useState("");
   const { toast } = useToast();
 
+  React.useEffect(() => {
+    console.log('Component mounted');
+    console.log('Initial state:', { isUploading, uploadProgress, currentFileName });
+  }, []);
+
+  React.useEffect(() => {
+    console.log('State updated:', { isUploading, uploadProgress, currentFileName });
+  }, [isUploading, uploadProgress, currentFileName]);
+
   const uploadToS3 = async (url: string, name: string) => {
     setCurrentFileName(name);
     setUploadProgress(0);
+    console.log('Starting upload to S3:', { url, name });
 
     const response = await fetch('/api/upload/dropbox', {
       method: 'POST',
@@ -51,9 +61,10 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       throw new Error(error.details || error.error || 'Failed to upload file to S3');
     }
 
-    // Simulate upload progress (Replace with real streaming progress if backend supports it)
+    // Simulate upload progress
     for (let progress = 10; progress <= 100; progress += 10) {
       await new Promise((resolve) => setTimeout(resolve, 200));
+      console.log('Setting progress:', progress);
       setUploadProgress(progress);
     }
 
@@ -65,6 +76,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     window.Dropbox?.choose({
       success: async (files) => {
         try {
+          console.log('Dropbox files selected:', files);
           setIsUploading(true);
           setUploadProgress(0);
 
@@ -131,6 +143,15 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       extensions: ['images', '.pdf'],
     });
   }, [onFilesSelected, toast]);
+
+  // Test render with a static progress value
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Rendering DropboxChooser with states:', {
+      isUploading,
+      uploadProgress,
+      currentFileName
+    });
+  }
 
   return (
     <div className={cn("relative", className)}>
