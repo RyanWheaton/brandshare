@@ -1,0 +1,114 @@
+Issue Description:
+The Dropbox Chooser successfully uploads files to AWS S3 and the progress indicator reaches 100%. However, the uploaded file does not appear in the customize share page dashboard or on the share page. The upload process seems to complete, but the app does not register the file in the state properly.
+Expected Behavior:
+User selects a file via Dropbox Chooser.
+The file is uploaded to AWS S3.
+The app receives the S3 file URL after the upload completes.
+The file is added to the customize share page dashboard and appears in the share page preview.
+
+Steps to Fix the Issue:
+Ensure the file URL retrieval completes before updating the UI
+The app currently fetches the uploaded file's URL from /api/upload/url/{uploadId}.
+There may be a race condition where the app attempts to update the UI before receiving the S3 file URL.
+Implement a retry mechanism with exponential backoff in waitForUrlWithRetry to make sure the correct URL is retrieved before updating the state.
+Fix the State Update Issue in handleDropboxSelect
+The uploadedFiles array is populated, but it may not be properly passed to onFilesSelected.
+Ensure onFilesSelected(uploadedFiles) is called after all files have completed processing.
+Verify that queryClient.invalidateQueries({ queryKey: ['/api/files'] }) is working
+If the query cache is not invalidated correctly, the UI might not update.
+Consider adding a manual refresh after the upload completes.
+
+Updated Code Adjustments
+Modify the handleDropboxSelect function inside dropbox-chooser.tsx to improve state updates and ensure S3 file URLs are retrieved correctly:
+const handleDropboxSelect = React.useCallback(async () => {
+  if (!window.Dropbox) {
+    console.error('Dropbox chooser not loaded');
+    return;
+  }
+
+  window.Dropbox.choose({
+    success: async (files) => {
+      console.log('Files selected from Dropbox:', files);
+      try {
+        setIsUploading(true);
+        setUploadProgress(0);
+        setCurrentFileName('');
+
+        const uploadedFiles: FileObject[] = [];
+
+        for (const file of files) {
+          try {
+            setCurrentFileName(file.name);
+            const url = convertDropboxUrl(file.link);
+            console.log('Processing file for upload:', { name: file.name, convertedUrl: url });
+
+            // Wait for S3 upload to complete and retrieve the S3 URL
+            const s3Url = await uploadToS3(url, file.name);
+            console.log('S3 upload completed successfully:', { name: file.name, s3Url });
+
+            if (!s3Url) {
+              console.error(`Failed to retrieve S3 URL for ${file.name}`);
+              continue;
+            }
+
+            const fileObject: FileObject = {
+              name: file.name,
+              preview_url: s3Url,
+              url: s3Url,
+              isFullWidth: false,
+              storageType: 's3' as const,
+            };
+            console.log('Created FileObject:', fileObject);
+            uploadedFiles.push(fileObject);
+
+          } catch (error) {
+            console.error('Error uploading file:', file.name, error);
+            toast({
+              title: "Upload Failed",
+              description: `Failed to upload ${file.name}: ${error.message || 'Unknown error'}`,
+              variant: "destructive",
+            });
+          }
+        }
+
+        if (uploadedFiles.length > 0) {
+          console.log('Updating app state with uploaded files:', uploadedFiles);
+          onFilesSelected(uploadedFiles);
+
+          // Ensure query invalidation happens AFTER state update
+          await queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+
+          toast({
+            title: "Success",
+            description: `Successfully uploaded ${uploadedFiles.length} files.`,
+          });
+        }
+
+      } catch (error) {
+        console.error('Error in Dropbox upload process:', error);
+        toast({
+          title: "Error",
+          description: "Failed to process Dropbox files",
+          variant: "destructive",
+        });
+      } finally {
+        setIsUploading(false);
+        setUploadProgress(0);
+        setCurrentFileName('');
+      }
+    },
+    cancel: () => {
+      console.log('Dropbox file selection cancelled');
+    },
+    linkType: "direct",
+    multiselect: true,
+    extensions: ['images', '.pdf'],
+  });
+}, [onFilesSelected, toast]);
+
+Summary of Fixes
+✅ Ensure the S3 file URL is properly retrieved before updating the UI.
+✅ Fix state updates by making sure onFilesSelected is called only after files are fully processed.
+✅ Verify that queryClient.invalidateQueries() correctly refreshes the UI.
+This should ensure that after a successful Dropbox upload, the file appears correctly in the customize share page dashboard and share page preview.
+
