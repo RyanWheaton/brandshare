@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "./button";
 import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
-import { cn, convertDropboxUrl, getFileType } from "@/lib/utils"; // Added getFileType import
+import { cn, convertDropboxUrl } from "@/lib/utils";
 import { Progress } from "./progress";
 
 declare global {
@@ -70,9 +70,12 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         try {
           console.log('Progress event received:', event.data);
           const data = JSON.parse(event.data);
+
           if (data.progress !== undefined) {
             setUploadProgress(Math.round(data.progress));
           }
+
+          // Check for completion with URL
           if (data.url) {
             console.log('Upload complete, URL received:', data.url);
             eventSource.close();
@@ -129,19 +132,20 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
                 convertedUrl: url
               });
 
+              // Wait for S3 upload and URL
               const s3Url = await uploadToS3(url, file.name);
               console.log('File successfully uploaded to S3:', {
                 name: file.name,
                 s3Url
               });
 
+              // Create file object for UI
               const fileObject: FileObject = {
                 name: file.name,
                 preview_url: s3Url,
                 url: s3Url,
                 isFullWidth: false,
                 storageType: 's3' as const,
-                type: getFileType(file.name)  // Add type based on file extension
               };
               console.log('Created file object:', fileObject);
               uploadedFiles.push(fileObject);
@@ -151,10 +155,11 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             }
           }
 
+          // Call onFilesSelected with all uploaded files
           if (uploadedFiles.length > 0) {
             console.log('Calling onFilesSelected with uploaded files:', uploadedFiles);
             try {
-              await onFilesSelected(uploadedFiles);
+              onFilesSelected(uploadedFiles);
               console.log('onFilesSelected completed successfully');
             } catch (error) {
               console.error('Error in onFilesSelected callback:', error);
