@@ -10,7 +10,8 @@ import geoip from 'geoip-lite';
 import multer from 'multer';
 import { uploadFileToS3 } from './s3';
 import { uploadFileToS3FromUrl } from './s3'; // Import the missing function
-
+import { EventEmitter } from 'events';
+import { v4 as uuidv4 } from 'uuid';
 
 // Configure multer to store files in memory
 const upload = multer({
@@ -37,6 +38,11 @@ type TypedRequestHandler<P = {}, ResBody = any, ReqBody = any> = (
   res: Response<ResBody>,
   next?: NextFunction
 ) => Promise<void | Response>;
+
+interface UploadProgress {
+  emitter: EventEmitter;
+  progress: number;
+}
 
 // Middleware to check password protection
 async function checkSharePageAccess(req: CustomRequest, res: Response, next: NextFunction) {
@@ -108,6 +114,8 @@ const updateProfileSchema = z.object({
   brandPrimaryColor: z.string().min(1, "Primary color is required"),
   brandSecondaryColor: z.string().min(1, "Secondary color is required"),
 });
+
+const uploadProgress = new Map<string, UploadProgress>();
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -643,8 +651,37 @@ export function registerRoutes(app: Express): Server {
       const { url, name } = parsed.data;
       console.log('Starting Dropbox to S3 transfer:', { url, name });
 
-      const s3Url = await uploadFileToS3FromUrl(url, name);
+      // Set up progress tracking if requested
+      let uploadId: string | undefined;
+      if (req.body.onProgress) {
+        uploadId = uuidv4();
+        const emitter = new EventEmitter();
+        uploadProgress.set(uploadId, { emitter, progress: 0 });
+        res.setHeader('Upload-ID', uploadId);
+      }
+
+      const onProgress = uploadId ? (progress: number) => {
+        const upload = uploadProgress.get(uploadId!);
+        if (upload) {
+          upload.progress = progress;
+          upload.emitter.emit('progress', { progress });
+        }
+      } : undefined;
+
+      const s3Url = await uploadFileToS3FromUrl(url, name, onProgress);
       console.log('Successfully transferred file to S3:', s3Url);
+
+      // Emit completion event if tracking progress
+      if (uploadId) {
+        const upload = uploadProgress.get(uploadId);
+        if (upload) {
+          upload.emitter.emit('progress', { progress: 100, url: s3Url });
+          // Clean up after a delay
+          setTimeout(() => {
+            uploadProgress.delete(uploadId!);
+          }, 5000);
+        }
+      }
 
       res.json({ url: s3Url });
     } catch (error) {
@@ -654,6 +691,34 @@ export function registerRoutes(app: Express): Server {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
+  }) as RequestHandler);
+
+  app.get('/api/upload/progress/:uploadId', (async (req: Request, res: Response) => {
+    const uploadId = req.params.uploadId;
+    const upload = uploadProgress.get(uploadId);
+
+    if (!upload) {
+      return res.status(404).json({ error: "Upload not found" });
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const onProgress = (data: { progress: number; url?: string }) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+      if (data.url) {
+        upload.emitter.removeListener('progress', onProgress);
+        res.end();
+      }
+    };
+
+    upload.emitter.on('progress', onProgress);
+
+    // Clean up on client disconnect
+    req.on('close', () => {
+      upload.emitter.removeListener('progress', onProgress);
+    });
   }) as RequestHandler);
 
   const httpServer = createServer(app);

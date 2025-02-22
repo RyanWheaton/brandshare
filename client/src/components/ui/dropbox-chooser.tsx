@@ -3,6 +3,7 @@ import { Button } from "./button";
 import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl, getFileType } from "@/lib/utils";
+import { Progress } from "./progress";
 
 declare global {
   interface Window {
@@ -27,14 +28,22 @@ interface DropboxChooserProps {
 
 export function DropboxChooser({ onFilesSelected, disabled, className, children }: DropboxChooserProps) {
   const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(0);
+  const [currentFileName, setCurrentFileName] = React.useState<string>('');
 
   const uploadToS3 = async (url: string, name: string) => {
+    const controller = new AbortController();
     const response = await fetch('/api/upload/dropbox', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ url, name }),
+      body: JSON.stringify({ 
+        url, 
+        name,
+        onProgress: true // Signal that we want progress updates
+      }),
+      signal: controller.signal
     });
 
     if (!response.ok) {
@@ -42,8 +51,26 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       throw new Error(error.details || error.error || 'Failed to upload file to S3');
     }
 
-    const data = await response.json();
-    return data.url;
+    // Set up event source for progress updates
+    const eventSource = new EventSource(`/api/upload/progress/${response.headers.get('Upload-ID')}`);
+
+    return new Promise<string>((resolve, reject) => {
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.progress) {
+          setUploadProgress(data.progress);
+        }
+        if (data.url) {
+          eventSource.close();
+          resolve(data.url);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        eventSource.close();
+        reject(new Error('Failed to get upload progress'));
+      };
+    });
   };
 
   const handleDropboxSelect = React.useCallback(async () => {
@@ -51,25 +78,23 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       success: async (files) => {
         try {
           setIsUploading(true);
+          setUploadProgress(0);
 
           // Upload each file to S3
-          const uploadedFiles: FileObject[] = await Promise.all(
-            files.map(async (file) => {
-              const fileType = getFileType(file.name);
-              const url = convertDropboxUrl(file.link);
+          const uploadedFiles: FileObject[] = [];
+          for (const file of files) {
+            setCurrentFileName(file.name);
+            const url = convertDropboxUrl(file.link);
+            const s3Url = await uploadToS3(url, file.name);
 
-              // Upload to S3
-              const s3Url = await uploadToS3(url, file.name);
-
-              return {
-                name: file.name,
-                preview_url: s3Url,
-                url: s3Url,
-                isFullWidth: false,
-                storageType: 's3' as const,
-              };
-            })
-          );
+            uploadedFiles.push({
+              name: file.name,
+              preview_url: s3Url,
+              url: s3Url,
+              isFullWidth: false,
+              storageType: 's3' as const,
+            });
+          }
 
           onFilesSelected(uploadedFiles);
         } catch (error) {
@@ -77,6 +102,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           // You might want to show a toast notification here
         } finally {
           setIsUploading(false);
+          setUploadProgress(0);
+          setCurrentFileName('');
         }
       },
       cancel: () => {
@@ -89,21 +116,35 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   }, [onFilesSelected]);
 
   return (
-    <div onClick={handleDropboxSelect} className={cn(className)}>
-      {children || (
-        <Button
-          disabled={disabled || isUploading}
-          variant="outline"
-          size="sm"
-          className={cn(className)}
-        >
-          {isUploading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="mr-2 h-4 w-4" />
-          )}
-          {isUploading ? "Uploading..." : "Select Files from Dropbox"}
-        </Button>
+    <div className="space-y-2">
+      <div onClick={handleDropboxSelect} className={cn(className)}>
+        {children || (
+          <Button
+            disabled={disabled || isUploading}
+            variant="outline"
+            size="sm"
+            className={cn(className)}
+          >
+            {isUploading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
+            {isUploading ? "Uploading..." : "Select Files from Dropbox"}
+          </Button>
+        )}
+      </div>
+
+      {isUploading && (
+        <div className="space-y-2">
+          <div className="text-sm text-muted-foreground">
+            Uploading {currentFileName}...
+          </div>
+          <Progress value={uploadProgress} className="h-2" />
+          <div className="text-xs text-muted-foreground text-right">
+            {Math.round(uploadProgress)}%
+          </div>
+        </div>
       )}
     </div>
   );
