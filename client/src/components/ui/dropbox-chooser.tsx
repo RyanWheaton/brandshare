@@ -34,11 +34,13 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const { toast } = useToast();
 
   const uploadToS3 = async (url: string, name: string): Promise<string> => {
-    console.log('Starting S3 upload process for:', { name, url });
+    console.log('Starting S3 upload process:', { name, url });
     const controller = new AbortController();
     let eventSource: EventSource | null = null;
     let isCompleted = false;
     let hasReceivedFinalProgress = false;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
 
     try {
       const response = await fetch('/api/upload/dropbox', {
@@ -79,28 +81,54 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           }
         };
 
+        const waitForUrlWithRetry = async () => {
+          if (isCompleted || retryCount >= MAX_RETRIES) return;
+
+          retryCount++;
+          console.log(`Attempting to fetch URL (attempt ${retryCount}/${MAX_RETRIES})`);
+
+          try {
+            const urlResponse = await fetch(`/api/upload/url/${uploadId}`);
+            if (urlResponse.ok) {
+              const data = await urlResponse.json();
+              if (data.url) {
+                console.log('Successfully retrieved URL on retry:', data.url);
+                isCompleted = true;
+                if (eventSource) {
+                  eventSource.close();
+                  eventSource = null;
+                }
+                resolve(data.url);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch URL on attempt ${retryCount}:`, error);
+          }
+
+          if (retryCount < MAX_RETRIES) {
+            setTimeout(waitForUrlWithRetry, 2000); // Wait 2 seconds before retrying
+          } else {
+            cleanup();
+            reject(new Error('Failed to retrieve upload URL after retries'));
+          }
+        };
+
         let progressTimeout: NodeJS.Timeout;
         const resetProgressTimeout = () => {
           if (progressTimeout) clearTimeout(progressTimeout);
           if (!isCompleted) {
             progressTimeout = setTimeout(() => {
-              // If we've received 100% progress but no URL, wait a bit longer
               if (hasReceivedFinalProgress && !isCompleted) {
-                console.log('Received 100% progress, waiting for URL...');
-                setTimeout(() => {
-                  if (!isCompleted) {
-                    console.log('No URL received after final progress, cleaning up');
-                    cleanup();
-                    reject(new Error('Upload completed but no URL received'));
-                  }
-                }, 5000); // Wait 5 more seconds for URL after 100%
+                console.log('100% progress received, starting URL fetch retries');
+                waitForUrlWithRetry();
                 return;
               }
 
               console.log('Progress update timeout - cleaning up');
               cleanup();
               reject(new Error('Upload progress timeout'));
-            }, 20000); // 20 second timeout for progress updates
+            }, 30000); // 30 second timeout for progress updates
           }
         };
 
@@ -117,7 +145,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               setUploadProgress(progress);
               if (progress === 100) {
                 hasReceivedFinalProgress = true;
-                console.log('Received 100% progress, waiting for URL');
+                console.log('Received 100% progress, initiating URL fetch');
+                waitForUrlWithRetry();
               }
             }
 
@@ -140,11 +169,11 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         });
 
         eventSource.addEventListener('error', (error) => {
-          if (isCompleted) return; // Ignore errors if upload is already complete
+          if (isCompleted) return;
 
-          // If we have 100% progress but got an error, it might be a normal connection close
           if (hasReceivedFinalProgress) {
-            console.log('Got error after 100% progress, might be normal completion');
+            console.log('Got error after 100% progress, starting URL fetch retries');
+            waitForUrlWithRetry();
             return;
           }
 
