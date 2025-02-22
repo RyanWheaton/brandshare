@@ -25,6 +25,8 @@ export const fileSchema = z.object({
   isFullWidth: z.boolean().default(false),
   title: z.string().optional(),
   description: z.string().optional(),
+  storageType: z.enum(['s3', 'dropbox']).default('dropbox'),
+  s3Key: z.string().optional(), // The S3 object key for the file
 });
 
 export const sharePageTemplates = pgTable("share_page_templates", {

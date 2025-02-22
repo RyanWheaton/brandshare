@@ -54,6 +54,7 @@ interface FileObject {
   isFullWidth: boolean;
   title?: string;
   description?: string;
+  storageType?: 'dropbox' | 's3';
 }
 
 // Extended form values type to include all fields and new button colors
@@ -111,6 +112,26 @@ function FileItem({ file, onToggleFullWidth, textColor }: {
   );
 }
 
+async function uploadFileToS3(file: File): Promise<{ url: string; name: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to upload file to S3');
+  }
+
+  const data = await response.json();
+  return {
+    url: data.url,
+    name: file.name,
+  };
+}
+
 function FileList({
   files,
   onUpdateFile,
@@ -122,18 +143,67 @@ function FileList({
   onAddFiles: (newFiles: FileObject[]) => void;
   form: any;
 }) {
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return;
+
+    setIsUploading(true);
+    try {
+      const uploadedFiles = await Promise.all(
+        Array.from(event.target.files).map(async (file) => {
+          const result = await uploadFileToS3(file);
+          return {
+            name: result.name,
+            url: result.url,
+            preview_url: result.url,
+            isFullWidth: false,
+            storageType: 's3' as const
+          };
+        })
+      );
+
+      onAddFiles(uploadedFiles);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast({
+        title: "Upload Failed",
+        description: "There was an error uploading your files. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4">
-        <DropboxChooser
-          onFilesSelected={onAddFiles}
-          className="w-full"
-        >
-          <Button type="button" variant="outline" className="w-full gap-2">
-            <Plus className="mr-2 h-4 w-4" />
-            Select Files from Dropbox
-          </Button>
-        </DropboxChooser>
+        <div className="flex gap-2">
+          <Input
+            type="file"
+            multiple
+            onChange={handleFileSelect}
+            className="flex-1"
+            disabled={isUploading}
+          />
+          <DropboxChooser
+            onFilesSelected={onAddFiles}
+            className="shrink-0"
+          >
+            <Button type="button" variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Dropbox
+            </Button>
+          </DropboxChooser>
+        </div>
+        {isUploading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Uploading files...
+          </div>
+        )}
       </div>
 
       <SortableFiles
@@ -838,7 +908,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           setActiveTab(value);
           // Update URL without full page reload
           const newUrl = `${window.location.pathname}?tab=${value}`;
-          window.history.pushstate({}, '', newUrl);
+          window.history.pushState({}, '', newUrl);
         }}>
           <TabsContent value="customize" className="space-y-6">
             <div className="grid lg:grid-cols-[40%_60%] gap-8">

@@ -7,6 +7,16 @@ import { setupDropbox } from "./dropbox";
 import session from "express-session";
 import { z } from "zod";
 import geoip from 'geoip-lite';
+import multer from 'multer';
+import { uploadFileToS3 } from './s3';
+
+// Configure multer to store files in memory
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB file size limit
+  }
+});
 
 // Extend Express Request type to include our custom properties
 declare module 'express-session' {
@@ -561,6 +571,51 @@ export function registerRoutes(app: Express): Server {
     await storage.deleteAnnotation(parseInt(req.params.id), userId);
     res.sendStatus(204);
   }) as RequestHandler);
+
+  // File upload endpoint for S3
+  app.post('/api/upload', (async (req: CustomRequest, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Use multer to handle the file upload
+    upload.single('file')(req, res, async (err) => {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ 
+          error: "File upload error",
+          details: err.message 
+        });
+      } else if (err) {
+        console.error('Unexpected error during file upload:', err);
+        return res.status(500).json({ 
+          error: "Failed to process file upload",
+          details: err instanceof Error ? err.message : "Unknown error"
+        });
+      }
+
+      // Check if we have a file
+      if (!req.file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+
+      try {
+        const url = await uploadFileToS3(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+
+        res.json({ url });
+      } catch (error) {
+        console.error('Error uploading to S3:', error);
+        res.status(500).json({ 
+          error: "Failed to upload file to S3",
+          details: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    });
+  }) as RequestHandler);
+
 
   const httpServer = createServer(app);
   return httpServer;
