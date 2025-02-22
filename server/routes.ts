@@ -676,13 +676,22 @@ export function registerRoutes(app: Express): Server {
       if (uploadId) {
         const upload = uploadProgress.get(uploadId);
         if (upload) {
-          console.log('Emitting final progress event with URL:', { uploadId, s3Url });
-          upload.emitter.emit('progress', { progress: 100, url: s3Url });
+          // First emit final progress
+          console.log('Emitting final progress:', { uploadId, progress: 100 });
+          upload.emitter.emit('progress', { progress: 100 });
 
+          // Small delay to ensure progress event is processed
           setTimeout(() => {
-            console.log('Cleaning up upload progress tracker:', uploadId);
-            uploadProgress.delete(uploadId!);
-          }, 5000);
+            // Then emit completion with URL
+            console.log('Emitting completion with URL:', { uploadId, s3Url });
+            upload.emitter.emit('completion', { url: s3Url });
+
+            // Cleanup after a delay
+            setTimeout(() => {
+              console.log('Cleaning up upload progress tracker:', uploadId);
+              uploadProgress.delete(uploadId!);
+            }, 5000);
+          }, 100);
         }
       }
 

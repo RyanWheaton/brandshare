@@ -65,38 +65,49 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         console.log('Starting progress tracking for upload:', uploadId);
         const eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
 
-        eventSource.onmessage = (event) => {
+        const cleanup = () => {
+          console.log('Cleaning up EventSource');
+          eventSource.close();
+          controller.abort();
+        };
+
+        eventSource.addEventListener('message', (event) => {
           try {
-            console.log('Raw progress event data:', event.data);
+            console.log('Progress event received:', event.data);
             const data = JSON.parse(event.data);
-            console.log('Parsed progress data:', data);
 
             if (data.progress !== undefined) {
               setUploadProgress(Math.round(data.progress));
             }
 
             if (data.url) {
-              console.log('Upload complete, received S3 URL:', data.url);
-              eventSource.close();
+              console.log('Upload complete, URL received:', data.url);
+              cleanup();
               resolve(data.url);
             }
           } catch (error) {
             console.error('Error parsing progress event:', error);
-            eventSource.close();
+            cleanup();
             reject(new Error('Failed to parse progress updates'));
           }
-        };
+        });
 
-        eventSource.onerror = (error) => {
+        eventSource.addEventListener('error', (error) => {
           console.error('EventSource error:', error);
-          eventSource.close();
+          cleanup();
           reject(new Error('Failed to get upload progress'));
-        };
+        });
+
+        // Set timeout for the upload
+        const timeout = setTimeout(() => {
+          console.error('Upload timed out');
+          cleanup();
+          reject(new Error('Upload timed out'));
+        }, 300000); // 5 minutes timeout
 
         return () => {
-          console.log('Cleaning up EventSource');
-          eventSource.close();
-          controller.abort();
+          clearTimeout(timeout);
+          cleanup();
         };
       });
     } catch (error) {
@@ -152,13 +163,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
           if (uploadedFiles.length > 0) {
             console.log('Calling onFilesSelected with:', uploadedFiles);
-            try {
-              onFilesSelected(uploadedFiles);
-              console.log('onFilesSelected callback executed successfully');
-            } catch (error) {
-              console.error('Error in onFilesSelected callback:', error);
-              throw error;
-            }
+            onFilesSelected(uploadedFiles);
+            console.log('onFilesSelected callback executed successfully');
           } else {
             console.warn('No files were successfully uploaded');
           }
