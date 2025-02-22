@@ -132,6 +132,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           setCurrentFileName('');
 
           const uploadedFiles: FileObject[] = [];
+          let hasErrors = false;
+
           for (const file of files) {
             try {
               setCurrentFileName(file.name);
@@ -157,15 +159,14 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               console.log('Created FileObject:', fileObject);
               uploadedFiles.push(fileObject);
 
-              // Call onFilesSelected with uploaded files after all uploads complete
-              if (uploadedFiles.length === files.length) {
-                console.log('All files uploaded, updating app state:', uploadedFiles);
+              // Update app state with successfully uploaded files immediately
+              if (uploadedFiles.length > 0) {
+                console.log('Updating app state with uploaded files:', uploadedFiles);
                 onFilesSelected(uploadedFiles);
-                setIsUploading(false);
-                setUploadProgress(0);
-                setCurrentFileName('');
               }
+
             } catch (error) {
+              hasErrors = true;
               console.error('Error uploading file:', file.name, error);
               toast({
                 title: "Upload Failed",
@@ -175,7 +176,18 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             }
           }
 
-          
+          if (hasErrors && uploadedFiles.length > 0) {
+            toast({
+              title: "Partial Success",
+              description: `Successfully uploaded ${uploadedFiles.length} out of ${files.length} files.`,
+            });
+          } else if (!hasErrors) {
+            toast({
+              title: "Success",
+              description: `Successfully uploaded ${files.length} files.`,
+            });
+          }
+
         } catch (error) {
           console.error('Error in Dropbox upload process:', error);
           toast({
@@ -184,7 +196,9 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             variant: "destructive",
           });
         } finally {
-          
+          setIsUploading(false);
+          setUploadProgress(0);
+          setCurrentFileName('');
         }
       },
       cancel: () => {
