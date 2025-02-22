@@ -37,6 +37,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     console.log('Starting S3 upload process for:', { name, url });
     const controller = new AbortController();
     let eventSource: EventSource | null = null;
+    let isCompleted = false;
 
     try {
       const response = await fetch('/api/upload/dropbox', {
@@ -69,22 +70,24 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
 
         const cleanup = () => {
-          if (eventSource) {
+          if (eventSource && !isCompleted) {
             console.log('Cleaning up EventSource');
             eventSource.close();
             eventSource = null;
+            controller.abort();
           }
-          controller.abort();
         };
 
         let progressTimeout: NodeJS.Timeout;
         const resetProgressTimeout = () => {
           if (progressTimeout) clearTimeout(progressTimeout);
-          progressTimeout = setTimeout(() => {
-            console.log('Progress update timeout - cleaning up');
-            cleanup();
-            reject(new Error('Upload progress timeout'));
-          }, 30000); // 30 second timeout for progress updates
+          if (!isCompleted) {
+            progressTimeout = setTimeout(() => {
+              console.log('Progress update timeout - cleaning up');
+              cleanup();
+              reject(new Error('Upload progress timeout'));
+            }, 15000); // 15 second timeout for progress updates
+          }
         };
 
         resetProgressTimeout();
@@ -101,8 +104,12 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
             if (data.url) {
               console.log('Upload complete, received S3 URL:', data.url);
+              isCompleted = true;
               clearTimeout(progressTimeout);
-              cleanup();
+              if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+              }
               resolve(data.url);
             }
           } catch (error) {
@@ -114,6 +121,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         });
 
         eventSource.addEventListener('error', (error) => {
+          if (isCompleted) return; // Ignore errors if upload is already complete
           console.error('EventSource error:', error);
           clearTimeout(progressTimeout);
           cleanup();
@@ -122,11 +130,13 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
         // Global timeout for entire upload process
         const uploadTimeout = setTimeout(() => {
-          console.error('Upload timed out after 5 minutes');
-          clearTimeout(progressTimeout);
-          cleanup();
-          reject(new Error('Upload timed out'));
-        }, 300000); // 5 minutes timeout
+          if (!isCompleted) {
+            console.error('Upload timed out after 3 minutes');
+            clearTimeout(progressTimeout);
+            cleanup();
+            reject(new Error('Upload timed out'));
+          }
+        }, 180000); // 3 minutes timeout
 
         return () => {
           clearTimeout(progressTimeout);
@@ -135,7 +145,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         };
       });
     } catch (error) {
-      if (eventSource) eventSource.close();
+      if (eventSource && !isCompleted) eventSource.close();
       console.error('Error in uploadToS3:', error);
       throw error;
     }
