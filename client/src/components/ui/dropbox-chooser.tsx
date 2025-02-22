@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "./button";
 import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
-import { cn, convertDropboxUrl, getFileType } from "@/lib/utils";
+import { cn, convertDropboxUrl } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 
@@ -132,32 +132,34 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   }, [onFilesSelected, toast]);
 
   return (
-    <div onClick={handleDropboxSelect} className={cn(className)}>
-      {children || (
-        <>
-          <Button
-            disabled={disabled || isUploading}
-            variant="outline"
-            size="sm"
-            className={cn(className)}
-          >
-            {isUploading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="mr-2 h-4 w-4" />
+    <div className={cn("w-full", className)}>
+      <div onClick={handleDropboxSelect}>
+        {children || (
+          <>
+            <Button
+              disabled={disabled || isUploading}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {isUploading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              {isUploading ? `Uploading ${currentFileName}... ${uploadProgress}%` : "Select Files from Dropbox"}
+            </Button>
+            {isUploading && (
+              <div className="mt-2 w-full bg-secondary/20 rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
             )}
-            {isUploading ? `Uploading ${currentFileName}... ${uploadProgress}%` : "Select Files from Dropbox"}
-          </Button>
-          {isUploading && (
-            <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-              <div
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          )}
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
