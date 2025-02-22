@@ -156,6 +156,15 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               };
               console.log('Created FileObject:', fileObject);
               uploadedFiles.push(fileObject);
+
+              // Call onFilesSelected with uploaded files after all uploads complete
+              if (uploadedFiles.length === files.length) {
+                console.log('All files uploaded, updating app state:', uploadedFiles);
+                onFilesSelected(uploadedFiles);
+                setIsUploading(false);
+                setUploadProgress(0);
+                setCurrentFileName('');
+              }
             } catch (error) {
               console.error('Error uploading file:', file.name, error);
               toast({
@@ -166,14 +175,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             }
           }
 
-          if (uploadedFiles.length > 0) {
-            console.log('Successfully uploaded files, calling onFilesSelected with:', uploadedFiles);
-            onFilesSelected(uploadedFiles);
-            toast({
-              title: "Success",
-              description: `Successfully uploaded ${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''}`,
-            });
-          }
+          
         } catch (error) {
           console.error('Error in Dropbox upload process:', error);
           toast({
@@ -182,9 +184,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
             variant: "destructive",
           });
         } finally {
-          setIsUploading(false);
-          setUploadProgress(0);
-          setCurrentFileName('');
+          
         }
       },
       cancel: () => {
