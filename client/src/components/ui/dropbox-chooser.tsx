@@ -52,23 +52,39 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     }
 
     // Set up event source for progress updates
-    const eventSource = new EventSource(`/api/upload/progress/${response.headers.get('Upload-ID')}`);
+    const uploadId = response.headers.get('Upload-ID');
+    if (!uploadId) {
+      throw new Error('No upload ID received from server');
+    }
+
+    const eventSource = new EventSource(`/api/upload/progress/${uploadId}`);
 
     return new Promise<string>((resolve, reject) => {
       eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.progress) {
-          setUploadProgress(data.progress);
-        }
-        if (data.url) {
-          eventSource.close();
-          resolve(data.url);
+        try {
+          const data = JSON.parse(event.data);
+          if (data.progress !== undefined) {
+            setUploadProgress(Math.round(data.progress));
+          }
+          if (data.url) {
+            eventSource.close();
+            resolve(data.url);
+          }
+        } catch (error) {
+          console.error('Error parsing progress event:', error);
         }
       };
 
       eventSource.onerror = (error) => {
+        console.error('EventSource error:', error);
         eventSource.close();
         reject(new Error('Failed to get upload progress'));
+      };
+
+      // Cleanup on unmount or error
+      return () => {
+        eventSource.close();
+        controller.abort();
       };
     });
   };
