@@ -130,7 +130,7 @@ export function registerRoutes(app: Express): Server {
   // Add health check endpoint as a separate middleware before other routes
   app.get("/api/healthcheck", (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json({ status: "ok" });
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   setupAuth(app);
