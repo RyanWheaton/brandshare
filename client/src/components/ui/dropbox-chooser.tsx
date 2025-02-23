@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 
 declare global {
   interface Window {
-    Dropbox: {
+    Dropbox?: {
       choose: (options: {
         success: (files: any[]) => void;
         cancel: () => void;
@@ -77,11 +77,12 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   }, []);
 
   const handleDropboxSelect = React.useCallback(async () => {
+    // Check if Dropbox API is available
     if (!window.Dropbox) {
       console.error('Dropbox API not available');
       toast({
-        title: "Error",
-        description: "Dropbox API is not available",
+        title: "Dropbox Not Available",
+        description: "Please try again later or use regular file upload.",
         variant: "destructive",
       });
       return;
@@ -103,20 +104,19 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
                 const s3Url = await uploadToS3(url, file.name);
 
                 if (s3Url) {
-                  const fileObject: FileObject = {
+                  uploadedFiles.push({
                     name: file.name,
                     preview_url: s3Url,
                     url: s3Url,
                     isFullWidth: false,
                     storageType: 's3' as const,
-                  };
-                  uploadedFiles.push(fileObject);
+                  });
                 }
               } catch (error) {
                 console.error('Error uploading file:', file.name, error);
                 toast({
                   title: "Upload Failed",
-                  description: `Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  description: `Failed to upload ${file.name}. Please try again.`,
                   variant: "destructive",
                 });
               }
@@ -162,20 +162,22 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <Button
-        onClick={handleDropboxSelect}
-        disabled={disabled || isUploading}
-        variant="outline"
-        size="sm"
-        className="w-full"
-      >
-        {isUploading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Plus className="mr-2 h-4 w-4" />
-        )}
-        {isUploading ? `Uploading ${currentFileName}...` : "Select Files from Dropbox"}
-      </Button>
+      {children || (
+        <Button
+          onClick={handleDropboxSelect}
+          disabled={disabled || isUploading || !window.Dropbox}
+          variant="outline"
+          size="sm"
+          className="w-full"
+        >
+          {isUploading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="mr-2 h-4 w-4" />
+          )}
+          {isUploading ? `Uploading ${currentFileName}...` : "Select Files from Dropbox"}
+        </Button>
+      )}
 
       {isUploading && (
         <div className="w-full space-y-1">
