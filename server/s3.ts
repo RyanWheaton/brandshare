@@ -13,6 +13,16 @@ export const s3Client = new S3Client({
   maxAttempts: 3, // Add retry logic
 });
 
+// Track temporary uploads with TTL
+interface TempUpload {
+  key: string;
+  url: string;
+  timestamp: number;
+}
+
+const tempUploads = new Map<string, TempUpload>();
+const TEMP_FILE_TTL = 1000 * 60 * 60; // 1 hour TTL
+
 // Generate a unique filename to avoid collisions
 export function generateUniqueFileName(originalName: string): string {
   const timestamp = Date.now();
@@ -62,6 +72,14 @@ export async function uploadFileToS3(
     const url = `https://${process.env.AWS_BUCKET_NAME}.s3.us-east-2.amazonaws.com/uploads/${fileName}`;
     console.log('Generated file URL:', url);
 
+    // Track the temporary upload
+    const key = `uploads/${fileName}`;
+    tempUploads.set(url, {
+      key,
+      url,
+      timestamp: Date.now()
+    });
+
     return url;
   } catch (error) {
     console.error('Detailed S3 upload error:', {
@@ -110,11 +128,37 @@ export async function deleteFileFromS3(fileUrl: string): Promise<void> {
     console.log('Executing S3 delete command:', { bucket: deleteParams.Bucket, key: deleteParams.Key });
     await s3Client.send(new DeleteObjectCommand(deleteParams));
     console.log('S3 delete successful');
+
+    // Remove from temp uploads if exists
+    tempUploads.delete(fileUrl);
   } catch (error) {
     console.error('Error deleting from S3:', error);
     throw new Error('Failed to delete file from S3');
   }
 }
+
+// Mark file as permanent (won't be deleted by cleanup)
+export function markFileAsPermanent(fileUrl: string): void {
+  tempUploads.delete(fileUrl);
+}
+
+// Cleanup temporary files
+export async function cleanupTempFiles(): Promise<void> {
+  const now = Date.now();
+  for (const [url, upload] of tempUploads.entries()) {
+    if (now - upload.timestamp > TEMP_FILE_TTL) {
+      try {
+        await deleteFileFromS3(url);
+        console.log('Cleaned up temporary file:', url);
+      } catch (error) {
+        console.error('Failed to cleanup temporary file:', url, error);
+      }
+    }
+  }
+}
+
+// Start cleanup interval
+setInterval(cleanupTempFiles, TEMP_FILE_TTL / 2);
 
 // Upload file to S3 from a URL
 export async function uploadFileToS3FromUrl(

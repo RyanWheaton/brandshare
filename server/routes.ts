@@ -11,6 +11,7 @@ import multer from 'multer';
 import { uploadFileToS3 } from './s3';
 import { uploadFileToS3FromUrl } from './s3';
 import { isAllowedFileType, isAllowedMimeType, formatAllowedTypes } from "@shared/file-types";
+import { markFileAsPermanent } from './s3';
 
 // Configure multer to store files in memory
 const upload = multer({
@@ -217,6 +218,15 @@ export function registerRoutes(app: Express): Server {
             error: "Expiration date must be in the future"
           });
         }
+      }
+
+      // Mark all files in the page as permanent
+      if (parsed.data.files) {
+        parsed.data.files.forEach(file => {
+          if (file.url) {
+            markFileAsPermanent(file.url);
+          }
+        });
       }
 
       const page = await storage.createSharePage(req.user!.id, parsed.data);
@@ -451,6 +461,15 @@ export function registerRoutes(app: Express): Server {
             error: "Expiration date must be in the future"
           });
         }
+      }
+
+      // Mark all files in the update as permanent
+      if (parsed.data.files) {
+        parsed.data.files.forEach(file => {
+          if (file.url) {
+            markFileAsPermanent(file.url);
+          }
+        });
       }
 
       const updatedPage = await storage.updateSharePage(page.id, parsed.data);
