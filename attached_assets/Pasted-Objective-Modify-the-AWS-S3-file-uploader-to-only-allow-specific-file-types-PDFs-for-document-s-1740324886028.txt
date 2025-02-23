@@ -1,0 +1,109 @@
+Objective:
+Modify the AWS S3 file uploader to only allow specific file types:
+✅ PDFs (for document sharing)
+✅ Image files (for web display) – PNG, JPG, JPEG, GIF, SVG, WebP
+✅ Common video files (for playback) – MP4, MOV, AVI, MKV
+All other file types should be rejected before uploading with a user-friendly error message.
+
+Tasks for AI Agent
+1. Restrict Allowed File Types Before Upload
+Add client-side validation before the file is sent to AWS S3.
+Check file extensions against an allowed formats list.
+2. Provide a Clear Error Message for Unsupported Files
+If a user selects an invalid file, display a toast error message or disable the upload button.
+3. Ensure Only Allowed Files Are Uploaded to AWS S3
+Modify the server-side S3 uploader to reject disallowed file types.
+
+✅ Implementation Plan for dropbox-chooser.tsx
+Modify the handleDropboxSelect Function to Filter Files
+tsx
+CopyEdit
+const allowedExtensions = [
+  "pdf", "png", "jpg", "jpeg", "gif", "svg", "webp", // Images
+  "mp4", "mov", "avi", "mkv" // Videos
+];
+
+const handleDropboxSelect = React.useCallback(async () => {
+  window.Dropbox?.choose({
+    success: async (files) => {
+      try {
+        const filteredFiles = files.filter((file) => {
+          const extension = file.name.split(".").pop()?.toLowerCase();
+          return allowedExtensions.includes(extension);
+        });
+
+        if (filteredFiles.length === 0) {
+          toast({
+            title: "Invalid File Type",
+            description: "Only PDFs, images, and videos are allowed.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setIsUploading(true);
+        for (const file of filteredFiles) {
+          const url = convertDropboxUrl(file.link);
+          await uploadToS3(url, file.name);
+        }
+
+        toast({
+          title: "Upload Complete",
+          description: "Your files have been uploaded successfully!",
+        });
+
+      } catch (error) {
+        console.error("Upload error:", error);
+        toast({
+          title: "Upload Failed",
+          description: "An error occurred while uploading your file.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    cancel: () => {
+      console.log("Dropbox selection cancelled");
+    },
+    linkType: "direct",
+    multiselect: true,
+  });
+}, []);
+
+✅ Prevents invalid files from being uploaded.
+✅ Shows an error message if the user selects an unsupported file.
+
+✅ Modify the AWS S3 Upload API to Double-Check File Types
+Modify the backend uploader (Node.js/Express) to reject unsupported file types.
+ts
+CopyEdit
+const allowedExtensions = ["pdf", "png", "jpg", "jpeg", "gif", "svg", "webp", "mp4", "mov", "avi", "mkv"];
+
+app.post("/api/upload/s3", async (req, res) => {
+  const { url, name } = req.body;
+  const extension = name.split(".").pop()?.toLowerCase();
+
+  if (!allowedExtensions.includes(extension)) {
+    return res.status(400).json({ error: "Invalid file type. Only PDFs, images, and videos are allowed." });
+  }
+
+  try {
+    const s3Url = await uploadFileToS3(url, name);
+    res.json({ s3Url });
+  } catch (error) {
+    console.error("S3 Upload Error:", error);
+    res.status(500).json({ error: "Failed to upload file." });
+  }
+});
+
+✅ Prevents invalid files from being uploaded on the server.
+✅ Returns an error if an unsupported file type is detected.
+
+🚀 Expected Outcome
+✅ The user cannot upload unsupported file types.
+✅ The Dropbox Chooser only accepts valid files.
+✅ The server rejects invalid files as a backup security measure.
+✅ A toast message notifies the user of invalid selections.
+This ensures only PDFs, images, and videos are uploaded to AWS S3!
+
