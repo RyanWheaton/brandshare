@@ -7,39 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Initialize Dropbox API status -->
-    <script>
-      window.__dropboxLoaded = false;
-      window.__dropboxLoadError = null;
-    </script>
-    <!-- Load Dropbox API with enhanced error handling -->
-    <script 
-      type="text/javascript" 
-      src="https://www.dropbox.com/static/api/2/dropins.js" 
-      id="dropboxjs" 
-      data-app-key="qyu4ndhfnb8k5qp"
-      async
-      defer
-      onload="
-        try {
-          window.__dropboxLoaded = true;
-          console.log('Dropbox API loaded successfully');
-          // Verify the Dropbox object is properly initialized
-          if (!window.Dropbox || !window.Dropbox.choose) {
-            throw new Error('Dropbox API object not properly initialized');
-          }
-        } catch (error) {
-          window.__dropboxLoadError = error;
-          console.error('Dropbox API initialization error:', error);
-        }
-      "
-      onerror="
-        window.__dropboxLoadError = new Error('Failed to load Dropbox API script');
-        console.error('Failed to load Dropbox API script');
-      "
-    ></script>
-    <!-- Load React application -->
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="qyu4ndhfnb8k5qp"></script>
     <script>
       // On page load or when changing themes, best to add inline in `head` to avoid FOUC
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -47,45 +15,10 @@
       } else {
         document.documentElement.classList.remove('dark')
       }
-
-      // Initialize error tracking
-      window.addEventListener('error', function(event) {
-        console.error('Global error caught:', event.error);
-      });
-
-      // Track Dropbox API loading with timeout
-      window.addEventListener('load', function() {
-        const checkDropbox = () => {
-          if (window.__dropboxLoaded && window.Dropbox) {
-            console.log('Dropbox API verified and ready');
-          } else if (window.__dropboxLoadError) {
-            console.error('Dropbox API load failed:', window.__dropboxLoadError);
-          } else if (!window.Dropbox) {
-            console.error('Dropbox API not available after page load');
-          }
-        };
-
-        // Check immediately and after a short delay
-        checkDropbox();
-        setTimeout(checkDropbox, 2000);
-      });
     </script>
   </head>
   <body>
-    <div id="root">
-      <!-- Add loading state -->
-      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: system-ui, -apple-system, sans-serif;">
-        <div style="text-align: center;">
-          <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-          <p style="margin-top: 20px; color: #666;">Loading application...</p>
-        </div>
-      </div>
-    </div>
-    <style>
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

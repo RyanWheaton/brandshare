@@ -78,16 +78,6 @@ app.use('/api/fonts', fontsRouter);
   try {
     log("Starting server initialization...");
 
-    // Check if port 5000 is available
-    try {
-      const processUsingPort = execSync("lsof -i :5000").toString();
-      log("⚠️ Port 5000 is in use. Attempting to free port...");
-      execSync("kill -9 $(lsof -t -i :5000)");
-      log("✅ Port 5000 has been freed");
-    } catch (error) {
-      log("✅ Port 5000 is available");
-    }
-
     const server = registerRoutes(app);
 
     // Global error handler with enhanced logging
@@ -108,8 +98,8 @@ app.use('/api/fonts', fontsRouter);
       serveStatic(app);
     }
 
-    // Force port 5000 as required by the workflow
-    const PORT = 5000;
+    // Use environment port or fallback to 5000
+    const PORT = process.env.PORT || 5000;
     log(`Starting Express server on port ${PORT}...`);
 
     server.listen(PORT, '0.0.0.0')

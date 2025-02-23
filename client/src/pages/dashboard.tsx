@@ -42,9 +42,6 @@ import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { useEffect, useRef } from "react";
 
 
-// Add console log at the start of file load
-console.log('Dashboard module loading');
-
 // Update DUMMY_FILES to ensure we only use sample images
 const DUMMY_FILES = [
   {
@@ -282,11 +279,7 @@ function SharePageCard({ page, onDelete, onCopyLink }: {
 }
 
 export default function Dashboard() {
-  console.log('Dashboard component rendering');
-
   const { user, logoutMutation } = useAuth();
-  console.log('Auth state:', { user: !!user, isLoggingOut: logoutMutation.isPending });
-
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -312,26 +305,14 @@ export default function Dashboard() {
     queryKey: ["/api/pages"],
     gcTime: 0,
     retry: false,
-    enabled: !!user,
-    onError: (error) => {
-      console.error('Error fetching pages:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Pages fetched successfully:', data.length);
-    }
+    enabled: !!user, // Only fetch when user is logged in
   });
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<SharePageTemplate[]>({
     queryKey: ["/api/templates"],
     gcTime: 0,
     retry: false,
-    enabled: !!user,
-    onError: (error) => {
-      console.error('Error fetching templates:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Templates fetched successfully:', data.length);
-    }
+    enabled: !!user, // Only fetch when user is logged in
   });
 
   const deleteMutation = useMutation({
@@ -557,20 +538,13 @@ export default function Dashboard() {
   };
 
 
-  // Add loading state logging
   if (pagesLoading || templatesLoading) {
-    console.log('Dashboard is in loading state', { pagesLoading, templatesLoading });
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
       </div>
     );
   }
-
-  console.log('Dashboard rendering with data', {
-    pagesCount: pages.length,
-    templatesCount: templates.length
-  });
 
   return (
     <motion.div
