@@ -455,6 +455,29 @@ export function registerRoutes(app: Express): Server {
     if (!page || page.userId !== req.user!.id) return res.sendStatus(404);
 
     try {
+      // If files are being updated, delete removed S3 files
+      if (parsed.data.files) {
+        const oldFiles = (page.files as FileObject[]).filter(f => f.storageType === 's3');
+        const newFiles = (parsed.data.files as FileObject[]).filter(f => f.storageType === 's3');
+
+        // Find files that were removed (present in old but not in new)
+        const removedFiles = oldFiles.filter(oldFile => 
+          !newFiles.some(newFile => newFile.url === oldFile.url)
+        );
+
+        // Delete removed files from S3
+        await Promise.all(
+          removedFiles.map(async (file) => {
+            try {
+              console.log('Deleting removed file from S3:', file.url);
+              await deleteFileFromS3(file.url);
+            } catch (error) {
+              console.error(`Failed to delete file ${file.url} from S3:`, error);
+            }
+          })
+        );
+      }
+
       // Validate fonts if they are being updated
       if (parsed.data.titleFont) {
         const isValidFont = await validateFont(parsed.data.titleFont);
