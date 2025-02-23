@@ -75,7 +75,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
 
           onFilesSelected(uploadedFiles);
         } catch (error) {
-          console.error('Error uploading files to S3:', error);
+          console.error('Upload failed:', error);
         } finally {
           setIsUploading(false);
         }
@@ -120,7 +120,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     >
       {isUploading ? (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
           <span>Uploading...</span>
         </>
       ) : (
