@@ -15,25 +15,39 @@ import ProfilePage from "@/pages/profile";
 import { useEffect } from "react";
 import React from 'react';
 
-// Add top-level error boundary
-class ErrorBoundary extends React.Component {
-  state = { hasError: false, error: null };
+// Add properly typed error boundary
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
 
-  static getDerivedStateFromError(error) {
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
-    console.error('React error boundary caught error:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    console.error('React error boundary caught error:', error);
+    console.error('Error info:', errorInfo);
   }
 
-  render() {
+  render(): React.ReactNode {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="max-w-md w-full space-y-4">
+          <div className="max-w-md w-full space-y-4 text-center">
             <h1 className="text-2xl font-bold text-red-600">Something went wrong</h1>
-            <pre className="text-sm bg-gray-100 p-4 rounded overflow-auto">
+            <p className="text-sm text-gray-600">An error occurred while rendering the application.</p>
+            <pre className="text-xs bg-gray-100 p-4 rounded overflow-auto">
               {this.state.error?.toString()}
             </pre>
             <button

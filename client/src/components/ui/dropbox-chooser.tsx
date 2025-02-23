@@ -34,124 +34,131 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [currentFileName, setCurrentFileName] = React.useState("");
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    console.log('Component mounted');
-    console.log('Initial state:', { isUploading, uploadProgress, currentFileName });
+  const uploadToS3 = React.useCallback(async (url: string, name: string): Promise<string | null> => {
+    try {
+      setCurrentFileName(name);
+      setUploadProgress(0);
+
+      const response = await fetch('/api/upload/dropbox', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, name }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || error.error || 'Failed to upload file to S3');
+      }
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      const data = await response.json();
+
+      // Set to 100% when complete
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      return data.url;
+    } catch (error) {
+      console.error('Error in uploadToS3:', error);
+      throw error;
+    }
   }, []);
 
-  React.useEffect(() => {
-    console.log('State updated:', { isUploading, uploadProgress, currentFileName });
-  }, [isUploading, uploadProgress, currentFileName]);
-
-  const uploadToS3 = async (url: string, name: string) => {
-    setCurrentFileName(name);
-    setUploadProgress(0);
-    console.log('Starting upload to S3:', { url, name });
-
-    const response = await fetch('/api/upload/dropbox', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url, name }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.details || error.error || 'Failed to upload file to S3');
-    }
-
-    // Simulate upload progress
-    for (let progress = 10; progress <= 100; progress += 10) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      console.log('Setting progress:', progress);
-      setUploadProgress(progress);
-    }
-
-    const data = await response.json();
-    return data.url;
-  };
-
   const handleDropboxSelect = React.useCallback(async () => {
-    window.Dropbox?.choose({
-      success: async (files) => {
-        try {
-          console.log('Dropbox files selected:', files);
-          setIsUploading(true);
-          setUploadProgress(0);
+    if (!window.Dropbox) {
+      console.error('Dropbox API not available');
+      toast({
+        title: "Error",
+        description: "Dropbox API is not available",
+        variant: "destructive",
+      });
+      return;
+    }
 
-          const uploadedFiles: FileObject[] = [];
+    try {
+      window.Dropbox.choose({
+        success: async (files) => {
+          try {
+            console.log('Files selected from Dropbox:', files);
+            setIsUploading(true);
+            setUploadProgress(0);
 
-          for (const file of files) {
-            setCurrentFileName(file.name);
-            const url = convertDropboxUrl(file.link);
+            const uploadedFiles: FileObject[] = [];
 
-            try {
-              const s3Url = await uploadToS3(url, file.name);
+            for (const file of files) {
+              try {
+                const url = convertDropboxUrl(file.link);
+                const s3Url = await uploadToS3(url, file.name);
 
-              if (!s3Url) {
-                console.error(`Failed to retrieve S3 URL for ${file.name}`);
-                continue;
+                if (s3Url) {
+                  const fileObject: FileObject = {
+                    name: file.name,
+                    preview_url: s3Url,
+                    url: s3Url,
+                    isFullWidth: false,
+                    storageType: 's3' as const,
+                  };
+                  uploadedFiles.push(fileObject);
+                }
+              } catch (error) {
+                console.error('Error uploading file:', file.name, error);
+                toast({
+                  title: "Upload Failed",
+                  description: `Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  variant: "destructive",
+                });
               }
+            }
 
-              const fileObject: FileObject = {
-                name: file.name,
-                preview_url: s3Url,
-                url: s3Url,
-                isFullWidth: false,
-                storageType: 's3' as const,
-              };
-
-              uploadedFiles.push(fileObject);
-            } catch (error) {
-              console.error('Error uploading file:', file.name, error);
+            if (uploadedFiles.length > 0) {
+              onFilesSelected(uploadedFiles);
+              await queryClient.invalidateQueries({ queryKey: ['/api/files'] });
               toast({
-                title: "Upload Failed",
-                description: `Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                variant: "destructive",
+                title: "Success",
+                description: `Successfully uploaded ${uploadedFiles.length} files.`,
               });
             }
-          }
-
-          if (uploadedFiles.length > 0) {
-            onFilesSelected(uploadedFiles);
-            await queryClient.invalidateQueries({ queryKey: ['/api/files'] });
-
+          } catch (error) {
+            console.error('Error in Dropbox upload process:', error);
             toast({
-              title: "Success",
-              description: `Successfully uploaded ${uploadedFiles.length} files.`,
+              title: "Error",
+              description: "Failed to process Dropbox files",
+              variant: "destructive",
             });
+          } finally {
+            setIsUploading(false);
+            setUploadProgress(0);
+            setCurrentFileName('');
           }
-        } catch (error) {
-          console.error('Error in Dropbox upload process:', error);
-          toast({
-            title: "Error",
-            description: "Failed to process Dropbox files",
-            variant: "destructive",
-          });
-        } finally {
-          setIsUploading(false);
-          setUploadProgress(0);
-          setCurrentFileName('');
-        }
-      },
-      cancel: () => {
-        console.log('Dropbox file selection cancelled');
-      },
-      linkType: "direct",
-      multiselect: true,
-      extensions: ['images', '.pdf'],
-    });
-  }, [onFilesSelected, toast]);
-
-  // Test render with a static progress value
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Rendering DropboxChooser with states:', {
-      isUploading,
-      uploadProgress,
-      currentFileName
-    });
-  }
+        },
+        cancel: () => {
+          console.log('Dropbox file selection cancelled');
+        },
+        linkType: "direct",
+        multiselect: true,
+        extensions: ['images', '.pdf'],
+      });
+    } catch (error) {
+      console.error('Error initiating Dropbox chooser:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open Dropbox file picker",
+        variant: "destructive",
+      });
+    }
+  }, [onFilesSelected, toast, uploadToS3]);
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -171,9 +178,9 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       </Button>
 
       {isUploading && (
-        <div className="w-full">
+        <div className="w-full space-y-1">
           <Progress value={uploadProgress} className="h-2" />
-          <p className="text-sm text-muted-foreground mt-1 text-center">
+          <p className="text-sm text-muted-foreground text-center">
             {uploadProgress}%
           </p>
         </div>
