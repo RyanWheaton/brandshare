@@ -34,6 +34,18 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [currentFileName, setCurrentFileName] = React.useState("");
   const { toast } = useToast();
 
+  // Check Dropbox API on mount
+  React.useEffect(() => {
+    if (!window.Dropbox) {
+      console.error('Dropbox API not loaded');
+      toast({
+        title: "Dropbox Integration Error",
+        description: "Dropbox API failed to load. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   const uploadToS3 = React.useCallback(async (url: string, name: string): Promise<string | null> => {
     try {
       setCurrentFileName(name);
@@ -76,88 +88,78 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     }
   }, []);
 
-  const handleDropboxSelect = React.useCallback(async () => {
-    try {
-      // Verify Dropbox API is properly loaded
-      if (typeof window.Dropbox?.choose !== 'function') {
-        console.error('Dropbox API not properly initialized');
-        toast({
-          title: "Dropbox Not Available",
-          description: "The Dropbox chooser is not properly initialized. Please refresh the page and try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      window.Dropbox.choose({
-        success: async (files) => {
-          try {
-            console.log('Files selected from Dropbox:', files);
-            setIsUploading(true);
-            setUploadProgress(0);
-
-            const uploadedFiles: FileObject[] = [];
-
-            for (const file of files) {
-              try {
-                const url = convertDropboxUrl(file.link);
-                const s3Url = await uploadToS3(url, file.name);
-
-                if (s3Url) {
-                  uploadedFiles.push({
-                    name: file.name,
-                    preview_url: s3Url,
-                    url: s3Url,
-                    isFullWidth: false,
-                    storageType: 's3' as const,
-                  });
-                }
-              } catch (error) {
-                console.error('Error uploading file:', file.name, error);
-                toast({
-                  title: "Upload Failed",
-                  description: `Failed to upload ${file.name}. Please try again.`,
-                  variant: "destructive",
-                });
-              }
-            }
-
-            if (uploadedFiles.length > 0) {
-              onFilesSelected(uploadedFiles);
-              await queryClient.invalidateQueries({ queryKey: ['/api/files'] });
-              toast({
-                title: "Success",
-                description: `Successfully uploaded ${uploadedFiles.length} files.`,
-              });
-            }
-          } catch (error) {
-            console.error('Error in Dropbox upload process:', error);
-            toast({
-              title: "Error",
-              description: "Failed to process Dropbox files",
-              variant: "destructive",
-            });
-          } finally {
-            setIsUploading(false);
-            setUploadProgress(0);
-            setCurrentFileName('');
-          }
-        },
-        cancel: () => {
-          console.log('Dropbox file selection cancelled');
-        },
-        linkType: "direct",
-        multiselect: true,
-        extensions: ['images', '.pdf'],
-      });
-    } catch (error) {
-      console.error('Error initiating Dropbox chooser:', error);
+  const handleDropboxSelect = React.useCallback(() => {
+    if (!window.Dropbox) {
+      console.error('Dropbox API not loaded');
       toast({
-        title: "Error",
-        description: "Failed to open Dropbox file picker",
+        title: "Dropbox Not Available",
+        description: "Please refresh the page and try again.",
         variant: "destructive",
       });
+      return;
     }
+
+    window.Dropbox.choose({
+      success: async (files) => {
+        try {
+          console.log('Files selected from Dropbox:', files);
+          setIsUploading(true);
+          setUploadProgress(0);
+
+          const uploadedFiles: FileObject[] = [];
+
+          for (const file of files) {
+            try {
+              const url = convertDropboxUrl(file.link);
+              const s3Url = await uploadToS3(url, file.name);
+
+              if (s3Url) {
+                uploadedFiles.push({
+                  name: file.name,
+                  preview_url: s3Url,
+                  url: s3Url,
+                  isFullWidth: false,
+                  storageType: 's3' as const,
+                });
+              }
+            } catch (error) {
+              console.error('Error uploading file:', file.name, error);
+              toast({
+                title: "Upload Failed",
+                description: `Failed to upload ${file.name}. Please try again.`,
+                variant: "destructive",
+              });
+            }
+          }
+
+          if (uploadedFiles.length > 0) {
+            onFilesSelected(uploadedFiles);
+            await queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+            toast({
+              title: "Success",
+              description: `Successfully uploaded ${uploadedFiles.length} files.`,
+            });
+          }
+        } catch (error) {
+          console.error('Error in Dropbox upload process:', error);
+          toast({
+            title: "Error",
+            description: "Failed to process Dropbox files",
+            variant: "destructive",
+          });
+        } finally {
+          setIsUploading(false);
+          setUploadProgress(0);
+          setCurrentFileName('');
+        }
+      },
+      cancel: () => {
+        console.log('Dropbox file selection cancelled');
+      },
+      linkType: "direct",
+      multiselect: true,
+      extensions: ['images', '.pdf', 'video'],
+    });
   }, [onFilesSelected, toast, uploadToS3]);
 
   return (
@@ -165,7 +167,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       {children || (
         <Button
           onClick={handleDropboxSelect}
-          disabled={disabled || isUploading || typeof window.Dropbox?.choose !== 'function'}
+          disabled={disabled || isUploading || !window.Dropbox}
           variant="outline"
           size="sm"
           className="w-full"
