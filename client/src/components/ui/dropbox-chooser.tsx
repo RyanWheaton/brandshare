@@ -47,7 +47,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   };
 
   const handleDropboxSelect = React.useCallback(async () => {
-    if (isUploading) return; // Prevent multiple selections while uploading
+    if (disabled || isUploading) return;
 
     window.Dropbox?.choose({
       success: async (files) => {
@@ -76,27 +76,28 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           onFilesSelected(uploadedFiles);
         } catch (error) {
           console.error('Error uploading files to S3:', error);
-          // You might want to show a toast notification here
         } finally {
           setIsUploading(false);
         }
       },
       cancel: () => {
-        console.log('Dropbox file selection cancelled');
         setIsUploading(false);
       },
       linkType: "direct",
       multiselect: false,
       extensions: ['images', '.pdf'],
     });
-  }, [onFilesSelected, isUploading]);
+  }, [disabled, isUploading, onFilesSelected]);
 
   // If children are provided, wrap them with the click handler
   if (children) {
     return (
       <div 
-        onClick={!isUploading ? handleDropboxSelect : undefined} 
-        className={cn(className, isUploading && "cursor-not-allowed opacity-50")}
+        onClick={handleDropboxSelect}
+        className={cn(
+          className,
+          (disabled || isUploading) && "pointer-events-none opacity-50"
+        )}
       >
         {children}
       </div>
@@ -106,21 +107,26 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   // Default button UI
   return (
     <Button
+      type="button"
       disabled={disabled || isUploading}
       variant="outline"
       size="sm"
       onClick={handleDropboxSelect}
-      className={cn("min-w-[180px]", className)}
+      className={cn(
+        "relative min-w-[180px] transition-opacity",
+        isUploading && "cursor-not-allowed opacity-50",
+        className
+      )}
     >
       {isUploading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Uploading...
+          <span>Uploading...</span>
         </>
       ) : (
         <>
           <Plus className="mr-2 h-4 w-4" />
-          Select Files from Dropbox
+          <span>Select Files from Dropbox</span>
         </>
       )}
     </Button>
