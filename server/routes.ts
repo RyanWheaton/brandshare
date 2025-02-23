@@ -9,8 +9,8 @@ import { z } from "zod";
 import geoip from 'geoip-lite';
 import multer from 'multer';
 import { uploadFileToS3 } from './s3';
-import { uploadFileToS3FromUrl } from './s3'; // Import the missing function
-
+import { uploadFileToS3FromUrl } from './s3';
+import { isAllowedFileType, isAllowedMimeType, formatAllowedTypes } from "@shared/file-types";
 
 // Configure multer to store files in memory
 const upload = multer({
@@ -27,8 +27,25 @@ declare module 'express-session' {
   }
 }
 
+// Update the User type to match the schema
+interface AuthenticatedRequest extends Request {
+  user: User & {
+    id: number;
+    email: string;
+    username: string;
+    password: string;
+    dropboxToken: string | null;
+    resetToken: string | null;
+    resetTokenExpiresAt: Date | null;
+    emailVerified: boolean;
+    logoUrl: string | null;
+    brandPrimaryColor: string | null;
+    brandSecondaryColor: string | null;
+  };
+}
+
 interface CustomRequest extends Request {
-  user?: User;  // Now properly typed with the User type from schema.ts
+  user?: AuthenticatedRequest['user'];
   sharePage?: any;
 }
 
@@ -110,11 +127,18 @@ const updateProfileSchema = z.object({
 });
 
 export function registerRoutes(app: Express): Server {
+  // Add health check endpoint as a separate middleware before other routes
+  app.get("/api/healthcheck", (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ status: "ok" });
+  });
+
   setupAuth(app);
   setupDropbox(app);
 
+
   // Add user profile update endpoint
-  app.patch("/api/user/profile", (async (req: Request & {user: User}, res: Response) => {
+  app.patch("/api/user/profile", (async (req: AuthenticatedRequest, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -125,9 +149,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: parsed.error });
       }
 
-      console.log('Profile update data:', parsed.data);
       const updatedUser = await storage.updateUser(req.user.id, parsed.data);
-      console.log('Updated user:', updatedUser);
       res.json(updatedUser);
     } catch (error) {
       console.error('Error updating user profile:', error);
@@ -603,6 +625,24 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "No file provided" });
       }
 
+      // Validate file type
+      if (!isAllowedMimeType(req.file.mimetype)) {
+        console.error('Invalid file type:', req.file.mimetype);
+        return res.status(400).json({ 
+          error: "Unsupported file type",
+          details: formatAllowedTypes()
+        });
+      }
+
+      // Additional validation for file extension
+      if (!isAllowedFileType(req.file.originalname, req.file.mimetype)) {
+        console.error('Invalid file extension:', req.file.originalname);
+        return res.status(400).json({ 
+          error: "Invalid file extension",
+          details: formatAllowedTypes()
+        });
+      }
+
       console.log('File received:', {
         filename: req.file.originalname,
         mimetype: req.file.mimetype,
@@ -641,6 +681,31 @@ export function registerRoutes(app: Express): Server {
       }
 
       const { url, name } = parsed.data;
+
+      // Validate file type based on extension
+      const ext = name.split('.').pop()?.toLowerCase() || '';
+      let mimeType = '';
+
+      // Determine MIME type based on extension
+      if (['jpg', 'jpeg'].includes(ext)) mimeType = 'image/jpeg';
+      else if (ext === 'png') mimeType = 'image/png';
+      else if (ext === 'gif') mimeType = 'image/gif';
+      else if (ext === 'svg') mimeType = 'image/svg+xml';
+      else if (ext === 'webp') mimeType = 'image/webp';
+      else if (ext === 'pdf') mimeType = 'application/pdf';
+      else if (ext === 'mp4') mimeType = 'video/mp4';
+      else if (ext === 'mov') mimeType = 'video/quicktime';
+      else if (ext === 'avi') mimeType = 'video/x-msvideo';
+      else if (ext === 'mkv') mimeType = 'video/x-matroska';
+
+
+      if (!isAllowedFileType(name, mimeType)) {
+        return res.status(400).json({
+          error: "Unsupported file type",
+          details: formatAllowedTypes()
+        });
+      }
+
       console.log('Starting Dropbox to S3 transfer:', { url, name });
 
       const s3Url = await uploadFileToS3FromUrl(url, name);

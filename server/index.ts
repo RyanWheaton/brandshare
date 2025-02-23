@@ -17,8 +17,19 @@ const log = (message: string) => {
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 const app = express();
+
+// Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add CORS headers for API routes
+app.use('/api', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
 
 // Configure session middleware
 app.use(
@@ -71,9 +82,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Mount fonts router
-app.use('/api/fonts', fontsRouter);
-
 (async () => {
   try {
     log("Starting server initialization...");
@@ -88,6 +96,8 @@ app.use('/api/fonts', fontsRouter);
       log("✅ Port 5000 is available");
     }
 
+    // Mount API routes first
+    app.use('/api/fonts', fontsRouter);
     const server = registerRoutes(app);
 
     // Global error handler with enhanced logging
@@ -101,7 +111,7 @@ app.use('/api/fonts', fontsRouter);
       res.status(status).json({ message });
     });
 
-    // Handle static files and development mode
+    // Handle static files and development mode last
     if (process.env.NODE_ENV === 'development') {
       await setupVite(app, server);
     } else {

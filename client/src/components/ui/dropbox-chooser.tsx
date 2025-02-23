@@ -3,6 +3,7 @@ import { Button } from "./button";
 import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl, getFileType } from "@/lib/utils";
+import { getAllowedExtensions } from "@shared/file-types";
 
 declare global {
   interface Window {
@@ -85,14 +86,14 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       },
       linkType: "direct",
       multiselect: false,
-      extensions: ['images', '.pdf'],
+      extensions: getAllowedExtensions(), // Use the shared allowed extensions
     });
   }, [disabled, isUploading, onFilesSelected]);
 
   // If children are provided, wrap them with the click handler
   if (children) {
     return (
-      <div 
+      <div
         onClick={handleDropboxSelect}
         className={cn(
           className,

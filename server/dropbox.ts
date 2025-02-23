@@ -1,10 +1,28 @@
 import { Dropbox } from "dropbox";
 import type { Express } from "express";
 import { storage } from "./storage";
+import type { User } from "@shared/schema";
 
 const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY!;
 const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET!;
 const PORT = process.env.PORT || 5000;
+
+interface AuthenticatedRequest extends Express.Request {
+  user: User & {
+    id: number;
+    email: string;
+    username: string;
+    password: string;
+    dropboxToken: string | null;
+    resetToken: string | null;
+    resetTokenExpiresAt: Date | null;
+    emailVerified: boolean;
+    logoUrl: string | null;
+    brandPrimaryColor: string | null;
+    brandSecondaryColor: string | null;
+  };
+  isAuthenticated(): boolean;
+}
 
 // Get the full Replit URL for the callback
 const REDIRECT_URI = process.env.REPLIT_DEV_DOMAIN 
@@ -12,11 +30,10 @@ const REDIRECT_URI = process.env.REPLIT_DEV_DOMAIN
   : `http://localhost:${PORT}/api/dropbox/callback`;
 
 export function setupDropbox(app: Express) {
-  app.get("/api/dropbox/auth", async (req, res) => {
+  app.get("/api/dropbox/auth", async (req: AuthenticatedRequest, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      // Changed to use the authorization code flow
       const authUrl = `https://www.dropbox.com/oauth2/authorize?response_type=code&client_id=${DROPBOX_APP_KEY}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
       console.log("Constructed Redirect URI:", REDIRECT_URI);
       console.log("Generated auth URL:", authUrl);
@@ -27,7 +44,7 @@ export function setupDropbox(app: Express) {
     }
   });
 
-  app.get("/api/dropbox/callback", async (req, res) => {
+  app.get("/api/dropbox/callback", async (req: AuthenticatedRequest, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const code = req.query.code as string;
 
@@ -66,7 +83,7 @@ export function setupDropbox(app: Express) {
     }
   });
 
-  app.get("/api/dropbox/files", async (req, res) => {
+  app.get("/api/dropbox/files", async (req: AuthenticatedRequest, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = await storage.getUser(req.user.id);
     if (!user?.dropboxToken) return res.status(401).send("Dropbox not connected");
@@ -79,7 +96,7 @@ export function setupDropbox(app: Express) {
       const supportedFiles = response.result.entries.filter(entry => {
         if (entry[".tag"] !== "file") return false;
         const ext = entry.name.toLowerCase().split('.').pop();
-        return ["jpg", "jpeg", "png", "gif", "pdf", "mp4", "mov"].includes(ext || "");
+        return getAllowedExtensions().includes(ext || "");
       });
 
       res.json(supportedFiles);
@@ -89,3 +106,5 @@ export function setupDropbox(app: Express) {
     }
   });
 }
+
+const getAllowedExtensions = () => ["jpg", "jpeg", "png", "gif", "pdf", "mp4", "mov"];
