@@ -113,7 +113,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       size="sm"
       onClick={handleDropboxSelect}
       className={cn(
-        "relative min-w-[180px] transition-opacity",
+        "relative min-w-[180px] transition-opacity gap-2",
         isUploading && "cursor-not-allowed opacity-50",
         className
       )}
