@@ -22,6 +22,8 @@ interface ProgressData {
 const validatePDFUrl = (url: string): string => {
   try {
     const sanitizedUrl = new URL(url);
+    // Add cache-busting parameter to avoid CORS caching issues
+    sanitizedUrl.searchParams.set('t', Date.now().toString());
     return sanitizedUrl.toString();
   } catch (error) {
     throw new Error('Invalid URL format');
@@ -44,7 +46,7 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
       signal: controller.signal,
       headers: {
         'Accept': 'application/pdf,*/*',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache'
       },
     });
@@ -52,7 +54,18 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
     clearTimeout(timeout);
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('PDF fetch response error:', {
+        status: response.status,
+        statusText: response.statusText,
+        responseText: errorText
+      });
       throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/pdf') && !contentType?.includes('application/octet-stream')) {
+      console.warn('Unexpected content type:', contentType);
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -71,39 +84,6 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
       throw error;
     }
     throw new Error('An unknown error occurred while fetching the PDF');
-  }
-};
-
-// Enhanced Dropbox URL conversion
-const convertDropboxUrl = (originalUrl: string): string => {
-  if (!originalUrl.includes('dropbox.com')) return originalUrl;
-
-  try {
-    let convertedUrl = originalUrl;
-
-    // Handle various Dropbox URL formats
-    if (originalUrl.includes('www.dropbox.com')) {
-      // Convert to dl.dropboxusercontent.com
-      convertedUrl = originalUrl
-        .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-        .replace('?dl=0', '')
-        .replace('?dl=1', '')
-        .replace('?raw=1', '');
-
-      // Special handling for /s/ links
-      if (convertedUrl.includes('/s/')) {
-        convertedUrl = convertedUrl.replace('dl.dropboxusercontent.com/s/', 'dl.dropboxusercontent.com/s/raw/');
-      }
-
-      // Add dl=1 parameter for direct download
-      convertedUrl += '?dl=1';
-    }
-
-    console.log('Converted Dropbox URL:', convertedUrl);
-    return convertedUrl;
-  } catch (err) {
-    console.error('Error converting Dropbox URL:', err);
-    return originalUrl;
   }
 };
 
@@ -193,10 +173,9 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
         setError(null);
         setLoadingProgress(0);
 
-        const pdfUrl = convertDropboxUrl(url);
-        console.log(`Attempting to load PDF (attempt ${retryCount + 1}/${maxRetries}):`, pdfUrl);
+        console.log(`Attempting to load PDF (attempt ${retryCount + 1}/${maxRetries}):`, url);
 
-        const pdfData = await fetchPDFData(pdfUrl);
+        const pdfData = await fetchPDFData(url);
 
         if (!isSubscribed) return;
 
@@ -204,6 +183,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           data: pdfData,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
           cMapPacked: true,
+          enableXfa: true,
+          useSystemFonts: true
         });
 
         loadingTaskRef.current.onProgress = function(progress: ProgressData) {
@@ -242,11 +223,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           }, delay);
         } else {
           setIsLoading(false);
-          if (errorMessage.includes('403')) {
-            setError('Unable to access the PDF. The link may have expired or access is restricted.');
-          } else {
-            setError(`Failed to load PDF: ${errorMessage}`);
-          }
+          setError(`Failed to load PDF. Please try again later. Error: ${errorMessage}`);
         }
       }
     }
