@@ -30,21 +30,26 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [isUploading, setIsUploading] = React.useState(false);
 
   const uploadToS3 = async (url: string, name: string) => {
-    const response = await fetch('/api/upload/dropbox', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url, name }),
-    });
+    try {
+      const response = await fetch('/api/upload/dropbox', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, name }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.details || error.error || 'Failed to upload file to S3');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || error.error || 'Failed to upload file to S3');
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Error uploading to S3:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.url;
   };
 
   const handleDropboxSelect = React.useCallback(async () => {
@@ -54,17 +59,25 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       success: async (files) => {
         try {
           setIsUploading(true);
+          console.log('Selected files:', files);
 
           // Upload each file to S3
           const uploadedFiles: FileObject[] = await Promise.all(
             files.map(async (file) => {
-              const fileType = getFileType(file.name);
-              const url = convertDropboxUrl(file.link);
+              // Handle PDF files specifically
+              const fileExt = file.name.split('.').pop()?.toLowerCase();
+              const mimeType = fileExt === 'pdf' ? 'application/pdf' : file.link.includes('dl.dropboxusercontent.com') ? 'application/octet-stream' : getFileType(file.name);
+
+              console.log('Processing file:', { name: file.name, mimeType });
 
               // Validate file type
-              if (!isAllowedFileType(file.name, fileType)) {
+              if (!isAllowedFileType(file.name, mimeType)) {
                 throw new Error(`Unsupported file type. ${formatAllowedTypes()}`);
               }
+
+              // Convert Dropbox link to direct download URL
+              const url = convertDropboxUrl(file.link);
+              console.log('Converted URL:', url);
 
               // Upload to S3
               const s3Url = await uploadToS3(url, file.name);
@@ -82,7 +95,6 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           onFilesSelected(uploadedFiles);
         } catch (error) {
           console.error('Upload failed:', error);
-          // Re-throw to trigger error handling in the UI
           throw error;
         } finally {
           setIsUploading(false);
@@ -93,7 +105,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       },
       linkType: "direct",
       multiselect: false,
-      extensions: getAllowedExtensions(), // Use the shared allowed extensions
+      extensions: getAllowedExtensions(),
     });
   }, [disabled, isUploading, onFilesSelected]);
 

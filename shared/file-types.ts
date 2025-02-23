@@ -27,7 +27,12 @@ export function isAllowedFileType(filename: string, mimeType: string): boolean {
   const ext = getExtension(filename);
   if (!ext) return false;
 
-  // Get all allowed extensions for the given mime type
+  // Special handling for PDF files
+  if (ext === 'pdf' && (mimeType === 'application/pdf' || mimeType === 'application/octet-stream')) {
+    return true;
+  }
+
+  // For other file types
   const allowedExts = ALLOWED_FILE_TYPES[mimeType as keyof typeof ALLOWED_FILE_TYPES] || [];
   return allowedExts.includes(ext as any);
 }
