@@ -7,7 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Load Dropbox API first -->
+    <!-- Initialize Dropbox API status -->
+    <script>
+      window.__dropboxLoaded = false;
+      window.__dropboxLoadError = null;
+    </script>
+    <!-- Load Dropbox API with enhanced error handling -->
     <script 
       type="text/javascript" 
       src="https://www.dropbox.com/static/api/2/dropins.js" 
@@ -15,8 +20,23 @@
       data-app-key="qyu4ndhfnb8k5qp"
       async
       defer
-      onload="console.log('Dropbox API script loaded')"
-      onerror="console.error('Failed to load Dropbox API script')"
+      onload="
+        try {
+          window.__dropboxLoaded = true;
+          console.log('Dropbox API loaded successfully');
+          // Verify the Dropbox object is properly initialized
+          if (!window.Dropbox || !window.Dropbox.choose) {
+            throw new Error('Dropbox API object not properly initialized');
+          }
+        } catch (error) {
+          window.__dropboxLoadError = error;
+          console.error('Dropbox API initialization error:', error);
+        }
+      "
+      onerror="
+        window.__dropboxLoadError = new Error('Failed to load Dropbox API script');
+        console.error('Failed to load Dropbox API script');
+      "
     ></script>
     <!-- Load React application -->
     <script type="module" src="/src/main.tsx"></script>
@@ -33,13 +53,21 @@
         console.error('Global error caught:', event.error);
       });
 
-      // Track Dropbox API loading
+      // Track Dropbox API loading with timeout
       window.addEventListener('load', function() {
-        if (!window.Dropbox) {
-          console.error('Dropbox API failed to load');
-        } else {
-          console.log('Dropbox API loaded successfully');
-        }
+        const checkDropbox = () => {
+          if (window.__dropboxLoaded && window.Dropbox) {
+            console.log('Dropbox API verified and ready');
+          } else if (window.__dropboxLoadError) {
+            console.error('Dropbox API load failed:', window.__dropboxLoadError);
+          } else if (!window.Dropbox) {
+            console.error('Dropbox API not available after page load');
+          }
+        };
+
+        // Check immediately and after a short delay
+        checkDropbox();
+        setTimeout(checkDropbox, 2000);
       });
     </script>
   </head>

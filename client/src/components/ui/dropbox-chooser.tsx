@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "./button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, AlertCircle } from "lucide-react";
 import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,8 @@ declare global {
         extensions: string[];
       }) => void;
     };
+    __dropboxLoaded?: boolean;
+    __dropboxLoadError?: Error;
   }
 }
 
@@ -32,37 +34,64 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [currentFileName, setCurrentFileName] = React.useState("");
-  const { toast } = useToast();
   const [isApiReady, setIsApiReady] = React.useState(false);
+  const [apiError, setApiError] = React.useState<string | null>(null);
+  const { toast } = useToast();
 
-  const waitForDropboxAPI = React.useCallback(async (maxRetries = 5) => {
+  const waitForDropboxAPI = React.useCallback(async (maxRetries = 10) => {
     let retries = 0;
-    while (!window.Dropbox?.choose && retries < maxRetries) {
-      console.warn(`Dropbox API not available. Retrying... (${retries + 1}/${maxRetries})`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      retries++;
-    }
+    const retryInterval = 1000; // 1 second between retries
 
-    const isReady = typeof window.Dropbox?.choose === 'function';
-    setIsApiReady(isReady);
-    return isReady;
+    return new Promise<boolean>((resolve) => {
+      const check = () => {
+        // Check for explicit load error first
+        if (window.__dropboxLoadError) {
+          console.error('Dropbox API load error detected:', window.__dropboxLoadError);
+          setApiError(window.__dropboxLoadError.message);
+          resolve(false);
+          return;
+        }
+
+        // Check if API is properly loaded
+        if (window.__dropboxLoaded && window.Dropbox?.choose) {
+          console.log('Dropbox API successfully loaded and verified');
+          setApiError(null);
+          resolve(true);
+          return;
+        }
+
+        // Continue retrying if within limits
+        if (retries < maxRetries) {
+          retries++;
+          console.log(`Waiting for Dropbox API... Attempt ${retries}/${maxRetries}`);
+          setTimeout(check, retryInterval);
+        } else {
+          const error = 'Dropbox API failed to load after maximum retries';
+          console.error(error);
+          setApiError(error);
+          resolve(false);
+        }
+      };
+
+      check();
+    });
   }, []);
 
   // Check Dropbox API on mount
   React.useEffect(() => {
     waitForDropboxAPI().then(ready => {
-      if (!ready) {
-        console.error('Dropbox API failed to load after retries');
+      setIsApiReady(ready);
+      if (!ready && !apiError) {
+        const error = 'Failed to initialize Dropbox API';
+        setApiError(error);
         toast({
           title: "Dropbox Integration Error",
-          description: "Dropbox API failed to load. Please refresh and try again.",
+          description: error,
           variant: "destructive",
         });
-      } else {
-        console.log('Dropbox API successfully loaded and ready');
       }
     });
-  }, [waitForDropboxAPI, toast]);
+  }, [waitForDropboxAPI, toast, apiError]);
 
   const uploadToS3 = React.useCallback(async (url: string, name: string): Promise<string | null> => {
     try {
@@ -110,9 +139,10 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
     try {
       const apiReady = await waitForDropboxAPI();
       if (!apiReady) {
+        const errorMessage = apiError || 'Dropbox API is not ready';
         toast({
           title: "Dropbox Error",
-          description: "Dropbox API is not ready. Please refresh and try again.",
+          description: errorMessage,
           variant: "destructive",
         });
         return;
@@ -188,14 +218,25 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
         variant: "destructive",
       });
     }
-  }, [onFilesSelected, toast, uploadToS3, waitForDropboxAPI]);
+  }, [onFilesSelected, toast, uploadToS3, waitForDropboxAPI, apiError]);
+
+  if (apiError) {
+    return (
+      <div className={cn("flex flex-col gap-2", className)}>
+        <div className="flex items-center gap-2 text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          <span className="text-sm">Dropbox integration unavailable</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       {children || (
         <Button
           onClick={handleDropboxSelect}
-          disabled={disabled || isUploading}
+          disabled={disabled || isUploading || !isApiReady}
           variant="outline"
           size="sm"
           className="w-full"
