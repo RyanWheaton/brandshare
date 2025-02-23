@@ -730,6 +730,11 @@ export function registerRoutes(app: Express): Server {
       const s3Url = await uploadFileToS3FromUrl(url, name);
       console.log('Successfully transferred file to S3:', s3Url);
 
+      // Set CORS headers
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+
       res.json({ url: s3Url });
     } catch (error) {
       console.error('Error transferring Dropbox file to S3:', error);
