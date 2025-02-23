@@ -155,6 +155,8 @@ function FileList({
       const uploadedFiles = await Promise.all(
         Array.from(event.target.files).map(async (file) => {
           const result = await uploadFileToS3(file);
+          // Track the newly uploaded file
+          setUploadedFiles(prev => [...prev, { url: result.url, timestamp: Date.now() }]);
           return {
             name: result.name,
             url: result.url,
@@ -538,6 +540,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const [activeTab, setActiveTab] = useState<string>("customize");
   const { user } = useAuth();
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Add uploadedFiles state after other state declarations
+  const [uploadedFiles, setUploadedFiles] = useState<{ url: string, timestamp: number }[]>([]);
 
   // Parse and validate id at the start
   const id = params?.id ? parseInt(params.id) : null;
@@ -579,6 +583,30 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       });
     }
   }, [activeTab, id]);
+
+  // Add cleanup effect after other useEffect declarations
+  useEffect(() => {
+    return () => {
+      // Only clean up files that were uploaded in this session but not saved
+      const unsavedFiles = uploadedFiles.filter(file => {
+        // Files older than 5 minutes should be cleaned up
+        return Date.now() - file.timestamp > 300000;
+      });
+
+      if (unsavedFiles.length > 0) {
+        console.log('Cleaning up unsaved files:', unsavedFiles);
+        unsavedFiles.forEach(async (file) => {
+          try {
+            await fetch(file.url, { method: 'DELETE' });
+            console.log('Successfully cleaned up file:', file.url);
+          } catch (error) {
+            console.error('Failed to clean up file:', file.url, error);
+          }
+        });
+      }
+    };
+  }, [uploadedFiles]);
+
 
   const { data: item, isLoading } = useQuery<SharePage | SharePageTemplate>({
     queryKey: [apiEndpoint],
@@ -703,8 +731,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     onSuccess: (data) => {
       if (data === null) {
         console.log('Request was aborted, skipping success handling');
-        return; // Ignore aborted request responses
+        return;
       }
+
+      // Clear tracked files as they are now saved
+      setUploadedFiles([]);
 
       queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
       queryClient.invalidateQueries({ queryKey: [isTemplate ? "/api/templates" : "/api/pages"] });
