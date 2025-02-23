@@ -29,9 +29,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
+    console.log('ErrorBoundary initialized');
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    console.error('ErrorBoundary caught error in getDerivedStateFromError:', error);
     return { hasError: true, error };
   }
 
@@ -51,7 +53,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               {this.state.error?.toString()}
             </pre>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                console.log('Attempting page reload...');
+                window.location.reload();
+              }}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Reload Page
@@ -66,7 +71,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 function Router() {
-  console.log('Router component rendering');
+  useEffect(() => {
+    console.log('Router component mounted');
+  }, []);
 
   return (
     <Switch>
@@ -109,10 +116,19 @@ function Router() {
 }
 
 function App() {
-  console.log('App component rendering');
-
   useEffect(() => {
     console.log('App component mounted');
+
+    // Check if required global dependencies are available
+    console.log('Checking dependencies:', {
+      hasDropbox: !!window.Dropbox,
+      hasReactQuery: !!QueryClientProvider,
+      hasWouter: !!Switch
+    });
+
+    return () => {
+      console.log('App component unmounting');
+    };
   }, []);
 
   return (

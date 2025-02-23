@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Load Dropbox API first -->
     <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="qyu4ndhfnb8k5qp"></script>
+    <!-- Load React application -->
+    <script type="module" src="/src/main.tsx" async></script>
     <script>
       // On page load or when changing themes, best to add inline in `head` to avoid FOUC
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -17,44 +19,36 @@
         document.documentElement.classList.remove('dark')
       }
 
-      // Add initialization check for Dropbox API
-      window.onload = function() {
+      // Initialize error tracking
+      window.addEventListener('error', function(event) {
+        console.error('Global error caught:', event.error);
+      });
+
+      // Track Dropbox API loading
+      window.addEventListener('load', function() {
         if (!window.Dropbox) {
           console.error('Dropbox API failed to load');
         } else {
           console.log('Dropbox API loaded successfully');
         }
-      }
+      });
     </script>
   </head>
   <body>
-    <div id="root"></div>
-    <script>
-      console.log('HTML loaded, waiting for Dropbox API...');
-      // Ensure Dropbox API is loaded before loading React
-      const checkDropbox = setInterval(() => {
-        if (window.Dropbox) {
-          clearInterval(checkDropbox);
-          console.log('Dropbox API ready, loading React application...');
-          const script = document.createElement('script');
-          script.type = 'module';
-          script.src = '/src/main.tsx';
-          document.body.appendChild(script);
-        }
-      }, 100);
-
-      // Timeout after 5 seconds
-      setTimeout(() => {
-        clearInterval(checkDropbox);
-        if (!window.Dropbox) {
-          console.error('Dropbox API failed to load after timeout');
-          // Load React anyway to show error UI
-          const script = document.createElement('script');
-          script.type = 'module';
-          script.src = '/src/main.tsx';
-          document.body.appendChild(script);
-        }
-      }, 5000);
-    </script>
+    <div id="root">
+      <!-- Add loading state -->
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="text-align: center;">
+          <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+          <p style="margin-top: 20px; color: #666;">Loading application...</p>
+        </div>
+      </div>
+    </div>
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </body>
 </html>
