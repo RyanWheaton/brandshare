@@ -827,6 +827,34 @@ export function registerRoutes(app: Express): Server {
     }
   }) as RequestHandler);
 
+  // Add this new endpoint after the other routes
+  app.get("/api/proxy/pdf", async (req: Request, res: Response) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) {
+        return res.status(400).json({ error: "URL parameter is required" });
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        return res.status(response.status).json({ 
+          error: `Failed to fetch PDF: ${response.statusText}` 
+        });
+      }
+
+      // Forward the PDF content and headers
+      res.setHeader('ContentType', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      response.body.pipe(res);
+    } catch (error) {
+      console.error('Error proxying PDF:', error);
+      res.status(500).json({ 
+        error: "Failed to proxy PDF",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
