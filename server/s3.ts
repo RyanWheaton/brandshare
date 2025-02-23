@@ -21,7 +21,7 @@ interface TempUpload {
 }
 
 const tempUploads = new Map<string, TempUpload>();
-const TEMP_FILE_TTL = 1000 * 60 * 60; // 1 hour TTL
+const TEMP_FILE_TTL = 1000 * 60 * 5; // 5 minutes TTL for testing
 
 // Generate a unique filename to avoid collisions
 export function generateUniqueFileName(originalName: string): string {
@@ -79,6 +79,7 @@ export async function uploadFileToS3(
       url,
       timestamp: Date.now()
     });
+    console.log('Added to temporary uploads:', { url, key, totalTracked: tempUploads.size });
 
     return url;
   } catch (error) {
@@ -131,6 +132,7 @@ export async function deleteFileFromS3(fileUrl: string): Promise<void> {
 
     // Remove from temp uploads if exists
     tempUploads.delete(fileUrl);
+    console.log('Removed from temporary uploads. Remaining tracked files:', tempUploads.size);
   } catch (error) {
     console.error('Error deleting from S3:', error);
     throw new Error('Failed to delete file from S3');
@@ -139,13 +141,21 @@ export async function deleteFileFromS3(fileUrl: string): Promise<void> {
 
 // Mark file as permanent (won't be deleted by cleanup)
 export function markFileAsPermanent(fileUrl: string): void {
+  const wasTracked = tempUploads.has(fileUrl);
   tempUploads.delete(fileUrl);
+  console.log('Marked file as permanent:', { fileUrl, wasTracked, remainingTracked: tempUploads.size });
 }
 
 // Cleanup temporary files
 export async function cleanupTempFiles(): Promise<void> {
+  console.log('Starting cleanup of temporary files...', { trackedFiles: tempUploads.size });
   const now = Date.now();
-  for (const [url, upload] of tempUploads.entries()) {
+
+  // Convert Map entries to array to avoid TypeScript iterator issues
+  const entries = Array.from(tempUploads.entries());
+
+  for (const [url, upload] of entries) {
+    console.log('Checking file:', { url, age: now - upload.timestamp, ttl: TEMP_FILE_TTL });
     if (now - upload.timestamp > TEMP_FILE_TTL) {
       try {
         await deleteFileFromS3(url);
@@ -155,10 +165,12 @@ export async function cleanupTempFiles(): Promise<void> {
       }
     }
   }
+  console.log('Temporary file cleanup complete.', { remainingFiles: tempUploads.size });
 }
 
-// Start cleanup interval
-setInterval(cleanupTempFiles, TEMP_FILE_TTL / 2);
+// Start cleanup interval - run every minute
+const CLEANUP_INTERVAL = 1000 * 60; // 1 minute
+setInterval(cleanupTempFiles, CLEANUP_INTERVAL);
 
 // Upload file to S3 from a URL
 export async function uploadFileToS3FromUrl(
