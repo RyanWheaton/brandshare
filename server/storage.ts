@@ -1,8 +1,8 @@
-import { users, sharePages, sharePageTemplates, type User, type InsertUser, type SharePage, type InsertSharePage, type Annotation, type InsertAnnotation, type PageStats, type SharePageTemplate, type InsertTemplate } from "@shared/schema";
+import { users, sharePages, sharePageTemplates, type User, type InsertUser, type SharePage, type InsertSharePage, type Annotation, type InsertAnnotation, type PageStats, type SharePageTemplate, type InsertTemplate, temporaryUploads, type TemporaryUpload, type InsertTemporaryUpload } from "@shared/schema";
 import session from "express-session";
 import { nanoid } from "nanoid";
 import { db } from "./db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, lt, inArray } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { annotations, pageStats } from "@shared/schema";
@@ -58,6 +58,10 @@ export interface IStorage {
   recordVisitDuration(sharePageId: number, duration: number, ip?: string): Promise<void>;
   getAverageVisitDuration(sharePageId: number): Promise<number>;
   getDailyVisitDurations(sharePageId: number): Promise<Record<string, number[]>>;
+  createTemporaryUpload(upload: InsertTemporaryUpload & { userId: number, expiresAt: Date }): Promise<TemporaryUpload>;
+  getExpiredTemporaryUploads(): Promise<TemporaryUpload[]>;
+  deleteTemporaryUpload(id: number): Promise<void>;
+  markTemporaryUploadsAsSaved(fileUrls: string[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -726,6 +730,49 @@ export class DatabaseStorage implements IStorage {
   async getDailyVisitDurations(sharePageId: number): Promise<Record<string, number[]>> {
     const stats = await this.getPageStats(sharePageId);
     return (stats?.visitDurations as Record<string, number[]>) || {};
+  }
+
+  async createTemporaryUpload(upload: InsertTemporaryUpload & { userId: number, expiresAt: Date }): Promise<TemporaryUpload> {
+    const [result] = await db
+      .insert(temporaryUploads)
+      .values(upload)
+      .returning();
+    return result;
+  }
+
+  async getExpiredTemporaryUploads(): Promise<TemporaryUpload[]> {
+    return db
+      .select()
+      .from(temporaryUploads)
+      .where(
+        and(
+          eq(temporaryUploads.status, 'pending'),
+          lt(temporaryUploads.expiresAt, new Date())
+        )
+      );
+  }
+
+  async deleteTemporaryUpload(id: number): Promise<void> {
+    await db
+      .delete(temporaryUploads)
+      .where(eq(temporaryUploads.id, id));
+  }
+
+  async markTemporaryUploadsAsSaved(fileUrls: string[]): Promise<void> {
+    if (!fileUrls.length) return;
+
+    await db
+      .update(temporaryUploads)
+      .set({
+        status: 'saved',
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          inArray(temporaryUploads.fileUrl, fileUrls),
+          eq(temporaryUploads.status, 'pending')
+        )
+      );
   }
 }
 

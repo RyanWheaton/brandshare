@@ -11,6 +11,9 @@ import multer from 'multer';
 import { uploadFileToS3 } from './s3';
 import { uploadFileToS3FromUrl } from './s3';
 import { isAllowedFileType, isAllowedMimeType, formatAllowedTypes } from "@shared/file-types";
+import { deleteFileFromS3 } from './s3';
+import { temporaryUploads, insertTemporaryUploadSchema } from "@shared/schema";
+import { add } from "date-fns";
 
 // Configure multer to store files in memory
 const upload = multer({
@@ -220,6 +223,14 @@ export function registerRoutes(app: Express): Server {
       }
 
       const page = await storage.createSharePage(req.user!.id, parsed.data);
+
+      // Mark uploaded files as saved
+      const fileUrls = parsed.data.files
+        .filter(file => file.storageType === 's3')
+        .map(file => file.url);
+
+      await storage.markTemporaryUploadsAsSaved(fileUrls);
+
       res.status(201).json(page);
     } catch (error) {
       console.error('Error creating share page:', error);
@@ -468,8 +479,27 @@ export function registerRoutes(app: Express): Server {
     const page = await storage.getSharePage(parseInt(req.params.id));
     if (!page || page.userId !== req.user!.id) return res.sendStatus(404);
 
-    await storage.deleteSharePage(page.id);
-    res.sendStatus(204);
+    try {
+      // Delete all S3 files associated with this page
+      const files = page.files as FileObject[];
+      if (files && Array.isArray(files)) {
+        await Promise.all(
+          files
+            .filter(file => file.storageType === 's3' && file.url)
+            .map(file => deleteFileFromS3(file.url))
+        );
+      }
+
+      // Then delete the page itself
+      await storage.deleteSharePage(page.id);
+      res.sendStatus(204);
+    } catch (error) {
+      console.error('Error deleting share page and associated files:', error);
+      res.status(500).json({ 
+        error: "Failed to delete share page and associated files",
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
   }) as RequestHandler);
 
   // Template endpoints
@@ -643,18 +673,21 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      console.log('File received:', {
-        filename: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-      });
-
       try {
         const url = await uploadFileToS3(
           req.file.buffer,
           req.file.originalname,
           req.file.mimetype
         );
+
+        // Track the temporary upload
+        const expiresAt = add(new Date(), { hours: 24 }); // Expire after 24 hours
+        await storage.createTemporaryUpload({
+          userId: req.user!.id,
+          fileUrl: url,
+          fileName: req.file.originalname,
+          expiresAt
+        });
 
         console.log('File successfully uploaded to S3:', url);
         res.json({ url });
@@ -667,6 +700,31 @@ export function registerRoutes(app: Express): Server {
       }
     });
   }) as RequestHandler);
+
+  // Add cleanup endpoint for temporary uploads
+  app.post("/api/uploads/cleanup", async (req: CustomRequest, res: Response) => {
+    try {
+      const expiredUploads = await storage.getExpiredTemporaryUploads();
+
+      // Delete expired files from S3 and database
+      await Promise.all(
+        expiredUploads.map(async (upload) => {
+          try {
+            await deleteFileFromS3(upload.fileUrl);
+            await storage.deleteTemporaryUpload(upload.id);
+          } catch (error) {
+            console.error(`Failed to delete expired upload ${upload.id}:`, error);
+          }
+        })
+      );
+
+      res.json({ message: "Cleanup completed successfully" });
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      res.status(500).json({ error: "Failed to clean up temporary uploads" });
+    }
+  });
+
 
   // Add Dropbox URL validation schema and new endpoint for uploading Dropbox files to S3
   app.post('/api/upload/dropbox', (async (req: CustomRequest, res: Response) => {
@@ -723,4 +781,13 @@ export function registerRoutes(app: Express): Server {
 
   const httpServer = createServer(app);
   return httpServer;
+}
+
+interface FileObject {
+  id: number;
+  url: string | null;
+  name: string;
+  size: number;
+  type: string;
+  storageType: string;
 }
