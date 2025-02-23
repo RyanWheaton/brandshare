@@ -129,6 +129,30 @@ const updateProfileSchema = z.object({
   brandSecondaryColor: z.string().min(1, "Secondary color is required"),
 });
 
+function startCleanupJob(app: Express) {
+  // Run cleanup every hour
+  setInterval(async () => {
+    try {
+      const expiredUploads = await storage.getExpiredTemporaryUploads();
+
+      // Delete expired files from S3 and database
+      await Promise.all(
+        expiredUploads.map(async (upload) => {
+          try {
+            await deleteFileFromS3(upload.fileUrl);
+            await storage.deleteTemporaryUpload(upload.id);
+            console.log(`Cleaned up expired upload ${upload.id}: ${upload.fileUrl}`);
+          } catch (error) {
+            console.error(`Failed to delete expired upload ${upload.id}:`, error);
+          }
+        })
+      );
+    } catch (error) {
+      console.error('Error during automated cleanup:', error);
+    }
+  }, 60 * 60 * 1000); // Run every hour
+}
+
 export function registerRoutes(app: Express): Server {
   // Add health check endpoint as a separate middleware before other routes
   app.get("/api/healthcheck", (req: Request, res: Response) => {
@@ -138,6 +162,7 @@ export function registerRoutes(app: Express): Server {
 
   setupAuth(app);
   setupDropbox(app);
+  startCleanupJob(app); // Start the cleanup job
 
 
   // Add user profile update endpoint
