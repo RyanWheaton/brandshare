@@ -1,0 +1,99 @@
+Issue Description:
+The Dropbox Chooser is no longer opening the file picker window. Based on the provided files (index.html and dropbox-chooser.tsx), the likely issues are:
+Dropbox API may not be loading properly in the app
+The index.html file includes the Dropbox API script, but it may not be loading synchronously.
+The dropbox-chooser.tsx component checks for window.Dropbox on mount, which may execute before the API is available.
+The Dropbox Chooser function may not be binding correctly
+window.Dropbox.choose is being called, but if window.Dropbox is undefined, the function fails silently.
+Button may be disabled because of a missing Dropbox instance
+The button has disabled={!window.Dropbox}, which could prevent the chooser from opening.
+
+Steps for AI Agent to Fix the Issue
+1. Ensure Dropbox API Loads Properly
+✅ Fix: Add an event listener in index.html to ensure the API is ready before React loads. Modify index.html:
+<script>
+  window.addEventListener('load', function () {
+    if (!window.Dropbox) {
+      console.error('Dropbox API failed to load. Retrying in 2 seconds...');
+      setTimeout(() => {
+        if (!window.Dropbox) {
+          console.error('Dropbox API still not loaded after retry. Ensure your API key is correct.');
+        } else {
+          console.log('Dropbox API successfully loaded after retry.');
+        }
+      }, 2000);
+    } else {
+      console.log('Dropbox API loaded successfully');
+    }
+  });
+</script>
+
+2. Modify dropbox-chooser.tsx to Handle API Load Issues
+✅ Fix: Check for Dropbox API availability before opening the chooser.
+Modify handleDropboxSelect to wait for the API if it's not loaded immediately:
+const waitForDropboxAPI = async (maxRetries = 5) => {
+  let retries = 0;
+  while (!window.Dropbox && retries < maxRetries) {
+    console.warn(`Dropbox API not available. Retrying... (${retries + 1}/${maxRetries})`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    retries++;
+  }
+  if (!window.Dropbox) {
+    console.error('Dropbox API did not load after retries.');
+    return false;
+  }
+  console.log('Dropbox API successfully loaded.');
+  return true;
+};
+
+const handleDropboxSelect = React.useCallback(async () => {
+  const apiReady = await waitForDropboxAPI();
+  if (!apiReady) {
+    toast({
+      title: "Dropbox Error",
+      description: "Dropbox API failed to load. Please refresh the page.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  console.log("Opening Dropbox chooser...");
+  window.Dropbox.choose({
+    success: async (files) => {
+      console.log('Files selected:', files);
+      // Existing upload logic...
+    },
+    cancel: () => {
+      console.log('Dropbox file selection cancelled');
+    },
+    linkType: "direct",
+    multiselect: true,
+    extensions: ['images', '.pdf', 'video'],
+  });
+}, [onFilesSelected, toast, uploadToS3]);
+
+3. Ensure Button is Always Clickable
+✅ Fix: Allow button to be clicked even if window.Dropbox is undefined, and handle the error gracefully.
+Modify the Button component to always allow clicks:
+<Button
+  onClick={handleDropboxSelect}
+  disabled={disabled || isUploading}
+  variant="outline"
+  size="sm"
+  className="w-full"
+>
+  {isUploading ? (
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  ) : (
+    <Plus className="mr-2 h-4 w-4" />
+  )}
+  {isUploading ? `Uploading ${currentFileName}...` : "Select Files from Dropbox"}
+</Button>
+
+Expected Outcome After Fix
+🚀 This fix ensures: ✅ Dropbox API loads before React attempts to use it.
+✅ If Dropbox API fails to load initially, it retries gracefully.
+✅ Button always remains clickable, and users see a proper error message if Dropbox is unavailable.
+This should fix the Dropbox Chooser issue and allow the file picker to open again.
+
+
