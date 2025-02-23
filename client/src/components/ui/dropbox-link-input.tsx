@@ -8,6 +8,7 @@ import { queryClient } from "@/lib/queryClient";
 import { FileObject } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { getAllowedExtensions, formatAllowedTypes } from "@shared/file-types";
 
 interface DropboxLinkInputProps {
   onSuccess?: (file: FileObject) => void;
@@ -16,15 +17,6 @@ interface DropboxLinkInputProps {
   onChange?: (value: string) => void;
   fileType?: string;
 }
-
-const SUPPORTED_FILE_TYPES = [
-  // Images
-  'jpg', 'jpeg', 'png', 'gif',
-  // PDFs
-  'pdf',
-  // Videos
-  'mp4', 'mov'
-];
 
 function convertDropboxLink(url: string): string {
   if (!url.includes('dropbox.com')) {
@@ -63,11 +55,9 @@ function getFileExtension(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() || '';
 }
 
-function validateFileType(filename: string, fileType?: string): boolean {
-  if (fileType === "image/*") {
-    return ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(filename));
-  }
-  return SUPPORTED_FILE_TYPES.includes(getFileExtension(filename));
+function validateFileType(filename: string): boolean {
+  const ext = getFileExtension(filename);
+  return getAllowedExtensions().includes(ext);
 }
 
 export function DropboxLinkInput({ onSuccess, className, value, onChange, fileType }: DropboxLinkInputProps) {
@@ -106,8 +96,8 @@ export function DropboxLinkInput({ onSuccess, className, value, onChange, fileTy
         const urlParts = dropboxUrl.split('/');
         const filename = urlParts[urlParts.length - 1].split('?')[0];
 
-        if (!validateFileType(filename, fileType)) {
-          throw new Error(`Unsupported file type. ${fileType === "image/*" ? "Only image files are allowed." : `Supported types are: ${SUPPORTED_FILE_TYPES.join(', ')}`}`);
+        if (!validateFileType(filename)) {
+          throw new Error(`Unsupported file type. ${formatAllowedTypes()}`);
         }
 
         const response = await fetch('/api/files/dropbox', {

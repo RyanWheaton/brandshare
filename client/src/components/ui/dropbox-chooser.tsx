@@ -3,7 +3,7 @@ import { Button } from "./button";
 import { Plus, Loader2 } from "lucide-react";
 import type { FileObject } from "@shared/schema";
 import { cn, convertDropboxUrl, getFileType } from "@/lib/utils";
-import { getAllowedExtensions } from "@shared/file-types";
+import { getAllowedExtensions, isAllowedFileType, formatAllowedTypes } from "@shared/file-types";
 
 declare global {
   interface Window {
@@ -61,6 +61,11 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
               const fileType = getFileType(file.name);
               const url = convertDropboxUrl(file.link);
 
+              // Validate file type
+              if (!isAllowedFileType(file.name, fileType)) {
+                throw new Error(`Unsupported file type. ${formatAllowedTypes()}`);
+              }
+
               // Upload to S3
               const s3Url = await uploadToS3(url, file.name);
 
@@ -77,6 +82,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           onFilesSelected(uploadedFiles);
         } catch (error) {
           console.error('Upload failed:', error);
+          // Re-throw to trigger error handling in the UI
+          throw error;
         } finally {
           setIsUploading(false);
         }
