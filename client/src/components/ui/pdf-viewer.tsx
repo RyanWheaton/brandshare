@@ -41,7 +41,6 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
 
     const response = await fetch(validatedUrl, {
       method: 'GET',
-      mode: 'cors',
       credentials: 'omit',
       signal: controller.signal,
       headers: {
