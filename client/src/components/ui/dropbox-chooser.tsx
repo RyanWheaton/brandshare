@@ -77,18 +77,18 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   }, []);
 
   const handleDropboxSelect = React.useCallback(async () => {
-    // Check if Dropbox API is available
-    if (!window.Dropbox) {
-      console.error('Dropbox API not available');
-      toast({
-        title: "Dropbox Not Available",
-        description: "Please try again later or use regular file upload.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
+      // Verify Dropbox API is properly loaded
+      if (typeof window.Dropbox?.choose !== 'function') {
+        console.error('Dropbox API not properly initialized');
+        toast({
+          title: "Dropbox Not Available",
+          description: "The Dropbox chooser is not properly initialized. Please refresh the page and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       window.Dropbox.choose({
         success: async (files) => {
           try {
@@ -165,7 +165,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       {children || (
         <Button
           onClick={handleDropboxSelect}
-          disabled={disabled || isUploading || !window.Dropbox}
+          disabled={disabled || isUploading || typeof window.Dropbox?.choose !== 'function'}
           variant="outline"
           size="sm"
           className="w-full"
