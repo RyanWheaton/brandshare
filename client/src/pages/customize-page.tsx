@@ -11,12 +11,23 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { convertDropboxUrl } from "@/lib/utils";
-import { Plus, Image as ImageIcon, Film, FileText, Loader2, Eye, Users, MessageCircle, Save, X, ExternalLink, Copy, Check } from "lucide-react";
+import { Plus, Image as ImageIcon, Film, FileText, Loader2, ExternalLink, Copy, Check, ChevronLeft, Upload, AlertCircle, CalendarIcon } from "lucide-react";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
 import { SortableFiles } from "@/components/ui/sortable-files";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Analytics } from "@/components/ui/analytics";
-import { Form } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { Separator } from "@/components/ui/separator";
+import { FontSelect } from "@/components/ui/font-select";
+import { Slider } from "@/components/ui/slider";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TipTapEditor } from "@/components/ui/tiptap-editor";
 
 // Type definitions
 interface FileObject {
@@ -561,13 +572,398 @@ function CustomizePage({ params, isTemplate = false }: CustomizePageProps) {
         </TabsList>
         <TabsContent value="customize">
           <Form {...form}>
-            <form className="space-y-4">
-              <FileList
-                files={form.getValues().files}
-                onUpdateFile={handleFileUpdate}
-                onAddFiles={handleAddFiles}
-                form={form}
-              />
+            <form className="space-y-8">
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <TipTapEditor
+                          content={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Accordion type="single" collapsible defaultValue="files">
+                <AccordionItem value="files">
+                  <AccordionTrigger>Files</AccordionTrigger>
+                  <AccordionContent>
+                    <FileList
+                      files={form.getValues().files}
+                      onUpdateFile={handleFileUpdate}
+                      onAddFiles={handleAddFiles}
+                      form={form}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="appearance">
+                  <AccordionTrigger>Appearance</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="backgroundColor"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Background Color</FormLabel>
+                              <FormControl>
+                                <ColorPicker {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="textColor"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Text Color</FormLabel>
+                              <FormControl>
+                                <ColorPicker {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="titleFont"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Title Font</FormLabel>
+                              <FormControl>
+                                <FontSelect {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="descriptionFont"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description Font</FormLabel>
+                              <FormControl>
+                                <FontSelect {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="titleFontSize"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Title Font Size</FormLabel>
+                              <FormControl>
+                                <Slider
+                                  min={12}
+                                  max={72}
+                                  step={1}
+                                  value={[field.value]}
+                                  onValueChange={([value]) => field.onChange(value)}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-center">
+                                {field.value}px
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="descriptionFontSize"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description Font Size</FormLabel>
+                              <FormControl>
+                                <Slider
+                                  min={12}
+                                  max={48}
+                                  step={1}
+                                  value={[field.value]}
+                                  onValueChange={([value]) => field.onChange(value)}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-center">
+                                {field.value}px
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="logo">
+                  <AccordionTrigger>Logo</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="logoUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Logo URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            {field.value && (
+                              <LogoPreview url={field.value} size={form.getValues().logoSize || 200} />
+                            )}
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="logoSize"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Logo Size</FormLabel>
+                            <FormControl>
+                              <Slider
+                                min={50}
+                                max={500}
+                                step={10}
+                                value={[field.value || 200]}
+                                onValueChange={([value]) => field.onChange(value)}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              {field.value || 200}px
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="footer">
+                  <AccordionTrigger>Footer</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="showFooter"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between">
+                            <FormLabel>Show Footer</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      {form.getValues().showFooter && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="footerText"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Footer Text</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="footerBackgroundColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Footer Background Color</FormLabel>
+                                  <FormControl>
+                                    <ColorPicker {...field} />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="footerTextColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Footer Text Color</FormLabel>
+                                  <FormControl>
+                                    <ColorPicker {...field} />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="footerLogoUrl"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Footer Logo URL</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                {field.value && (
+                                  <LogoPreview
+                                    url={field.value}
+                                    size={form.getValues().footerLogoSize || 150}
+                                  />
+                                )}
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="footerLogoSize"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Footer Logo Size</FormLabel>
+                                <FormControl>
+                                  <Slider
+                                    min={50}
+                                    max={300}
+                                    step={10}
+                                    value={[field.value || 150]}
+                                    onValueChange={([value]) => field.onChange(value)}
+                                  />
+                                </FormControl>
+                                <FormDescription className="text-center">
+                                  {field.value || 150}px
+                                </FormDescription>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="footerLogoLink"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Footer Logo Link</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="url" />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {!isTemplate && (
+                  <AccordionItem value="security">
+                    <AccordionTrigger>Security</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password Protection</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="password"
+                                  {...field}
+                                  placeholder="Leave empty for no password"
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Optional: Set a password to restrict access
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="expiresAt"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Expiration Date</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(new Date(field.value), "PPP")
+                                      ) : (
+                                        <span>No expiration</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value ? new Date(field.value) : undefined}
+                                    onSelect={(date) =>
+                                      field.onChange(date ? date.toISOString() : undefined)
+                                    }
+                                    disabled={(date) =>
+                                      date < new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormDescription>
+                                Optional: Set an expiration date
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+              </Accordion>
             </form>
           </Form>
         </TabsContent>
