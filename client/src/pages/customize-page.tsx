@@ -590,15 +590,26 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
       // Only clean up files that were uploaded in this session but not saved
       const unsavedFiles = uploadedFiles.filter(file => {
         // Files older than 5 minutes should be cleaned up
-        return Date.now() - file.timestamp > 300000;
+        const fileAge = Date.now() - file.timestamp;
+        // Skip cleanup if component is remounting due to React.StrictMode
+        if (fileAge < 1000) return false; // Skip files less than 1 second old
+        return fileAge > 300000; // 5 minutes
       });
 
       if (unsavedFiles.length > 0) {
         console.log('Cleaning up unsaved files:', unsavedFiles);
         unsavedFiles.forEach(async (file) => {
           try {
-            await fetch(file.url, { method: 'DELETE' });
-            console.log('Successfully cleaned up file:', file.url);
+            const fileUrl = new URL(file.url);
+            const key = fileUrl.pathname.substring(1); // Remove leading slash
+
+            // Only attempt cleanup for s3 files
+            if (fileUrl.hostname.includes('amazonaws.com')) {
+              await fetch(`/api/files/${encodeURIComponent(key)}`, {
+                method: 'DELETE',
+              });
+              console.log('Successfully cleaned up file:', file.url);
+            }
           } catch (error) {
             console.error('Failed to clean up file:', file.url, error);
           }
@@ -833,8 +844,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Not Found</h1>
           <p className="text-muted-foreground">
-            This {isTemplate ? 'template' : 'share page'} doesn't exist or has been removed.
-          </p>
+            This {isTemplate ? 'template' : 'share page'} doesn't exist or has been removed.          </p>
         </div>
       </div>
     );
