@@ -100,17 +100,6 @@ export const pageStats = pgTable("page_stats", {
   averageVisitDuration: integer("average_visit_duration").default(0).notNull(),
 });
 
-export const temporaryUploads = pgTable("temporary_uploads", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  fileUrl: text("file_url").notNull(),
-  fileName: text("file_name").notNull(),
-  storageType: text("storage_type").notNull().default('s3'),
-  status: text("status").notNull().default('pending'),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-});
-
 export const insertTemplateSchema = createInsertSchema(sharePageTemplates).pick({
   title: true,
   description: true,
@@ -208,12 +197,6 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(6, "New password must be at least 6 characters"),
 });
 
-export const insertTemporaryUploadSchema = createInsertSchema(temporaryUploads).pick({
-  fileUrl: true,
-  fileName: true,
-  storageType: true,
-});
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type SharePage = typeof sharePages.$inferSelect;
@@ -225,5 +208,3 @@ export type PageStats = typeof pageStats.$inferSelect;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 export type SharePageTemplate = typeof sharePageTemplates.$inferSelect;
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
-export type TemporaryUpload = typeof temporaryUploads.$inferSelect;
-export type InsertTemporaryUpload = z.infer<typeof insertTemporaryUploadSchema>;
