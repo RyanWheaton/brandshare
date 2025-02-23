@@ -47,6 +47,8 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
   };
 
   const handleDropboxSelect = React.useCallback(async () => {
+    if (isUploading) return; // Prevent multiple selections while uploading
+
     window.Dropbox?.choose({
       success: async (files) => {
         try {
@@ -81,30 +83,46 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       },
       cancel: () => {
         console.log('Dropbox file selection cancelled');
+        setIsUploading(false);
       },
       linkType: "direct",
       multiselect: false,
       extensions: ['images', '.pdf'],
     });
-  }, [onFilesSelected]);
+  }, [onFilesSelected, isUploading]);
 
+  // If children are provided, wrap them with the click handler
+  if (children) {
+    return (
+      <div 
+        onClick={!isUploading ? handleDropboxSelect : undefined} 
+        className={cn(className, isUploading && "cursor-not-allowed opacity-50")}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  // Default button UI
   return (
-    <div onClick={handleDropboxSelect} className={cn(className)}>
-      {children || (
-        <Button
-          disabled={disabled || isUploading}
-          variant="outline"
-          size="sm"
-          className={cn(className)}
-        >
-          {isUploading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="mr-2 h-4 w-4" />
-          )}
-          {isUploading ? "Uploading..." : "Select Files from Dropbox"}
-        </Button>
+    <Button
+      disabled={disabled || isUploading}
+      variant="outline"
+      size="sm"
+      onClick={handleDropboxSelect}
+      className={cn("min-w-[180px]", className)}
+    >
+      {isUploading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Uploading...
+        </>
+      ) : (
+        <>
+          <Plus className="mr-2 h-4 w-4" />
+          Select Files from Dropbox
+        </>
       )}
-    </div>
+    </Button>
   );
 }
