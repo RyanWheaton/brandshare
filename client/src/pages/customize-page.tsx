@@ -856,7 +856,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <p
                           className="opacity-90"
                           style={{
-                                                        fontFamily: data.descriptionFont || "Inter",
+                            fontFamily:data.descriptionFont || "Inter",
                             fontSize: `${data.descriptionFontSize || 16}px`,
                             color: data.textColor
                           }}
@@ -982,9 +982,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
             >
               {isEditorCollapsed ? (
-                <Maximize2 className="h-4 w-4" />
-              ) : (
                 <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
               )}
               <span className="sr-only">
                 {isEditorCollapsed ? 'Expand Editor' : 'Collapse Editor'}
