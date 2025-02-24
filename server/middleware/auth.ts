@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import type { User } from '@shared/schema';
 
 declare module 'express-session' {
   interface SessionData {
@@ -7,13 +6,8 @@ declare module 'express-session' {
   }
 }
 
-interface AuthenticatedRequest extends Request {
-  user?: User;
-  isAuthenticated(): boolean;
-}
-
-export const requireAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.userId) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   next();

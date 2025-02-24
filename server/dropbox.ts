@@ -1,5 +1,5 @@
 import { Dropbox } from "dropbox";
-import type { Express, Request, Response } from "express";
+import type { Express } from "express";
 import { storage } from "./storage";
 import type { User } from "@shared/schema";
 
@@ -7,8 +7,20 @@ const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY!;
 const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET!;
 const PORT = process.env.PORT || 5000;
 
-interface DropboxAuthRequest extends Request {
-  user?: User;
+interface AuthenticatedRequest extends Express.Request {
+  user: User & {
+    id: number;
+    email: string;
+    username: string;
+    password: string;
+    dropboxToken: string | null;
+    resetToken: string | null;
+    resetTokenExpiresAt: Date | null;
+    emailVerified: boolean;
+    logoUrl: string | null;
+    brandPrimaryColor: string | null;
+    brandSecondaryColor: string | null;
+  };
   isAuthenticated(): boolean;
 }
 
@@ -18,7 +30,7 @@ const REDIRECT_URI = process.env.REPLIT_DEV_DOMAIN
   : `http://localhost:${PORT}/api/dropbox/callback`;
 
 export function setupDropbox(app: Express) {
-  app.get("/api/dropbox/auth", async (req: DropboxAuthRequest, res: Response) => {
+  app.get("/api/dropbox/auth", async (req: AuthenticatedRequest, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -32,7 +44,7 @@ export function setupDropbox(app: Express) {
     }
   });
 
-  app.get("/api/dropbox/callback", async (req: DropboxAuthRequest, res: Response) => {
+  app.get("/api/dropbox/callback", async (req: AuthenticatedRequest, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const code = req.query.code as string;
 
@@ -63,7 +75,7 @@ export function setupDropbox(app: Express) {
       }
 
       const result = await tokenResponse.json();
-      const user = await storage.updateUserDropboxToken(req.user!.id, result.access_token);
+      const user = await storage.updateUserDropboxToken(req.user.id, result.access_token);
       res.redirect("/?dropbox=connected");
     } catch (error) {
       console.error("Dropbox OAuth error:", error);
@@ -71,9 +83,9 @@ export function setupDropbox(app: Express) {
     }
   });
 
-  app.get("/api/dropbox/files", async (req: DropboxAuthRequest, res: Response) => {
+  app.get("/api/dropbox/files", async (req: AuthenticatedRequest, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const user = await storage.getUser(req.user!.id);
+    const user = await storage.getUser(req.user.id);
     if (!user?.dropboxToken) return res.status(401).send("Dropbox not connected");
 
     try {
