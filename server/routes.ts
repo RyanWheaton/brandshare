@@ -1,17 +1,14 @@
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth, hashPassword, comparePasswords } from "./auth";
+import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, fileSchema, User, changePasswordSchema } from "@shared/schema";
+import { insertSharePageSchema, insertAnnotationSchema, insertTemplateSchema, type User } from "@shared/schema";
 import { setupDropbox } from "./dropbox";
-import session from "express-session";
 import { z } from "zod";
 import geoip from 'geoip-lite';
 import multer from 'multer';
-import { uploadFileToS3 } from './s3';
-import { uploadFileToS3FromUrl } from './s3';
+import { uploadFileToS3, uploadFileToS3FromUrl, markFileAsPermanent } from './s3';
 import { isAllowedFileType, isAllowedMimeType, formatAllowedTypes } from "@shared/file-types";
-import { markFileAsPermanent } from './s3';
 
 // Configure multer to store files in memory
 const upload = multer({
@@ -21,102 +18,15 @@ const upload = multer({
   }
 });
 
-// Extend Express Request type to include our custom properties
-declare module 'express-session' {
-  interface SessionData {
-    authorizedPages?: number[];
-  }
+// Extend Request type for authenticated requests
+interface AuthRequest extends Request {
+  user?: User;
+  isAuthenticated(): this is AuthenticatedRequest;
 }
 
-// Update the User type to match the schema
 interface AuthenticatedRequest extends Request {
-  user: User & {
-    id: number;
-    email: string;
-    username: string;
-    password: string;
-    dropboxToken: string | null;
-    resetToken: string | null;
-    resetTokenExpiresAt: Date | null;
-    emailVerified: boolean;
-    logoUrl: string | null;
-    brandPrimaryColor: string | null;
-    brandSecondaryColor: string | null;
-  };
+  user: User;
 }
-
-interface CustomRequest extends Request {
-  user?: AuthenticatedRequest['user'];
-  sharePage?: any;
-}
-
-type TypedRequestHandler<P = {}, ResBody = any, ReqBody = any> = (
-  req: CustomRequest & { params: P; body: ReqBody },
-  res: Response<ResBody>,
-  next?: NextFunction
-) => Promise<void | Response>;
-
-// Middleware to check password protection
-async function checkSharePageAccess(req: CustomRequest, res: Response, next: NextFunction) {
-  const page = await storage.getSharePageBySlug(req.params.slug);
-  if (!page) return res.sendStatus(404);
-
-  // Check if page has expired
-  if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
-    return res.status(403).json({
-      error: "This share page has expired",
-      expiredAt: page.expiresAt
-    });
-  }
-
-  // Initialize authorized pages if not exists
-  if (!req.session.authorizedPages) {
-    req.session.authorizedPages = [];
-  }
-
-  // If page has no password, or user is already authorized, proceed
-  if (!page.password || req.session.authorizedPages.includes(page.id)) {
-    req.sharePage = page;
-    return next();
-  }
-
-  // Check provided password
-  const providedPassword = req.body.password;
-  if (!providedPassword) {
-    return res.status(401).json({
-      error: "Password required",
-      isPasswordProtected: true
-    });
-  }
-
-  if (providedPassword === page.password) {
-    req.session.authorizedPages.push(page.id);
-    req.sharePage = page;
-    return next();
-  }
-
-  return res.status(401).json({
-    error: "Incorrect password",
-    isPasswordProtected: true
-  });
-}
-
-// Add this function at the top of the file
-async function validateFont(font: string): Promise<boolean> {
-  try {
-    const response = await fetch(`/api/fonts/search?q=${encodeURIComponent(font)}`);
-    const fonts = await response.json();
-    return fonts.some((f: any) => f.family === font);
-  } catch {
-    return true; // Fail open if API is unavailable
-  }
-}
-
-// Add Dropbox URL validation schema
-const dropboxUrlSchema = z.object({
-  url: z.string().url(),
-  name: z.string()
-});
 
 // User profile update schema
 const updateProfileSchema = z.object({
@@ -128,18 +38,16 @@ const updateProfileSchema = z.object({
 });
 
 export function registerRoutes(app: Express): Server {
-  // Add health check endpoint as a separate middleware before other routes
-  app.get("/api/healthcheck", (req: Request, res: Response) => {
-    res.setHeader('Content-Type', 'application/json');
+  // Add health check endpoint
+  app.get("/api/healthcheck", (_req: Request, res: Response) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   setupAuth(app);
   setupDropbox(app);
 
-
   // Add user profile update endpoint
-  app.patch("/api/user/profile", (async (req: AuthenticatedRequest, res: Response) => {
+  app.patch("/api/user/profile", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -150,7 +58,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: parsed.error });
       }
 
-      const updatedUser = await storage.updateUser(req.user.id, parsed.data);
+      const updatedUser = await storage.updateUser(req.user!.id, parsed.data);
       res.json(updatedUser);
     } catch (error) {
       console.error('Error updating user profile:', error);
@@ -159,44 +67,10 @@ export function registerRoutes(app: Express): Server {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-
-  // Add the change password endpoint
-  app.post("/api/change-password", (async (req: CustomRequest, res: Response) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    const parsed = changePasswordSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid request data" });
-    }
-
-    try {
-      const { currentPassword, newPassword } = parsed.data;
-
-      // Verify current password
-      const user = await storage.getUser(req.user!.id);
-      if (!user || !(await comparePasswords(currentPassword, user.password))) {
-        return res.status(400).json({ message: "Current password is incorrect" });
-      }
-
-      // Hash new password
-      const hashedPassword = await hashPassword(newPassword);
-
-      // Update password
-      await storage.updatePassword(user.id, hashedPassword);
-
-      res.json({ message: "Password updated successfully" });
-    } catch (error) {
-      console.error('Error changing password:', error);
-      res.status(500).json({ message: "Failed to change password" });
-    }
-  }) as RequestHandler);
-
-  // Share Pages CRUD
-  app.post("/api/pages", (async (req: CustomRequest, res: Response) => {
+  // Share page endpoints
+  app.post("/api/pages", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertSharePageSchema.safeParse(req.body);
@@ -235,9 +109,9 @@ export function registerRoutes(app: Express): Server {
       console.error('Error creating share page:', error);
       res.status(500).json({ error: "Failed to create share page" });
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.get("/api/pages", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const pages = await storage.getUserSharePages(req.user!.id);
@@ -251,9 +125,9 @@ export function registerRoutes(app: Express): Server {
     );
 
     res.json(pagesWithStats);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.get("/api/pages/:id", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages/:id", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const page = await storage.getSharePage(parseInt(req.params.id));
@@ -261,10 +135,10 @@ export function registerRoutes(app: Express): Server {
 
     const stats = await storage.getPageStats(page.id);
     res.json({ ...page, stats });
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Add analytics endpoint after other page endpoints
-  app.get("/api/pages/:id/analytics", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages/:id/analytics", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -321,10 +195,10 @@ export function registerRoutes(app: Express): Server {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Add visit duration tracking to the public share page endpoint
-  app.post("/api/p/:slug/visit-duration", (async (req: CustomRequest, res: Response) => {
+  app.post("/api/p/:slug/visit-duration", (async (req: Request, res: Response) => {
     try {
       console.log("Recording visit duration for page:", req.params.slug, "Duration:", req.body.duration);
 
@@ -381,31 +255,56 @@ export function registerRoutes(app: Express): Server {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Password verification endpoint
-  app.post("/api/p/:slug/verify", checkSharePageAccess, (async (req: CustomRequest, res: Response) => {
-    const stats = await storage.getPageStats(req.sharePage!.id);
-    res.json({ ...req.sharePage, stats });
-  }) as RequestHandler);
+  app.post("/api/p/:slug/verify", async (req: Request, res: Response) => {
+    const page = await storage.getSharePageBySlug(req.params.slug);
+    if (!page) return res.sendStatus(404);
+
+    // Check if page has expired
+    if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
+      return res.status(403).json({
+        error: "This share page has expired",
+        expiredAt: page.expiresAt
+      });
+    }
+
+    // If page has no password, continue
+    if (!page.password) {
+      const stats = await storage.getPageStats(page.id);
+      return res.json({ ...page, stats });
+    }
+
+    // Check provided password
+    const providedPassword = req.body.password;
+    if (!providedPassword) {
+      return res.status(401).json({
+        error: "Password required",
+        isPasswordProtected: true
+      });
+    }
+
+    if (providedPassword === page.password) {
+      const stats = await storage.getPageStats(page.id);
+      return res.json({ ...page, stats });
+    }
+
+    return res.status(401).json({
+      error: "Incorrect password",
+      isPasswordProtected: true
+    });
+  });
+
 
   // Public share page endpoint
-  app.get("/api/p/:slug", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/p/:slug", (async (req: Request, res: Response) => {
     const page = await storage.getSharePageBySlug(req.params.slug);
     if (!page) return res.sendStatus(404);
 
     // Check expiration
     if (page.expiresAt && new Date(page.expiresAt) < new Date()) {
       return res.status(403).json({ error: "This share page has expired" });
-    }
-
-    // If page is password protected and not authorized, return minimal info
-    if (page.password && !req.session.authorizedPages?.includes(page.id)) {
-      return res.json({
-        id: page.id,
-        title: page.title,
-        isPasswordProtected: true
-      });
     }
 
     // Record page view
@@ -415,9 +314,9 @@ export function registerRoutes(app: Express): Server {
 
     const stats = await storage.getPageStats(page.id);
     res.json({ ...page, stats });
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.patch("/api/pages/:id", (async (req: CustomRequest, res: Response) => {
+  app.patch("/api/pages/:id", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertSharePageSchema.partial().safeParse(req.body);
@@ -429,25 +328,6 @@ export function registerRoutes(app: Express): Server {
     if (!page || page.userId !== req.user!.id) return res.sendStatus(404);
 
     try {
-      // Validate fonts if they are being updated
-      if (parsed.data.titleFont) {
-        const isValidFont = await validateFont(parsed.data.titleFont);
-        if (!isValidFont) {
-          return res.status(400).json({
-            error: "Selected title font must be available in Google Fonts"
-          });
-        }
-      }
-
-      if (parsed.data.descriptionFont) {
-        const isValidFont = await validateFont(parsed.data.descriptionFont);
-        if (!isValidFont) {
-          return res.status(400).json({
-            error: "Selected description font must be available in Google Fonts"
-          });
-        }
-      }
-
       // Validate expiration date if provided
       if (parsed.data.expiresAt) {
         const expirationDate = new Date(parsed.data.expiresAt);
@@ -479,9 +359,9 @@ export function registerRoutes(app: Express): Server {
       console.error('Error updating share page:', error);
       res.status(500).json({ error: "Failed to update share page" });
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.delete("/api/pages/:id", (async (req: CustomRequest, res: Response) => {
+  app.delete("/api/pages/:id", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const page = await storage.getSharePage(parseInt(req.params.id));
@@ -489,10 +369,10 @@ export function registerRoutes(app: Express): Server {
 
     await storage.deleteSharePage(page.id);
     res.sendStatus(204);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Template endpoints
-  app.post("/api/templates", (async (req: CustomRequest, res: Response) => {
+  app.post("/api/templates", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertTemplateSchema.safeParse(req.body);
@@ -502,25 +382,25 @@ export function registerRoutes(app: Express): Server {
 
     const template = await storage.createTemplate(req.user!.id, parsed.data);
     res.status(201).json(template);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.get("/api/templates", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/templates", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const templates = await storage.getUserTemplates(req.user!.id);
     res.json(templates);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.get("/api/templates/:id", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/templates/:id", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
     if (!template || template.userId !== req.user!.id) return res.sendStatus(404);
 
     res.json(template);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.patch("/api/templates/:id", (async (req: CustomRequest, res: Response) => {
+  app.patch("/api/templates/:id", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = insertTemplateSchema.partial().safeParse(req.body);
@@ -533,9 +413,9 @@ export function registerRoutes(app: Express): Server {
 
     const updatedTemplate = await storage.updateTemplate(template.id, parsed.data);
     res.json(updatedTemplate);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.delete("/api/templates/:id", (async (req: CustomRequest, res: Response) => {
+  app.delete("/api/templates/:id", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
@@ -543,9 +423,9 @@ export function registerRoutes(app: Express): Server {
 
     await storage.deleteTemplate(template.id);
     res.sendStatus(204);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.post("/api/templates/:id/duplicate", (async (req: CustomRequest, res: Response) => {
+  app.post("/api/templates/:id/duplicate", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
@@ -553,9 +433,9 @@ export function registerRoutes(app: Express): Server {
 
     const newTemplate = await storage.duplicateTemplate(template.id, req.user!.id);
     res.json(newTemplate);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.post("/api/templates/:id/create-page", (async (req: CustomRequest, res: Response) => {
+  app.post("/api/templates/:id/create-page", (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const template = await storage.getTemplate(parseInt(req.params.id));
@@ -563,10 +443,10 @@ export function registerRoutes(app: Express): Server {
 
     const newPage = await storage.createSharePageFromTemplate(template.id, req.user!.id);
     res.json(newPage);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Page Stats endpoints
-  app.get("/api/pages/:id/stats", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages/:id/stats", (async (req: AuthRequest, res: Response) => {
     const page = await storage.getSharePage(parseInt(req.params.id));
     if (!page) return res.sendStatus(404);
 
@@ -577,10 +457,10 @@ export function registerRoutes(app: Express): Server {
     } else {
       res.sendStatus(403);
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Annotation endpoints
-  app.post("/api/pages/:pageId/files/:fileIndex/annotations", (async (req: CustomRequest, res: Response) => {
+  app.post("/api/pages/:pageId/files/:fileIndex/annotations", (async (req: Request, res: Response) => {
     const parsed = insertAnnotationSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
@@ -595,9 +475,9 @@ export function registerRoutes(app: Express): Server {
       parsed.data
     );
     res.status(201).json(annotation);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.get("/api/pages/:pageId/files/:fileIndex/annotations", (async (req: CustomRequest, res: Response) => {
+  app.get("/api/pages/:pageId/files/:fileIndex/annotations", (async (req: Request, res: Response) => {
     const page = await storage.getSharePage(parseInt(req.params.pageId));
     if (!page) return res.sendStatus(404);
 
@@ -606,16 +486,16 @@ export function registerRoutes(app: Express): Server {
       parseInt(req.params.fileIndex)
     );
     res.json(annotations);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
-  app.delete("/api/annotations/:id", (async (req: CustomRequest, res: Response) => {
+  app.delete("/api/annotations/:id", (async (req: Request, res: Response) => {
     const userId = req.user?.id;
     await storage.deleteAnnotation(parseInt(req.params.id), userId);
     res.sendStatus(204);
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // File upload endpoint for S3
-  app.post('/api/upload', (async (req: CustomRequest, res: Response) => {
+  app.post('/api/upload', (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -685,10 +565,10 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Add Dropbox URL validation schema and new endpoint for uploading Dropbox files to S3
-  app.post('/api/upload/dropbox', (async (req: CustomRequest, res: Response) => {
+  app.post('/api/upload/dropbox', (async (req: AuthRequest, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -743,7 +623,7 @@ export function registerRoutes(app: Express): Server {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   // Add proxy endpoint for PDF fetching
   app.get("/api/proxy-pdf", (async (req: Request, res: Response) => {
@@ -789,8 +669,13 @@ export function registerRoutes(app: Express): Server {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-  }) as RequestHandler);
+  }) satisfies RequestHandler);
 
   const httpServer = createServer(app);
   return httpServer;
 }
+
+const dropboxUrlSchema = z.object({
+  url: z.string().url(),
+  name: z.string()
+});
