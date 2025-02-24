@@ -904,15 +904,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         </div>
       </div>
 
-      <div className="flex-1 container mx-auto p-4">
+      <div className="flex-1 px-4 py-4">
         <Tabs value={activeTab} onValueChange={(value) => {
           setActiveTab(value);
           // Update URL without full page reload
           const newUrl = `${window.location.pathname}?tab=${value}`;
           window.history.pushState({}, '', newUrl);
         }}>
-          <TabsContent value="customize" className="space-y-6">
-            <div className="grid lg:grid-cols-[40%_60%] gap-8">
+          <TabsContent value="customize">
+            <div className="grid lg:grid-cols-[30%_70%] gap-8">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
                   <div className="space-y-4">
