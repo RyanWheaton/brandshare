@@ -1671,10 +1671,11 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             </AccordionContent>
                           </AccordionItem>
                         ))}
-                        <AccordionItem value="footer">
+                        <AccordionItem value="footer" className="border rounded-lg">
                           <AccordionTrigger className="px-4">
                             <div className="flex items-center gap-2">
-                              Footer Settings
+                              <PanelBottom className="h-4 w-4" />
+                              <span>Footer Settings</span>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-4 px-4 pb-4">
