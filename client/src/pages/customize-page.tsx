@@ -870,7 +870,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         event.preventDefault();
         const formData = form.getValues();
         const hasChanges = form.formState.isDirty ||
-          Object.keys(form.formState.dirtyFields).length > 0;
+          Object.keys(form.formState.dirtyFields).length >0;
 
         if (hasChanges) {
           updateMutation.mutate(formData);
@@ -1246,58 +1246,37 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         value={activeAccordionItems}
                         onValueChange={setActiveAccordionItems}
                       >
-                        {['branding', 'header', 'typography', 'colors', 'security'].map((section) => (
+                        {['files', 'branding', 'header', 'typography', 'colors', 'security'].map((section) => (
                           <AccordionItem
                             key={section}
                             value={section}
-                            className={cn(
-                              "border rounded-lg overflow-hidden",
-                              isEditorCollapsed && "border-none rounded-none"
-                            )}
+                            className="border-b-0 mb-2"
                           >
                             <AccordionTrigger
                               className={cn(
-                                "px-6 hover:no-underline",
-                                isEditorCollapsed && "px-0 justify-center [&>svg:last-child]:hidden hover:bg-accent",
-                                isEditorCollapsed && activeAccordionItems.includes(section) && "bg-accent"
+                                "flex items-center justify-between px-6 py-4 rounded-lg hover:no-underline",
+                                "data-[state=open]:rounded-b-none",
+                                "data-[state=open]:bg-muted/50",
+                                "hover:bg-muted/50",
+                                activeAccordionItems.includes(section) && "bg-muted/50"
                               )}
-                              onClick={(e) => handleAccordionClick(section, e)}
                             >
-                              {isEditorCollapsed ? (
-                                <div className="flex items-center justify-center w-full py-3">
-                                  {getAccordionIcon(section)}
-                                  <span className="sr-only">
-                                    {section === 'security' ? 'Security Settings' : section.replace('-', ' ')}
-                                  </span>
-                                </div>
-                              ) : (
-                                <>
-                                  <span className="flex items-center gap-2">
-                                    {getAccordionIcon(section)}
-                                    <span className="capitalize">
-                                      {section === 'security' ? 'Security Settings' : section.replace('-', ' ')}
-                                    </span>
-                                  </span>
-                                </>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {getAccordionIcon(section)}
+                                <span className="capitalize">{section}</span>
+                              </div>
                             </AccordionTrigger>
-                            <AccordionContent
-                              className={cn(
-                                isEditorCollapsed && "hidden"
-                              )}
-                            >
+                            <AccordionContent>
                               {section === 'files' && (
-                                <div className="px-6 pb-4">
-                                  <div className="space-y-4">
-                                    <FileList
-                                      files={formValues.files}
-                                      onUpdateFile={handleFileUpdate}
-                                      onAddFiles={(newFiles) => {
-                                        form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
-                                      }}
-                                      form={form}
-                                    />
-                                  </div>
+                                <div className="px-6 pb-4 space-y-4">
+                                  <FileList
+                                    files={formValues.files}
+                                    onAddFiles={(newFiles) => {
+                                      form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+                                    }}
+                                    onUpdateFile={handleFileUpdate}
+                                    form={form}
+                                  />
                                 </div>
                               )}
                               {section === 'branding' && (
