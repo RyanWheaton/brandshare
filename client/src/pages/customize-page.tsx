@@ -539,6 +539,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   const { user } = useAuth();
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
+  const [activeAccordionItems, setActiveAccordionItems] = useState<string[]>([]);
 
   // Parse and validate id at the start
   const id = params?.id ? parseInt(params.id) : null;
@@ -810,7 +811,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     );
   }
 
-  //Inferring SharePagePreview component based on original code's preview section
+  //Corrected SharePagePreview component
   const SharePagePreview = ({data}: {data: FormValues & { expiresAt?: Date }}) => {
     return (
       <div className="relative">
@@ -965,6 +966,18 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     }
   };
 
+  const handleAccordionClick = (section: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (isEditorCollapsed) {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsEditorCollapsed(false);
+      // Wait for the panel to expand before activating the accordion
+      setTimeout(() => {
+        setActiveAccordionItems([section]);
+      }, 300); // Match the transition duration
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b bg-card">
@@ -1082,23 +1095,19 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           window.history.pushState({}, '', newUrl);
         }}>
           <TabsContent value="customize">
-            <div
-              className={`
-                grid gap-8
+            <div className={`
+              grid gap-8 
+              transition-all duration-300 ease-in-out
+              ${isEditorCollapsed ? 'lg:grid-cols-[60px_1fr]' : 'lg:grid-cols-[30%_70%]'}
+              min-h-[calc(100vh-8rem)]
+            `}>
+              <div className={`
                 transition-all duration-300 ease-in-out
-                ${isEditorCollapsed ? 'lg:grid-cols-[60px_1fr]' : 'lg:grid-cols-[30%_70%]'}
-                min-h-[calc(100vh-8rem)]
-              `}
-            >
-              <div
-                className={`
-                  transition-all duration-300 ease-in-out
-                  ${isEditorCollapsed ? 'w-[60px]' : 'w-full'}
-                `}
-              >
+                ${isEditorCollapsed ? 'w-[60px]' : 'w-full'}
+              `}>
                 <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
+                  <form 
+                    onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} 
                     className={`
                       space-y-6
                       transition-all duration-300 ease-in-out
@@ -1106,7 +1115,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     `}
                   >
                     <div className="space-y-4 bg-card rounded-lg border">
-                      <Accordion type="multiple" className="space-y-4">
+                      <Accordion
+                        type="multiple"
+                        className="space-y-4"
+                        value={activeAccordionItems}
+                        onValueChange={setActiveAccordionItems}
+                      >
                         {['files', 'header', 'typography', 'colors', 'security'].map((section) => (
                           <AccordionItem
                             key={section}
@@ -1118,13 +1132,18 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                           >
                             <AccordionTrigger
                               className={cn(
-                                "px-6",
-                                isEditorCollapsed && "px-0 justify-center [&>svg:last-child]:hidden"
+                                "px-6 hover:no-underline",
+                                isEditorCollapsed && "px-0 justify-center [&>svg:last-child]:hidden hover:bg-accent",
+                                isEditorCollapsed && activeAccordionItems.includes(section) && "bg-accent"
                               )}
+                              onClick={(e) => handleAccordionClick(section, e)}
                             >
                               {isEditorCollapsed ? (
                                 <div className="flex items-center justify-center w-full py-3">
                                   {getAccordionIcon(section)}
+                                  <span className="sr-only">
+                                    {section === 'security' ? 'Security Settings' : section.replace('-', ' ')}
+                                  </span>
                                 </div>
                               ) : (
                                 <>
@@ -1558,21 +1577,15 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 </Form>
               </div>
 
+              {/* Preview section */}
               <div className="relative">
-                <div className="sticky top-0">
-                  <SharePagePreview
-                    data={{
-                      ...formValues,
-                      expiresAt: formValues.expiresAt ? new Date(formValues.expiresAt) : undefined
-                    }}
-                  />
-                </div>
+                <SharePagePreview data={formValues} />
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="analytics">
-            <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />
+            <Analytics pageId={id!} isTemplate={isTemplate} activeTab={activeTab} />
           </TabsContent>
         </Tabs>
       </div>
