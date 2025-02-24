@@ -856,8 +856,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <p
                           className="opacity-90"
                           style={{
-                            fontFamily: data.descriptionFont || "Inter",
-                            fontSize: `${data.descriptionFontSize || 16}px`,
+                            fontFamily: data.descriptionFont || "Inter",                            fontSize: `${data.descriptionFontSize || 16}px`,
                             color: data.textColor
                           }}
                           dangerouslySetInnerHTML={{ __html: data.description }}
@@ -972,55 +971,40 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 </Badge>
               )}
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
-            >
-              {isEditorCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              {!isTemplate && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={copyToClipboard}
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy URL
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={openSharePage}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open
+                  </Button>
+                </>
               )}
-              <span className="sr-only">
-                {isEditorCollapsed ? 'Expand Editor' : 'Collapse Editor'}
-              </span>
-            </Button>
-            {!isTemplate && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={copyToClipboard}
-                >
-                  {isCopied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copy URL
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={openSharePage}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open
-                </Button>
-              </>
-            )}
+            </div>
           </div>
         </div>
       </header>
@@ -1042,10 +1026,33 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
             >
               <div
                 className={`
+                  relative
                   transition-all duration-300 ease-in-out
                   ${isEditorCollapsed ? 'w-[60px] overflow-hidden' : 'w-full overflow-visible'}
                 `}
               >
+                {/* Collapse/Expand Button */}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className={`
+                    absolute -right-4 top-1/2 -translate-y-1/2 z-50
+                    h-24 w-8 rounded-l-none rounded-r-lg
+                    border-l-0 shadow-lg
+                    transition-all duration-300 ease-in-out
+                    hover:bg-secondary/90 hover:-right-3
+                    flex items-center justify-center
+                    bg-card
+                    ${isEditorCollapsed ? 'rotate-180' : ''}
+                  `}
+                  onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="sr-only">
+                    {isEditorCollapsed ? 'Expand Editor' : 'Collapse Editor'}
+                  </span>
+                </Button>
+
                 <Form {...form}>
                   <form
                     onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
