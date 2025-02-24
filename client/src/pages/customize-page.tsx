@@ -1136,9 +1136,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
             >
               {isEditorCollapsed ? (
-                <Minimize2 className="h-4 w-4" />
+                <span>Minimize</span>
               ) : (
-                <Maximize2 className="h-4 w-4" />
+                <span>Maximize</span>
               )}
               <span className="sr-only">
                 {isEditorCollapsed ? 'Expand Editor' : 'Collapse Editor'}
