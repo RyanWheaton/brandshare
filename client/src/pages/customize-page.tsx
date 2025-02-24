@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle, FileText, Film, Plus, Maximize2, Minimize2, LayoutTemplate, Type, Palette, Lock } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle, FileText, Film, Plus, Maximize2, Minimize2, LayoutTemplate, Type, Palette, Lock, PanelBottom } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -1061,6 +1061,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         return <Type className="h-4 w-4" />;
       case 'colors':
         return <Palette className="h-4 w-4" />;
+      case 'footer':
+        return <PanelBottom className="h-4 w-4" />;
       case 'security':
         return <Lock className="h-4 w-4" />;
       default:
@@ -1223,7 +1225,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         value={activeAccordionItems}
                         onValueChange={setActiveAccordionItems}
                       >
-                        {['files', 'header', 'typography', 'colors', 'security'].map((section) => (
+                        {['files', 'header', 'typography', 'colors', 'footer', 'security'].map((section) => (
                           <AccordionItem
                             key={section}
                             value={section}
