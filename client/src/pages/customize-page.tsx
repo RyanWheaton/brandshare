@@ -809,6 +809,147 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     );
   }
 
+  //Inferring SharePagePreview component based on original code's preview section
+  const SharePagePreview = ({data}: {data: FormValues & { expiresAt?: Date }}) => {
+    return (
+      <div className="relative">
+        <div className="sticky top-0">
+          <Card className="w-full">
+            <CardContent className="p-0">
+              <div className="h-[calc(100vh-5.5rem)] overflow-y-auto">
+                <div
+                  className="relative"
+                  style={{
+                    backgroundColor: data.backgroundColor || "#ffffff",
+                    background: data.backgroundColorSecondary
+                      ? `linear-gradient(to bottom, ${data.backgroundColor || "#ffffff"}, ${data.backgroundColorSecondary})`
+                      : data.backgroundColor || "#ffffff",
+                  }}
+                >
+                  <div className="p-8 min-h-full">
+                    {data.logoUrl && (
+                      <div className="mb-8 flex justify-center">
+                        <img
+                          src={convertDropboxUrl(data.logoUrl)}
+                          alt="Logo"
+                          className="mx-auto object-contain"
+                          style={{
+                            maxWidth: data.logoSize || 200,
+                            maxHeight: data.logoSize || 200
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="text-center mb-8">
+                      <h1
+                        className="mb-4 font-bold"
+                        style={{
+                          fontFamily: data.titleFont || "Inter",
+                          fontSize: `${data.titleFontSize || 24}px`,
+                          color: data.textColor
+                        }}
+                      >
+                        {data.title || "Untitled Share Page"}
+                      </h1>
+                      {data.description && (
+                        <p
+                          className="opacity-90"
+                          style={{
+                            fontFamily: data.descriptionFont || "Inter",
+                            fontSize: `${data.descriptionFontSize || 16}px`,
+                            color: data.textColor
+                          }}
+                          dangerouslySetInnerHTML={{ __html: data.description }}
+                        >
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-4">
+                        {data.files.map((file, index) => (
+                          <div key={index}>
+                            <FilePreview
+                              file={file}
+                              textColor={data.textColor || "#000000"}
+                              pageId={data.id}
+                              fileIndex={index}
+                              containerClassName="w-full"
+                              sharePage={{
+                                ...data,
+                                id: data.id || 0,
+                                userId: data.userId || 0,
+                                slug: data.slug || '',
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString(),
+                                lastViewedAt: new Date().toISOString()
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {data.showFooter && (data.footerText || data.footerBackgroundColor || data.footerLogoUrl) && (
+                    <footer className="w-full mt-8">
+                      <div
+                        className="w-full py-6 px-4"
+                        style={{
+                          backgroundColor: data.footerBackgroundColor || "#f3f4f6",
+                          color: data.footerTextColor || "#000000",
+                        }}
+                      >
+                        <div className="max-w-4xl mx-auto">
+                          {data.footerLogoUrl && (
+                            <div className="mb-4 flex justify-center">
+                              {data.footerLogoLink ? (
+                                <a
+                                  href={data.footerLogoLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <img
+                                    src={convertDropboxUrl(data.footerLogoUrl)}
+                                    alt="Footer Logo"
+                                    className="mx-auto object-contain"
+                                    style={{
+                                      maxWidth: data.footerLogoSize || 150,
+                                      maxHeight: data.footerLogoSize || 150
+                                    }}
+                                  />
+                                </a>
+                              ) : (
+                                <img
+                                  src={convertDropboxUrl(data.footerLogoUrl)}
+                                  alt="Footer Logo"
+                                  className="mx-auto object-contain"
+                                  style={{
+                                    maxWidth: data.footerLogoSize || 150,
+                                    maxHeight: data.footerLogoSize || 150
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )}
+                          {data.footerText && (
+                            <div
+                              className="prose prose-sm max-w-none"
+                              style={{ color: data.footerTextColor || "#000000" }}
+                              dangerouslySetInnerHTML={{ __html: data.footerText }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </footer>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -912,10 +1053,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           window.history.pushState({}, '', newUrl);
         }}>
           <TabsContent value="customize">
-            <div className="grid lg:grid-cols-[30%_70%] gap-8">
+            <div className="grid lg:grid-cols-[30%_70%] gap-8 min-h-[calc(100vh-8rem)]">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
-                  <div className="space-y-4">
+                <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 h-full overflow-auto pb-10">
+                  <div className="space-y-4 bg-card rounded-lg border p-4">
                     <Accordion type="multiple" className="space-y-4">
                       <AccordionItem value="files" className="border rounded-lg">
                         <AccordionTrigger className="px-6">Files</AccordionTrigger>
@@ -1544,142 +1685,37 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                       )}
                     </Accordion>
                   </div>
+
+                  <div className="sticky bottom-0 flex justify-end gap-2 pt-4 bg-background">
+                    <Button
+                      type="submit"
+                      disabled={!form.formState.isDirty || updateMutation.isPending}
+                      className="gap-2"
+                    >
+                      {updateMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving Changes...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </form>
               </Form>
 
-              <div className="relative hidden lg:block">
-                <div className="sticky top-[5.5rem]">
-                  <Card className="w-full">
-                    <CardContent className="p-0">
-                      <div className="h-[calc(100vh-5.5rem)] overflow-y-auto">
-                        <div
-                          className="relative"
-                          style={{
-                            backgroundColor: formValues.backgroundColor || "#ffffff",
-                            background: formValues.backgroundColorSecondary
-                              ? `linear-gradient(to bottom, ${formValues.backgroundColor || "#ffffff"}, ${formValues.backgroundColorSecondary})`
-                              : formValues.backgroundColor || "#ffffff",
-                          }}
-                        >
-                          <div className="p-8 min-h-full">
-                            {formValues.logoUrl && (
-                              <div className="mb-8 flex justify-center">
-                                <img
-                                  src={convertDropboxUrl(formValues.logoUrl)}
-                                  alt="Logo"
-                                  className="mx-auto object-contain"
-                                  style={{
-                                    maxWidth: formValues.logoSize || 200,
-                                    maxHeight: formValues.logoSize || 200
-                                  }}
-                                />
-                              </div>
-                            )}
-                            <div className="text-center mb-8">
-                              <h1
-                                className="mb-4 font-bold"
-                                style={{
-                                  fontFamily: formValues.titleFont || "Inter",
-                                  fontSize: `${formValues.titleFontSize || 24}px`,
-                                  color: formValues.textColor
-                                }}
-                              >
-                                {formValues.title || "Untitled Share Page"}
-                              </h1>
-                              {formValues.description && (
-                                <p
-                                  className="opacity-90"
-                                  style={{
-                                    fontFamily: formValues.descriptionFont || "Inter",
-                                    fontSize: `${formValues.descriptionFontSize || 16}px`,
-                                    color: formValues.textColor
-                                  }}
-                                  dangerouslySetInnerHTML={{ __html: formValues.description }}
-                                >
-                                </p>
-                              )}
-                            </div>
-                            <div className="space-y-4">
-                              <div className="space-y-4">
-                                {formValues.files.map((file, index) => (
-                                  <div key={index}>
-                                    <FilePreview
-                                      file={file}
-                                      textColor={formValues.textColor || "#000000"}
-                                      pageId={item?.id}
-                                      fileIndex={index}
-                                      containerClassName="w-full"
-                                      sharePage={{
-                                        ...formValues,
-                                        id: item?.id || 0,
-                                        userId: user?.id || 0,
-                                        slug: (item as SharePage)?.slug || '',
-                                        createdAt: new Date().toISOString(),
-                                        updatedAt: new Date().toISOString(),
-                                        lastViewedAt: new Date().toISOString()
-                                      }}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          {formValues.showFooter && (formValues.footerText || formValues.footerBackgroundColor || formValues.footerLogoUrl) && (
-                            <footer className="w-full mt-8">
-                              <div
-                                className="w-full py-6 px-4"
-                                style={{
-                                  backgroundColor: formValues.footerBackgroundColor || "#f3f4f6",
-                                  color: formValues.footerTextColor || "#000000",
-                                }}
-                              >
-                                <div className="max-w-4xl mx-auto">
-                                  {formValues.footerLogoUrl && (
-                                    <div className="mb-4 flex justify-center">
-                                      {formValues.footerLogoLink ? (
-                                        <a
-                                          href={formValues.footerLogoLink}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          <img
-                                            src={convertDropboxUrl(formValues.footerLogoUrl)}
-                                            alt="Footer Logo"
-                                            className="mx-auto object-contain"
-                                            style={{
-                                              maxWidth: formValues.footerLogoSize || 150,
-                                              maxHeight: formValues.footerLogoSize || 150
-                                            }}
-                                          />
-                                        </a>
-                                      ) : (
-                                        <img
-                                          src={convertDropboxUrl(formValues.footerLogoUrl)}
-                                          alt="Footer Logo"
-                                          className="mx-auto object-contain"
-                                          style={{
-                                            maxWidth: formValues.footerLogoSize || 150,
-                                            maxHeight: formValues.footerLogoSize || 150
-                                          }}
-                                        />
-                                      )}
-                                    </div>
-                                  )}
-                                  {formValues.footerText && (
-                                    <div
-                                      className="prose prose-sm max-w-none"
-                                      style={{ color: formValues.footerTextColor || "#000000" }}
-                                      dangerouslySetInnerHTML={{ __html: formValues.footerText }}
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            </footer>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+              <div className="relative">
+                <div className="sticky top-0">
+                  <SharePagePreview
+                    data={{
+                      ...formValues,
+                      expiresAt: formValues.expiresAt ? new Date(formValues.expiresAt) : undefined
+                    }}
+                  />
                 </div>
               </div>
             </div>
