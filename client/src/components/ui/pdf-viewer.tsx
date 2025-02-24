@@ -18,54 +18,45 @@ interface ProgressData {
   total: number;
 }
 
-// Function to validate and sanitize PDF URL
+// Function to validate PDF URL without modifications
 const validatePDFUrl = (url: string): string => {
   try {
-    const sanitizedUrl = new URL(url);
-    // Add cache-busting parameter to avoid CORS caching issues
-    sanitizedUrl.searchParams.set('t', Date.now().toString());
-    return sanitizedUrl.toString();
+    return new URL(url).toString();
   } catch (error) {
-    throw new Error('Invalid URL format');
+    throw new Error('Invalid PDF URL');
   }
 };
 
-// Modify the fetchPDFData function to handle Dropbox URLs better
+// Fetch PDF data with improved error handling
 const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
   try {
     const validatedUrl = validatePDFUrl(pdfUrl);
-    console.log('Fetching PDF from validated URL:', validatedUrl);
+    console.log('Fetching PDF from URL:', validatedUrl);
 
     const response = await fetch(validatedUrl, {
       method: 'GET',
-      credentials: 'omit',
       signal: controller.signal,
       headers: {
-        'Accept': 'application/pdf,*/*',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
-      },
+        'Accept': 'application/pdf'
+      }
     });
 
     clearTimeout(timeout);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PDF fetch response error:', {
+      console.error('Failed to fetch PDF:', {
         status: response.status,
         statusText: response.statusText,
-        responseText: errorText
+        headers: Object.fromEntries(response.headers.entries())
       });
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const contentType = response.headers.get('content-type');
-    if (!contentType?.includes('application/pdf') && !contentType?.includes('application/octet-stream')) {
-      console.warn('Unexpected content type:', contentType);
-    }
+    console.log('Response content type:', contentType);
 
     const arrayBuffer = await response.arrayBuffer();
     if (arrayBuffer.byteLength === 0) {
@@ -77,7 +68,7 @@ const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
     clearTimeout(timeout);
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out');
+        throw new Error('PDF fetch request timed out');
       }
       console.error('PDF fetch error:', error);
       throw error;
