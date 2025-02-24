@@ -31,13 +31,7 @@ const validatePDFUrl = (url: string): string => {
 const fetchPDFData = async (validatedUrl: string) => {
   console.log("Fetching PDF from URL:", validatedUrl);
   try {
-    const response = await fetch(validatedUrl, {
-      method: 'GET',
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/pdf'
-      }
-    });
+    const response = await fetch(validatedUrl);
 
     if (!response.ok) {
       console.error("Failed to fetch PDF:", response.status, response.statusText);
