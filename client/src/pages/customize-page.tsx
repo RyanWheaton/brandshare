@@ -42,6 +42,7 @@ import {
   Palette,
   Pencil,
   Trash2,
+  Layout,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -1073,12 +1074,12 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     );
   };
 
-  const getAccordionIcon = (value: string) => {
-    switch (value) {
-      case 'files':
-        return <FileText className="h-4 w-4" />;
+  const getAccordionIcon = (type: string) => {
+    switch (type) {
+      case 'branding':
+        return <Image className="h-4 w-4" />;
       case 'header':
-        return <LayoutTemplate className="h-4 w-4" />;
+        return <Layout className="h-4 w-4" />;
       case 'typography':
         return <Type className="h-4 w-4" />;
       case 'colors':
@@ -1245,7 +1246,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         value={activeAccordionItems}
                         onValueChange={setActiveAccordionItems}
                       >
-                        {['files', 'header', 'typography', 'colors', 'security'].map((section) => (
+                        {['branding', 'header', 'typography', 'colors', 'security'].map((section) => (
                           <AccordionItem
                             key={section}
                             value={section}
@@ -1299,7 +1300,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                   </div>
                                 </div>
                               )}
-                              {section === 'header' && (
+                              {section === 'branding' && (
                                 <div className="px-6 pb-4 space-y-8">
                                   <div className="space-y-4">
                                     <h4 className="text-sm font-medium">Logo Settings</h4>
@@ -1364,6 +1365,51 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
                                   <div className="spacey-4">
                                     <h4 className="text-sm font-medium">Content</h4>
+                                    <FormField
+                                      control={form.control}
+                                      name="title"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel className={cn(
+                                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                          )}>Title</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={form.control}
+                                      name="description"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel className={cn(
+                                            form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                          )}>Description</FormLabel>
+                                          <FormDescription>
+                                            Add a description to display below the title
+                                          </FormDescription>
+                                          <FormControl>
+                                            <TipTapEditor
+                                              value={field.value || ''}
+                                              onChange={field.onChange}
+                                              placeholder="Enter a description..."
+                                              className="min-h-[200px] [&_.tiptap]:p-2 [&_.tiptap]:min-h-[200px] [&_.tiptap]:text-foreground [&_.tiptap]:prose-headings:text-foreground [&_.tiptap]:prose-p:text-foreground"
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              {section === 'header' && (
+                                <div className="px-6 pb-4 space-y-8">
+                                  <div className="space-y-4">
+                                    <h4 className="text-sm font-medium">Header Settings</h4>
                                     <FormField
                                       control={form.control}
                                       name="title"
