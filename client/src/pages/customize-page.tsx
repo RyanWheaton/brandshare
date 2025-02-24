@@ -1256,8 +1256,6 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               className={cn(
                                 "flex items-center justify-between px-6 py-4 rounded-lg hover:no-underline",
                                 "data-[state=open]:rounded-b-none",
-                                "data-[state=open]:bg-muted/50",
-                                "hover:bg-muted/50",
                                 activeAccordionItems.includes(section) && "bg-muted/50"
                               )}
                             >
@@ -1800,7 +1798,7 @@ function SortableFiles({
             <div className="border-t p-3 space-y-4">
               <div className="space-y-2">
                 <Input
-                  placeholder="File title"
+                                    placeholder="File title"
                   value={file.title || ''}
                   onChange={(e) => onUpdateMetadata(index, { title: e.target.value })}
                 />
