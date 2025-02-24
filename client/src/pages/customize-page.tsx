@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate } from "@shared/schema";
@@ -45,6 +45,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
+
 
 // Extended FileObject type to match schema
 interface FileObject {
@@ -146,6 +148,69 @@ function FileList({
 }) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (!e.dataTransfer.files?.length) return;
+
+    setIsUploading(true);
+    try {
+      const uploadedFiles = await Promise.all(
+        Array.from(e.dataTransfer.files).map(async (file) => {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.details || error.error || 'Failed to upload file');
+          }
+
+          const data = await response.json();
+          return {
+            name: file.name,
+            url: data.url,
+            preview_url: data.url,
+            isFullWidth: false,
+            storageType: 's3' as const
+          };
+        })
+      );
+
+      onAddFiles(uploadedFiles);
+      toast({
+        title: "Files uploaded",
+        description: `Successfully uploaded ${uploadedFiles.length} file${uploadedFiles.length === 1 ? '' : 's'}.`,
+      });
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "There was an error uploading your files. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [onAddFiles, toast]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files?.length) return;
@@ -154,11 +219,24 @@ function FileList({
     try {
       const uploadedFiles = await Promise.all(
         Array.from(event.target.files).map(async (file) => {
-          const result = await uploadFileToS3(file);
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.details || error.error || 'Failed to upload file');
+          }
+
+          const data = await response.json();
           return {
-            name: result.name,
-            url: result.url,
-            preview_url: result.url,
+            name: file.name,
+            url: data.url,
+            preview_url: data.url,
             isFullWidth: false,
             storageType: 's3' as const
           };
@@ -166,6 +244,10 @@ function FileList({
       );
 
       onAddFiles(uploadedFiles);
+      toast({
+        title: "Files uploaded",
+        description: `Successfully uploaded ${uploadedFiles.length} file${uploadedFiles.length === 1 ? '' : 's'}.`,
+      });
     } catch (error) {
       console.error('Upload failed:', error);
       toast({
@@ -179,8 +261,14 @@ function FileList({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4">
+    <div 
+      className="space-y-4"
+      onDragEnter={handleDrag}
+      onDragLeave={handleDrag}
+      onDragOver={handleDrag}
+      onDrop={handleDrop}
+    >
+      <div className={`flex flex-col gap-4 ${dragActive ? 'opacity-50' : ''}`}>
         <div className="flex gap-2">
           <Input
             type="file"
@@ -206,6 +294,17 @@ function FileList({
           </div>
         )}
       </div>
+
+      {dragActive && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg border-2 border-dashed border-primary">
+          <div className="text-center">
+            <p className="text-lg font-medium">Drop files here</p>
+            <p className="text-sm text-muted-foreground">
+              Drop your files to upload them
+            </p>
+          </div>
+        </div>
+      )}
 
       <SortableFiles
         files={files}
@@ -751,7 +850,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           updateMutation.mutate(formData);
         } else {
           toast({
-            title: "No changes to save",
+            title:"No changes to save",
             description: "Make some changes first before saving.",
           });
         }
