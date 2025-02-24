@@ -843,7 +843,8 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     )}
                     <div className="text-center mb-8">
                       <h1
-                        className="mb-4 font-bold"                        style={{
+                        className="mb-4 font-bold"
+                        style={{
                           fontFamily: data.titleFont || "Inter",
                           fontSize: `${data.titleFontSize || 24}px`,
                           color: data.textColor
@@ -1116,19 +1117,18 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             <AccordionTrigger
                               className={cn(
                                 "px-6",
-                                isEditorCollapsed && "px-0 justify-center"
+                                isEditorCollapsed && "px-0 justify-center [&>svg:last-child]:hidden"
                               )}
                             >
                               {isEditorCollapsed ? (
-                                <div className="flex items-center justify-center w-full py-2">
+                                <div className="flex items-center justify-center w-full py-3">
                                   {getAccordionIcon(section)}
-                                  <span className="sr-only">{section}</span>
                                 </div>
                               ) : (
                                 <>
                                   <span className="flex items-center gap-2">
                                     {getAccordionIcon(section)}
-                                    <span className="capitalize">{section}</span>
+                                    <span className="capitalize">{section.replace('-', ' ')}</span>
                                   </span>
                                 </>
                               )}
