@@ -868,9 +868,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        const formData = form.getValues();
+        const formData= form.getValues();
         const hasChanges = form.formState.isDirty ||
-          Object.keys(form.formState.dirtyFields).length >0;
+          Object.keys(form.formState.dirtyFields).length > 0;
 
         if (hasChanges) {
           updateMutation.mutate(formData);
@@ -1255,14 +1255,14 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             <AccordionTrigger
                               className={cn(
                                 "flex items-center justify-between px-6 py-4 rounded-lg hover:no-underline",
-                                "data-[state=open]:rounded-b-none",
-                                activeAccordionItems.includes(section) && "bg-muted/50"
+                                "data-[state=open]:rounded-b-none"
                               )}
                             >
                               <div className="flex items-center gap-2">
                                 {getAccordionIcon(section)}
                                 <span className="capitalize">{section}</span>
                               </div>
+
                             </AccordionTrigger>
                             <AccordionContent>
                               {section === 'files' && (
