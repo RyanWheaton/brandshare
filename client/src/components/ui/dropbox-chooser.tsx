@@ -64,9 +64,13 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
           // Upload each file to S3
           const uploadedFiles: FileObject[] = await Promise.all(
             files.map(async (file) => {
-              // Handle PDF files specifically
+              // Get file extension
               const fileExt = file.name.split('.').pop()?.toLowerCase();
-              const mimeType = fileExt === 'pdf' ? 'application/pdf' : file.link.includes('dl.dropboxusercontent.com') ? 'application/octet-stream' : getFileType(file.name);
+              const mimeType = fileExt === 'pdf' ? 'application/pdf' : 
+                             fileExt === 'png' ? 'image/png' :
+                             fileExt === 'jpg' || fileExt === 'jpeg' ? 'image/jpeg' :
+                             fileExt === 'gif' ? 'image/gif' :
+                             fileExt === 'svg' ? 'image/svg+xml' : 'application/octet-stream';
 
               console.log('Processing file:', { name: file.name, mimeType });
 
@@ -105,7 +109,7 @@ export function DropboxChooser({ onFilesSelected, disabled, className, children 
       },
       linkType: "direct",
       multiselect: false,
-      extensions: getAllowedExtensions(),
+      extensions: ['images'], // Use Dropbox's built-in file type filter
     });
   }, [disabled, isUploading, onFilesSelected]);
 

@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Upload } from "lucide-react";
 import { useLocation } from "wouter";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
@@ -250,13 +250,73 @@ export default function ProfilePage() {
                       <FormLabel>Logo Image</FormLabel>
                       <FormControl>
                         <div className="space-y-4">
-                          <DropboxChooser
-                            onFilesSelected={(files) => {
-                              if (files.length > 0) {
-                                field.onChange(files[0].url);
-                              }
-                            }}
-                          />
+                          <div className="flex flex-col gap-4">
+                            <div>
+                              <input
+                                type="file"
+                                id="logo-upload"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+
+                                  const formData = new FormData();
+                                  formData.append('file', file);
+
+                                  try {
+                                    const response = await fetch('/api/upload', {
+                                      method: 'POST',
+                                      body: formData,
+                                    });
+
+                                    if (!response.ok) {
+                                      const error = await response.json();
+                                      throw new Error(error.details || error.error || 'Failed to upload file');
+                                    }
+
+                                    const data = await response.json();
+                                    field.onChange(data.url);
+                                    toast({
+                                      title: "Success",
+                                      description: "Logo uploaded successfully",
+                                    });
+                                  } catch (error) {
+                                    console.error('Upload error:', error);
+                                    toast({
+                                      title: "Upload failed",
+                                      description: error instanceof Error ? error.message : "Failed to upload logo",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => document.getElementById('logo-upload')?.click()}
+                                className="w-full"
+                              >
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload Logo
+                              </Button>
+                            </div>
+
+                            <div>
+                              <DropboxChooser
+                                onFilesSelected={(files) => {
+                                  if (files.length > 0) {
+                                    field.onChange(files[0].url);
+                                    toast({
+                                      title: "Success",
+                                      description: "Logo uploaded successfully from Dropbox",
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+
                           {field.value && (
                             <div className="mt-4">
                               <img
@@ -269,7 +329,7 @@ export default function ProfilePage() {
                         </div>
                       </FormControl>
                       <FormDescription>
-                        Choose your logo image from Dropbox. This logo can be used in your share pages.
+                        Choose your logo image by uploading directly or selecting from Dropbox. Supported formats: PNG, JPG, GIF, SVG.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
