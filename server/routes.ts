@@ -745,6 +745,52 @@ export function registerRoutes(app: Express): Server {
     }
   }) as RequestHandler);
 
+  // Add proxy endpoint for PDF fetching
+  app.get("/api/proxy-pdf", (async (req: Request, res: Response) => {
+    const url = req.query.url as string;
+    if (!url) {
+      return res.status(400).json({ error: "URL parameter is required" });
+    }
+
+    try {
+      console.log('Proxying PDF request to:', url);
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/pdf,*/*',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Proxy PDF fetch failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: url
+        });
+        return res.status(response.status).json({
+          error: `Failed to fetch PDF: ${response.statusText}`,
+          status: response.status
+        });
+      }
+
+      // Forward the content type header
+      const contentType = response.headers.get('content-type');
+      if (contentType) {
+        res.setHeader('Content-Type', contentType);
+      }
+
+      // Get the response as an array buffer and send it
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      res.send(buffer);
+    } catch (error) {
+      console.error('Error in proxy-pdf endpoint:', error);
+      res.status(500).json({
+        error: "Failed to proxy PDF request",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }) as RequestHandler);
+
   const httpServer = createServer(app);
   return httpServer;
 }
