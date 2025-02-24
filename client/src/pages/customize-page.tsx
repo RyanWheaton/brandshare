@@ -18,7 +18,31 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle, FileText, Film, Plus, Maximize2, Minimize2, LayoutTemplate, Type, Palette, Lock } from "lucide-react";
+import {
+  Loader2,
+  FileText,
+  ImageIcon as Image,
+  Film,
+  MessageCircle,
+  Lock,
+  Download,
+  ArrowLeft,
+  Plus,
+  Save,
+  X,
+  ExternalLink,
+  Copy,
+  Check,
+  ChevronLeft,
+  Upload,
+  Eye,
+  Clock,
+  Users,
+  Type,
+  Palette,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -31,7 +55,7 @@ import { TipTapEditor } from "@/components/ui/tiptap-editor";
 import { convertDropboxUrl } from "@/lib/utils";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
-import { SortableFiles } from "@/components/ui/sortable-files";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -45,8 +69,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { DndContext, DragOverlay } from "@dnd-kit/core";
-
 
 // Extended FileObject type to match schema
 interface FileObject {
@@ -853,7 +875,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           updateMutation.mutate(formData);
         } else {
           toast({
-            title:"No changes to save",
+            title: "No changes to save",
             description: "Make some changes first before saving.",
           });
         }
@@ -1691,6 +1713,89 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function SortableFiles({
+  files,
+  onReorder,
+  onRemove,
+  onToggleFullWidth,
+  onUpdateMetadata,
+}: {
+  files: FileObject[];
+  onReorder: (files: FileObject[]) => void;
+  onRemove: (index: number) => void;
+  onToggleFullWidth: (index: number) => void;
+  onUpdateMetadata: (index: number, updates: { title?: string; description?: string }) => void;
+}) {
+  const [expandedItems, setExpandedItems] = useState<number[]>([]);
+
+  const toggleExpanded = (index: number) => {
+    setExpandedItems(prev =>
+      prev.includes(index)
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      {files.map((file, index) => (
+        <Card key={index} className="overflow-hidden">
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center gap-2">
+              {file.name.match(/\.(jpg|jpeg|png|gif)$/i) && <Image className="w-4 h-4" />}
+              {file.name.match(/\.(mp4|mov)$/i) && <Film className="w-4 h-4" />}
+              {!file.name.match(/\.(jpg|jpeg|png|gif|mp4|mov)$/i) && <FileText className="w-4 h-4" />}
+              <span className="text-sm font-medium">{file.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => toggleExpanded(index)}
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit file</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onRemove(index)}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Remove file</span>
+              </Button>
+            </div>
+          </div>
+
+          {expandedItems.includes(index) && (
+            <div className="border-t p-3 space-y-4">
+              <div className="space-y-2">
+                <Input
+                  placeholder="File title"
+                  value={file.title || ''}
+                  onChange={(e) => onUpdateMetadata(index, { title: e.target.value })}
+                />
+                <Textarea
+                  placeholder="File description"
+                  value={file.description || ''}
+                  onChange={(e) => onUpdateMetadata(index, { description: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Full Width Display</span>
+                <Switch
+                  checked={file.isFullWidth}
+                  onCheckedChange={() => onToggleFullWidth(index)}
+                />
+              </div>
+            </div>
+          )}
+        </Card>
+      ))}
     </div>
   );
 }
