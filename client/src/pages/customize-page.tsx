@@ -856,7 +856,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                         <p
                           className="opacity-90"
                           style={{
-                            fontFamily: data.descriptionFont || "Inter",
+                                                        fontFamily: data.descriptionFont || "Inter",
                             fontSize: `${data.descriptionFontSize || 16}px`,
                             color: data.textColor
                           }}
@@ -1021,6 +1021,39 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                 </Button>
               </>
             )}
+            <Button
+              type="button"
+              onClick={() => {
+                const formData = form.getValues();
+                if (hasUnsavedChanges) {
+                  updateMutation.mutate(formData);
+                } else {
+                  toast({
+                    title: "No changes to save",
+                    description: "Make some changes first before saving.",
+                  });
+                }
+              }}
+              disabled={updateMutation.isPending}
+              className={cn(
+                "gap-2",
+                hasUnsavedChanges
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              )}
+            >
+              {updateMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </header>
@@ -1686,23 +1719,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                     </div>
 
                     <div className="sticky bottom-0 flex justify-end gap-2 pt-4 bg-background">
-                      <Button
-                        type="submit"
-                        disabled={!form.formState.isDirty || updateMutation.isPending}
-                        className="gap-2"
-                      >
-                        {updateMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Saving Changes...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
+                      {/*This button was removed from here and moved to the header.*/}
                     </div>
                   </form>
                 </Form>
