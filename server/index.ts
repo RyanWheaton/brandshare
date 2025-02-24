@@ -40,19 +40,32 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
+// Simplified request logging middleware after basic middleware setup
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestStart = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`, 'express');
-    }
+  // Log initial request details
+  log(`[${requestId}] Incoming ${req.method} ${req.url}`, 'express');
+  log(`[${requestId}] Client IP: ${req.ip}`, 'express');
+
+  // Log WebSocket connection attempts
+  if (req.headers.upgrade === 'websocket') {
+    log(`[${requestId}] WebSocket connection attempt`, 'express');
+  }
+
+  // Log response details
+  res.on('finish', () => {
+    const duration = Date.now() - requestStart;
+    log(`[${requestId}] Response ${res.statusCode} sent in ${duration}ms`, 'express');
   });
 
   next();
+});
+
+// Health check endpoint
+app.get('/api/healthcheck', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 (async () => {

@@ -917,9 +917,10 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           const newUrl = `${window.location.pathname}?tab=${value}`;
           window.history.pushState({}, '', newUrl);
         }}>
-          <TabsContent value="customize" className="space-y-6">
-            <div className="grid lg:grid-cols-[40%_60%] gap-8">
-              <div className="w-full">
+          <>
+            <TabsContent value="customize" className="space-y-6">
+              <div className="grid lg:grid-cols-[40%_60%] gap-8">
+                <div className="w-full">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
                     <Accordion type="multiple" defaultValue={["publish", "files"]} className="space-y-4">
