@@ -8,6 +8,86 @@ import 'pdfjs-dist/web/pdf_viewer.css';
 // Configure PDF.js worker with a reliable CDN
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
+// Function to validate PDF URL with S3 specific checks
+const validatePDFUrl = (url: string): string => {
+  try {
+    const parsedUrl = new URL(url);
+    // Verify it's a valid S3 or application URL
+    if (!parsedUrl.protocol.startsWith('http')) {
+      throw new Error('Invalid URL protocol');
+    }
+    return parsedUrl.toString();
+  } catch (error) {
+    console.error('URL validation error:', error);
+    throw new Error('Invalid PDF URL');
+  }
+};
+
+// Enhanced fetch implementation with S3 support
+const fetchPDFData = async (validatedUrl: string) => {
+  console.log("Fetching PDF from URL:", validatedUrl);
+  let attempts = 0;
+  const maxAttempts = 3;
+  const baseDelay = 1000;
+
+  while (attempts < maxAttempts) {
+    try {
+      const response = await fetch(validatedUrl, {
+        method: 'GET',
+        credentials: 'omit', // Don't send credentials for S3 requests
+        headers: {
+          'Accept': 'application/pdf',
+          'Cache-Control': 'no-cache',
+        },
+      });
+
+      if (!response.ok) {
+        console.error("PDF fetch failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          url: validatedUrl,
+        });
+
+        // Check if we should retry based on status code
+        if (response.status === 403 || response.status === 401) {
+          throw new Error(`Access denied: ${response.status}`);
+        }
+        if (response.status === 404) {
+          throw new Error('PDF not found');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Verify content type
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('application/pdf')) {
+        console.warn('Unexpected content type:', contentType);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Empty PDF data received');
+      }
+
+      return arrayBuffer;
+    } catch (error) {
+      attempts++;
+      const isLastAttempt = attempts === maxAttempts;
+      console.error(`PDF fetch attempt ${attempts}/${maxAttempts} failed:`, error);
+
+      if (isLastAttempt) {
+        throw error;
+      }
+
+      // Exponential backoff
+      const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), 8000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error('Failed to fetch PDF after maximum retries');
+};
+
 interface PDFViewerProps {
   url: string;
   className?: string;
@@ -18,32 +98,6 @@ interface ProgressData {
   total: number;
 }
 
-// Function to validate PDF URL without modifications
-const validatePDFUrl = (url: string): string => {
-  try {
-    return new URL(url).toString();
-  } catch (error) {
-    throw new Error('Invalid PDF URL');
-  }
-};
-
-// Fetch PDF data with improved error handling
-const fetchPDFData = async (validatedUrl: string) => {
-  console.log("Fetching PDF from URL:", validatedUrl);
-  try {
-    const response = await fetch(validatedUrl);
-
-    if (!response.ok) {
-      console.error("Failed to fetch PDF:", response.status, response.statusText);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    return await response.arrayBuffer();
-  } catch (error) {
-    console.error("Error fetching PDF:", error);
-    throw error;
-  }
-};
 
 export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -133,7 +187,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
         console.log(`Attempting to load PDF (attempt ${retryCount + 1}/${maxRetries}):`, url);
 
-        const pdfData = await fetchPDFData(url);
+        const validatedUrl = validatePDFUrl(url);
+        const pdfData = await fetchPDFData(validatedUrl);
 
         if (!isSubscribed) return;
 
@@ -145,7 +200,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
           useSystemFonts: true
         });
 
-        loadingTaskRef.current.onProgress = function(progress: ProgressData) {
+        loadingTaskRef.current.onProgress = function (progress: ProgressData) {
           if (progress.total > 0 && isSubscribed) {
             setLoadingProgress(Math.round((progress.loaded / progress.total) * 100));
           }
