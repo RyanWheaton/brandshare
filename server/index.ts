@@ -59,15 +59,26 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...", 'express');
 
-    // Check if port 5000 is available
+    // Check if port 5000 is available with better error handling
     try {
       log("Checking port 5000 availability...", 'express');
       const processUsingPort = execSync("lsof -i :5000").toString();
-      log("⚠️ Port 5000 is in use. Attempting to free port...", 'express');
-      execSync("kill -9 $(lsof -t -i :5000)");
-      log("✅ Port 5000 has been freed", 'express');
+      if (processUsingPort) {
+        log("⚠️ Port 5000 is in use. Process information:", 'express');
+        log(processUsingPort, 'express');
+        log("Attempting to free port...", 'express');
+        execSync("kill -9 $(lsof -t -i :5000)");
+        // Wait a moment for the port to be freed
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        log("✅ Port 5000 has been freed", 'express');
+      }
     } catch (error) {
-      log("✅ Port 5000 is available", 'express');
+      if (error instanceof Error && error.message.includes('Command failed')) {
+        log("✅ Port 5000 is available", 'express');
+      } else {
+        log("⚠️ Error checking port availability:", 'express');
+        log(error instanceof Error ? error.message : String(error), 'express');
+      }
     }
 
     // First register all API routes
@@ -76,7 +87,7 @@ app.use((req, res, next) => {
     const server = registerRoutes(app);
     log("✅ API routes registered", 'express');
 
-    // Global error handler
+    // Global error handler with enhanced logging
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -87,11 +98,17 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    // Finally, setup Vite or static file serving
+    // Setup Vite or static file serving with enhanced error handling
     if (process.env.NODE_ENV === 'development') {
       log("Setting up Vite development server...", 'express');
-      await setupVite(app, server);
-      log("✅ Vite development server setup complete", 'express');
+      try {
+        await setupVite(app, server);
+        log("✅ Vite development server setup complete", 'express');
+      } catch (error) {
+        log("❌ Failed to setup Vite development server:", 'express');
+        log(error instanceof Error ? error.message : String(error), 'express');
+        throw error;
+      }
     } else {
       log("Setting up static file serving...", 'express');
       serveStatic(app);
@@ -100,14 +117,24 @@ app.use((req, res, next) => {
 
     // Force port 5000 as required by the workflow
     const PORT = 5000;
-    log(`Starting Express server on port ${PORT}...`, 'express');
+    const HOST = '0.0.0.0';
+    log(`Starting Express server on ${HOST}:${PORT}...`, 'express');
 
-    server.listen(PORT, '0.0.0.0')
+    server.listen(PORT, HOST)
       .once('listening', () => {
-        log(`✅ Express server started successfully on port ${PORT} in ${process.env.NODE_ENV} mode`, 'express');
+        const address = server.address();
+        if (address && typeof address === 'object') {
+          log(`✅ Express server started successfully on ${address.address}:${address.port} in ${process.env.NODE_ENV} mode`, 'express');
+          log(`Server is accepting connections from all network interfaces`, 'express');
+        } else {
+          log(`✅ Express server started successfully on port ${PORT} in ${process.env.NODE_ENV} mode`, 'express');
+        }
       })
       .once('error', (error: NodeJS.ErrnoException) => {
         log(`❌ Failed to start server: ${error.message}`, 'express');
+        if (error.code === 'EADDRINUSE') {
+          log(`Port ${PORT} is already in use. Please free the port and try again.`, 'express');
+        }
         process.exit(1);
       });
 
