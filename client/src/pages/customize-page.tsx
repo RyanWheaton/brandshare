@@ -1158,6 +1158,111 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                               </AccordionContent>
                             </AccordionItem>
 
+                            <AccordionItem value="publish" className="border rounded-lg">
+                              <AccordionTrigger className="px-6">Publish Settings</AccordionTrigger>
+                              <AccordionContent>
+                                <div className="px-6 pb-4 space-y-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="customSlug"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className={cn(
+                                          form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                        )}>Custom URL</FormLabel>
+                                        <FormDescription>
+                                          Customize the URL for your share page. Only letters, numbers, and hyphens are allowed.
+                                        </FormDescription>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm text-muted-foreground">
+                                            {window.location.origin}/p/
+                                          </span>
+                                          <FormControl>
+                                            <Input
+                                              {...field}
+                                              placeholder="my-custom-url"
+                                              className="flex-1"
+                                            />
+                                          </FormControl>
+                                        </div>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+
+                                  {!isTemplate && (
+                                    <>
+                                      <FormField
+                                        control={form.control}
+                                        name="password"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Password Protection</FormLabel>
+                                            <FormDescription>
+                                              Optional: Add a password to restrict access to your share page
+                                            </FormDescription>
+                                            <FormControl>
+                                              <Input
+                                                type="password"
+                                                {...field}
+                                                placeholder="Enter a password"
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+
+                                      <FormField
+                                        control={form.control}
+                                        name="expiresAt"
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col">
+                                            <FormLabel>Expiration Date</FormLabel>
+                                            <FormDescription>
+                                              Optional: Set a date when this share page will expire
+                                            </FormDescription>
+                                            <Popover>
+                                              <PopoverTrigger asChild>
+                                                <FormControl>
+                                                  <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                      "w-full pl-3 text-left font-normal",
+                                                      !field.value && "text-muted-foreground"
+                                                    )}
+                                                  >
+                                                    {field.value ? (
+                                                      format(field.value, "PPP")
+                                                    ) : (
+                                                      <span>Pick a date</span>
+                                                    )}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                  </Button>
+                                                </FormControl>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                  mode="single"
+                                                  selected={field.value}
+                                                  onSelect={field.onChange}
+                                                  disabled={(date) =>
+                                                    date < new Date() || date < new Date("1900-01-01")
+                                                  }
+                                                  initialFocus
+                                                />
+                                              </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </>
+                                  )}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+
                             <AccordionItem value="colors" className="border rounded-lg">
                               <AccordionTrigger className="px-6">Body Settings</AccordionTrigger>
                               <AccordionContent>
