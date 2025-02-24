@@ -25,62 +25,78 @@ const validatePDFUrl = (url: string): string => {
 
 // Enhanced fetch implementation with S3 support
 const fetchPDFData = async (validatedUrl: string) => {
-  console.log("Fetching PDF from URL:", validatedUrl);
   let attempts = 0;
   const maxAttempts = 3;
   const baseDelay = 1000;
 
   while (attempts < maxAttempts) {
     try {
+      console.log(`Attempt ${attempts + 1}/${maxAttempts} - Fetching PDF from: ${validatedUrl}`);
+
+      // Enhanced fetch request with proper headers for S3
       const response = await fetch(validatedUrl, {
         method: 'GET',
+        mode: 'cors',
         credentials: 'omit', // Don't send credentials for S3 requests
         headers: {
-          'Accept': 'application/pdf',
+          'Accept': 'application/pdf, */*',
           'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
       });
 
       if (!response.ok) {
-        console.error("PDF fetch failed:", {
+        const errorDetails = {
           status: response.status,
           statusText: response.statusText,
           url: validatedUrl,
-        });
+          headers: Object.fromEntries(response.headers.entries())
+        };
+        console.error("PDF fetch failed:", errorDetails);
 
-        // Check if we should retry based on status code
         if (response.status === 403 || response.status === 401) {
-          throw new Error(`Access denied: ${response.status}`);
+          throw new Error(`Access denied (${response.status}). Please check S3 bucket permissions.`);
         }
         if (response.status === 404) {
-          throw new Error('PDF not found');
+          throw new Error('PDF not found. The file may have been moved or deleted.');
         }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Verify content type
-      const contentType = response.headers.get('content-type');
-      if (contentType && !contentType.includes('application/pdf')) {
-        console.warn('Unexpected content type:', contentType);
-      }
+      // Log successful response details
+      console.log("Successful response received:", {
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
+      });
 
       const arrayBuffer = await response.arrayBuffer();
       if (!arrayBuffer || arrayBuffer.byteLength === 0) {
         throw new Error('Empty PDF data received');
       }
 
+      console.log(`Successfully fetched PDF data (${arrayBuffer.byteLength} bytes)`);
       return arrayBuffer;
     } catch (error) {
       attempts++;
       const isLastAttempt = attempts === maxAttempts;
-      console.error(`PDF fetch attempt ${attempts}/${maxAttempts} failed:`, error);
+
+      // Enhanced error logging
+      console.error(`PDF fetch attempt ${attempts}/${maxAttempts} failed:`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        attempt: attempts,
+        url: validatedUrl,
+        timestamp: new Date().toISOString()
+      });
 
       if (isLastAttempt) {
-        throw error;
+        throw new Error(`Failed to fetch PDF after ${maxAttempts} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
 
-      // Exponential backoff
-      const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), 8000);
+      // Exponential backoff with jitter
+      const jitter = Math.random() * 200;
+      const delay = Math.min(baseDelay * Math.pow(2, attempts - 1) + jitter, 8000);
+      console.log(`Retrying in ${Math.round(delay)}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
