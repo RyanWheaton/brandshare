@@ -261,7 +261,7 @@ function FileList({
   };
 
   return (
-    <div 
+    <div
       className="space-y-4"
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
@@ -293,6 +293,9 @@ function FileList({
             Uploading files...
           </div>
         )}
+        <p className="text-sm text-muted-foreground text-center">
+          or drag and drop files here
+        </p>
       </div>
 
       {dragActive && (
