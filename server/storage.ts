@@ -58,6 +58,7 @@ export interface IStorage {
   recordVisitDuration(sharePageId: number, duration: number, ip?: string): Promise<void>;
   getAverageVisitDuration(sharePageId: number): Promise<number>;
   getDailyVisitDurations(sharePageId: number): Promise<Record<string, number[]>>;
+  getAllUsersWithStats(): Promise<(User & { totalSharePages: number; totalFiles: number; totalStorage: number })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -554,7 +555,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(eq(users.id, userId));
   }
 
-  async getAllUsersWithStats(): Promise<(User & { totalSharePages: number })[]> {
+  async getAllUsersWithStats(): Promise<(User & { totalSharePages: number; totalFiles: number; totalStorage: number })[]> {
     const dbUsers = await db.select().from(users);
 
     const usersWithStats = await Promise.all(
@@ -564,9 +565,31 @@ export class DatabaseStorage implements IStorage {
           .from(sharePages)
           .where(eq(sharePages.userId, user.id));
 
+        // Calculate total files and storage across all pages
+        let totalFiles = 0;
+        let totalStorage = 0;
+
+        for (const page of pages) {
+          const files = page.files as { name: string; url: string; size?: number }[];
+          totalFiles += files.length;
+
+          // Sum up file sizes if available, estimate if not
+          totalStorage += files.reduce((acc, file) => {
+            // If size is available in metadata, use it
+            if (file.size) {
+              return acc + file.size;
+            }
+            // Otherwise provide a conservative estimate (1MB per file)
+            return acc + 1024 * 1024;
+          }, 0);
+        }
+
         return {
           ...user,
-          totalSharePages: pages.length
+          totalSharePages: pages.length,
+          totalFiles,
+          // Convert to MB for display
+          totalStorage: Math.round(totalStorage / (1024 * 1024))
         };
       })
     );

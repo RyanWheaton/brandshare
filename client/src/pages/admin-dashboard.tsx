@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, KeyRound, Trash2 } from "lucide-react";
+import { Loader2, KeyRound, Trash2, FileText, HardDrive } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -39,6 +39,8 @@ interface UserStats {
   email: string;
   username: string;
   totalSharePages: number;
+  totalFiles: number;
+  totalStorage: number;
   emailVerified: boolean;
 }
 
@@ -175,7 +177,9 @@ export default function AdminDashboard() {
               <TableHead>Email</TableHead>
               <TableHead>Username</TableHead>
               <TableHead>Verified</TableHead>
-              <TableHead className="text-right">Total Share Pages</TableHead>
+              <TableHead className="text-right">Share Pages</TableHead>
+              <TableHead className="text-right">Total Files</TableHead>
+              <TableHead className="text-right">Storage (MB)</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -186,6 +190,18 @@ export default function AdminDashboard() {
                 <TableCell>{user.username}</TableCell>
                 <TableCell>{user.emailVerified ? "Yes" : "No"}</TableCell>
                 <TableCell className="text-right">{user.totalSharePages}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    {user.totalFiles}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <HardDrive className="h-4 w-4 text-muted-foreground" />
+                    {user.totalStorage}
+                  </div>
+                </TableCell>
                 <TableCell className="text-right space-x-2">
                   <Dialog
                     open={resetPasswordUserId === user.id}
