@@ -26,7 +26,7 @@ export const fileSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   storageType: z.enum(['s3', 'dropbox']).default('dropbox'),
-  s3Key: z.string().optional(), // The S3 object key for the file
+  s3Key: z.string().optional(),
 });
 
 export const sharePageTemplates = pgTable("share_page_templates", {
@@ -49,6 +49,7 @@ export const sharePages = pgTable("share_pages", {
   title: text("title").notNull(),
   description: text("description"),
   slug: text("slug").notNull().unique(),
+  customSlug: text("custom_slug").unique(),
   backgroundColor: text("background_color").default("#ffffff"),
   backgroundColorSecondary: text("background_color_secondary"),
   textColor: text("text_color").default("#000000"),
@@ -152,6 +153,7 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   buttonBackgroundColor: true,
   buttonBorderColor: true,
   buttonTextColor: true,
+  customSlug: true,
 }).extend({
   files: z.array(fileSchema),
   password: z.string().optional(),
@@ -173,6 +175,16 @@ export const insertSharePageSchema = createInsertSchema(sharePages).pick({
   buttonBackgroundColor: z.string().optional(),
   buttonBorderColor: z.string().optional(),
   buttonTextColor: z.string().optional(),
+  customSlug: z.string().optional()
+    .refine(val => !val || /^[a-zA-Z0-9-]+$/.test(val), {
+      message: "Custom URL can only contain letters, numbers, and hyphens"
+    })
+    .refine(val => !val || val.length >= 3, {
+      message: "Custom URL must be at least 3 characters long"
+    })
+    .refine(val => !val || val.length <= 50, {
+      message: "Custom URL cannot be longer than 50 characters"
+    }),
 });
 
 export const insertAnnotationSchema = createInsertSchema(annotations).pick({
