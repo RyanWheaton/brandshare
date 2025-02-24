@@ -853,7 +853,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
           updateMutation.mutate(formData);
         } else {
           toast({
-            title:"No changes to save",
+            title: "No changes to save",
             description: "Make some changes first before saving.",
           });
         }
@@ -1669,6 +1669,159 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             </AccordionContent>
                           </AccordionItem>
                         ))}
+                        <AccordionItem value="footer">
+                          <AccordionTrigger className="px-4">
+                            <div className="flex items-center gap-2">
+                              Footer Settings
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-4 px-4 pb-4">
+                            <FormField
+                              control={form.control}
+                              name="showFooter"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <FormLabel>Show Footer</FormLabel>
+                                    <FormDescription>
+                                      Toggle footer visibility
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            {form.watch("showFooter") && (
+                              <>
+                                <FormField
+                                  control={form.control}
+                                  name="footerText"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Text</FormLabel>
+                                      <FormControl>
+                                        <TipTapEditor 
+                                          value={field.value || ""}
+                                          onChange={field.onChange}
+                                          placeholder="Enter footer text"
+                                          className="min-h-[100px]"
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="footerLogoUrl"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Logo</FormLabel>
+                                      <FormControl>
+                                        <DropboxChooser
+                                          onFilesSelected={(files) => {
+                                            if (files?.[0]) {
+                                              form.setValue("footerLogoUrl", files[0].url, {
+                                                shouldDirty: true,
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full gap-2"
+                                          >
+                                            <Upload className="h-4 w-4" />
+                                            Choose Logo
+                                          </Button>
+                                        </DropboxChooser>
+                                      </FormControl>
+                                      {field.value && (
+                                        <div className="mt-2">
+                                          <LogoPreview url={field.value} size={form.watch("footerLogoSize") || 150} />
+                                        </div>
+                                      )}
+                                    </FormItem>
+                                  )}
+                                />
+
+                                {form.watch("footerLogoUrl") && (
+                                  <>
+                                    <FormField
+                                      control={form.control}
+                                      name="footerLogoSize"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Footer Logo Size</FormLabel>
+                                          <FormControl>
+                                            <Slider
+                                              min={50}
+                                              max={300}
+                                              step={10}
+                                              value={[field.value || 150]}
+                                              onValueChange={(value) => field.onChange(value[0])}
+                                            />
+                                          </FormControl>
+                                          <FormDescription>{field.value || 150}px</FormDescription>
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name="footerLogoLink"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Footer Logo Link</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Enter URL for logo link"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormDescription>
+                                            Optional: Make the logo clickable with a URL
+                                          </FormDescription>
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </>
+                                )}
+
+                                <FormField
+                                  control={form.control}
+                                  name="footerBackgroundColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Background Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker {...field} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                /><FormField
+                                  control={form.control}
+                                  name="footerTextColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Text Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker {...field} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
                       </Accordion>
                     </div>
 
