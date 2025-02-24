@@ -293,7 +293,7 @@ function FileList({
             Uploading files...
           </div>
         )}
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-[0.65rem] text-muted-foreground text-center uppercase">
           or drag and drop files here
         </p>
       </div>
