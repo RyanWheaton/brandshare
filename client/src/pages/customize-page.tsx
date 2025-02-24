@@ -919,35 +919,1519 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
         }}>
           <TabsContent value="customize" className="space-y-6">
             <div className="grid lg:grid-cols-[40%_60%] gap-8">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
-                  <Accordion type="single" collapsible defaultValue="content">
-                    <AccordionItem value="content">
-                      <AccordionTrigger>Content</AccordionTrigger>
-                      <AccordionContent className="space-y-4">
-                        <div className="space-y-4">
-                          <Accordion type="multiple" className="space-y-4">
-                            <AccordionItem value="files" className="border rounded-lg">
-                              <AccordionTrigger className="px-6">Files</AccordionTrigger>
-                              <AccordionContent>
-                                <div className="px-6 pb-4">
-                                  <div className="space-y-4">
-                                    <FileList
-                                      files={formValues.files}
-                                      onUpdateFile={handleFileUpdate}
-                                      onAddFiles={(newFiles) => {
-                                        form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+              <div className="w-full">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
+                    <Accordion type="multiple" defaultValue={["publish", "files"]} className="space-y-4">
+                      {/* Publish Settings */}
+                      <AccordionItem value="publish" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Publish Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="customSlug"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Custom URL</FormLabel>
+                                  <FormDescription>
+                                    Customize the URL for your share page. Only letters, numbers, and hyphens are allowed.
+                                  </FormDescription>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                      {window.location.origin}/p/
+                                    </span>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        placeholder="my-custom-url"
+                                        className="flex-1"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {!isTemplate && (
+                              <>
+                                <FormField
+                                  control={form.control}
+                                  name="password"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Password Protection</FormLabel>
+                                      <FormDescription>
+                                        Optional: Add a password to restrict access to your share page
+                                      </FormDescription>
+                                      <FormControl>
+                                        <Input
+                                          type="password"
+                                          {...field}
+                                          placeholder="Enter a password"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="expiresAt"
+                                  render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                      <FormLabel>Expiration Date</FormLabel>
+                                      <FormDescription>
+                                        Optional: Set a date when this share page will expire
+                                      </FormDescription>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <FormControl>
+                                            <Button
+                                              variant="outline"
+                                              className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                              )}
+                                            >
+                                              {field.value ? (
+                                                format(field.value, "PPP")
+                                              ) : (
+                                                <span>Pick a date</span>
+                                              )}
+                                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                          </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                              date < new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Files Section */}
+                      <AccordionItem value="files" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4">
+                            <div className="space-y-4">
+                              <FileList
+                                files={formValues.files}
+                                onUpdateFile={handleFileUpdate}
+                                onAddFiles={(newFiles) => {
+                                  const filesWithTypes = newFiles.map(file => ({
+                                    ...file,
+                                    storageType: file.storageType || "dropbox"
+                                  }));
+                                  form.setValue('files', [...formValues.files, ...filesWithTypes], { shouldDirty: true });
+                                }}
+                                form={form}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Header Settings */}
+                      <AccordionItem value="header" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Header Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-8">
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="logoUrl"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Logo</FormLabel>
+                                    <FormDescription>
+                                      Upload a logo to display above the title
+                                    </FormDescription>
+                                    <DropboxChooser
+                                      onFilesSelected={(files) => {
+                                        form.setValue('logoUrl', files[0]?.url || '', { shouldDirty: true });
                                       }}
-                                      form={form}
+                                      className="w-full"
+                                    >
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full gap-2"
+                                      >
+                                        <Upload className="h-4 w-4" />
+                                        Choose Logo
+                                      </Button>
+                                    </DropboxChooser>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {formValues.logoUrl && (
+                                <>
+                                  <FormField
+                                    control={form.control}
+                                    name="logoSize"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Logo Size</FormLabel>
+                                        <FormDescription>
+                                          Adjust the size of your logo (50-400 pixels)
+                                        </FormDescription>
+                                        <FormControl>
+                                          <Slider
+                                            value={[field.value || 200]}
+                                            onValueChange={(value) => field.onChange(value[0])}
+                                            min={50}
+                                            max={400}
+                                            step={10}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <div className="mt-4">
+                                    <p className="text-sm font-medium mb-2">Logo Preview</p>
+                                    <LogoPreview
+                                      url={formValues.logoUrl}
+                                      size={formValues.logoSize || 200}
                                     />
                                   </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
 
-                            <AccordionItem value="header" className="border rounded-lg">
-                              <AccordionTrigger className="px-6">Header Settings</AccordionTrigger>
-                              <AccordionContent>
+                      {/* Typography Settings */}
+                      <AccordionItem value="typography" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Typography Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-8">
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="titleFont"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Title Font</FormLabel>
+                                    <FormControl>
+                                      <FontSelect
+                                        value={field.value || 'Inter'}
+                                        onValueChange={(value) => field.onChange(value)}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="titleFontSize"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Title Font Size</FormLabel>
+                                    <FormControl>
+                                      <Slider
+                                        value={[field.value || 24]}
+                                        onValueChange={(value) => field.onChange(value[0])}
+                                        min={16}
+                                        max={48}
+                                        step={1}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="descriptionFont"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Description Font</FormLabel>
+                                    <FormControl>
+                                      <FontSelect
+                                        value={field.value || 'Inter'}
+                                        onValueChange={(value) => field.onChange(value)}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="descriptionFontSize"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Description Font Size</FormLabel>
+                                    <FormControl>
+                                      <Slider
+                                        value={[field.value || 16]}
+                                        onValueChange={(value) => field.onChange(value[0])}
+                                        min={12}
+                                        max={24}
+                                        step={1}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Colors */}
+                      <AccordionItem value="colors" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Colors</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="backgroundColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Background Color</FormLabel>
+                                  <FormControl>
+                                    <ColorPicker
+                                      color={field.value}
+                                      onChange={(color) => field.onChange(color)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="textColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Text Color</FormLabel>
+                                  <FormControl>
+                                    <ColorPicker
+                                      color={field.value}
+                                      onChange={(color) => field.onChange(color)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="buttonBackgroundColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Button Background Color</FormLabel>
+                                  <FormControl>
+                                    <ColorPicker
+                                      color={field.value}
+                                      onChange={(color) => field.onChange(color)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="buttonTextColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Button Text Color</FormLabel>
+                                  <FormControl>
+                                    <ColorPicker
+                                      color={field.value}
+                                      onChange={(color) => field.onChange(color)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Footer */}
+                      <AccordionItem value="footer" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Footer Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="showFooter"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center gap-2">
+                                    <FormControl>
+                                      <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <FormLabel>Show Footer</FormLabel>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {formValues.showFooter && (
+                              <>
+                                <FormField
+                                  control={form.control}
+                                  name="footerText"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Text</FormLabel>
+                                      <FormControl>
+                                        <TipTapEditor
+                                          value={field.value || ''}
+                                          onChange={field.onChange}
+                                          placeholder="Enter footer text..."
+                                          className="min-h-[100px]"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="footerBackgroundColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Background Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker
+                                          color={field.value}
+                                          onChange={(color) => field.onChange(color)}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="footerTextColor"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Text Color</FormLabel>
+                                      <FormControl>
+                                        <ColorPicker
+                                          color={field.value}
+                                          onChange={(color) => field.onChange(color)}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="footerLogoUrl"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Footer Logo</FormLabel>
+                                      <DropboxChooser
+                                        onFilesSelected={(files) => {
+                                          form.setValue('footerLogoUrl', files[0]?.url || '', { shouldDirty: true });
+                                        }}
+                                        className="w-full"
+                                      >
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          className="w-full gap-2"
+                                        >
+                                          <Upload className="h-4 w-4" />
+                                          Choose Footer Logo
+                                        </Button>
+                                      </DropboxChooser>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                {formValues.footerLogoUrl && (
+                                  <>
+                                    <FormField
+                                      control={form.control}
+                                      name="footerLogoSize"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Footer Logo Size</FormLabel>
+                                          <FormDescription>
+                                            Adjust the size of your footer logo (50-300 pixels)
+                                          </FormDescription>
+                                          <FormControl>
+                                            <Slider
+                                              value={[field.value || 150]}
+                                              onValueChange={(value) => field.onChange(value[0])}
+                                              min={50}
+                                              max={300}
+                                              step={10}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name="footerLogoLink"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Footer Logo Link</FormLabel>
+                                          <FormDescription>
+                                            Optional: Add a URL to link the footer logo
+                                          </FormDescription>
+                                          <FormControl>
+                                            <Input
+                                              type="url"
+                                              placeholder="https://example.com"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </form>
+                </Form>
+              </div>
+
+              <div className="w-full">
+                <FilePreview
+                  title={formValues.title}
+                  description={formValues.description}
+                  backgroundColor={formValues.backgroundColor}
+                  textColor={formValues.textColor}
+                  files={formValues.files}
+                  showFooter={formValues.showFooter}
+                  footerText={formValues.footerText}
+                  footerBackgroundColor={formValues.footerBackgroundColor}
+                  footerTextColor={formValues.footerTextColor}
+                  footerLogoUrl={formValues.footerLogoUrl}
+                  footerLogoSize={formValues.footerLogoSize}
+                  footerLogoLink={formValues.footerLogoLink}
+                  logoUrl={formValues.logoUrl}
+                  logoSize={formValues.logoSize}
+                  buttonBackgroundColor={formValues.buttonBackgroundColor}
+                  buttonBorderColor={formValues.buttonBorderColor}
+                  buttonTextColor={formValues.buttonTextColor}
+                  titleFont={formValues.titleFont}
+                  descriptionFont={formValues.descriptionFont}
+                  titleFontSize={formValues.titleFontSize}
+                  descriptionFontSize={formValues.descriptionFontSize}
+                />
+
+                {!isTemplate && (
+                  <Analytics
+                    pageId={id}
+                    isTemplate={isTemplate}
+                    activeTab={activeTab}
+                  />
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            {!isTemplate && (
+              <Analytics
+                pageId={id}
+                isTemplate={isTemplate}
+                activeTab={activeTab}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
+                    <Accordion type="multiple" defaultValue={["publish", "files"]} className="space-y-4">
+                      {/* Publish Settings */}  
+                      <AccordionItem value="publish" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Publish Settings</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="customSlug"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Custom URL</FormLabel>
+                                  <FormDescription>
+                                    Customize the URL for your share page. Only letters, numbers, and hyphens are allowed.
+                                  </FormDescription>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                      {window.location.origin}/p/
+                                    </span>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        placeholder="my-custom-url"
+                                        className="flex-1"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {!isTemplate && (
+                              <>
+                                <FormField
+                                  control={form.control}
+                                  name="password"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Password Protection</FormLabel>
+                                      <FormDescription>
+                                        Optional: Add a password to restrict access to your share page
+                                      </FormDescription>
+                                      <FormControl>
+                                        <Input
+                                          type="password"
+                                          {...field}
+                                          placeholder="Enter a password"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="expiresAt"
+                                  render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                      <FormLabel>Expiration Date</FormLabel>
+                                      <FormDescription>
+                                        Optional: Set a date when this share page will expire
+                                      </FormDescription>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <FormControl>
+                                            <Button
+                                              variant="outline"
+                                              className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                              )}
+                                            >
+                                              {field.value ? (
+                                                format(field.value, "PPP")
+                                              ) : (
+                                                <span>Pick a date</span>
+                                              )}
+                                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                          </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                              date < new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Files Section */}
+                      <AccordionItem value="files" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4">
+                            <div className="space-y-4">
+                              <FileList
+                                files={formValues.files}
+                                onUpdateFile={handleFileUpdate}
+                                onAddFiles={(newFiles) => {
+                                  const filesWithTypes = newFiles.map(file => ({
+                                    ...file,
+                                    storageType: file.storageType || "dropbox"
+                                  }));
+                                  form.setValue('files', [...formValues.files, ...filesWithTypes], { shouldDirty: true });
+                                }}
+                                form={form}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Rest of your accordion items (Header, Typography, Colors, etc.) */}
+                    </Accordion>
+                  </form>
+                </Form>
+              </div>
+
+              {/* Preview Section */}
+              <div className="w-full">
+                <FilePreview
+                  title={formValues.title}
+                  description={formValues.description}
+                  backgroundColor={formValues.backgroundColor}
+                  textColor={formValues.textColor}
+                  files={formValues.files}
+                  showFooter={formValues.showFooter}
+                  footerText={formValues.footerText}
+                  footerBackgroundColor={formValues.footerBackgroundColor}
+                  footerTextColor={formValues.footerTextColor}
+                  footerLogoUrl={formValues.footerLogoUrl}
+                  footerLogoSize={formValues.footerLogoSize}
+                  footerLogoLink={formValues.footerLogoLink}
+                  logoUrl={formValues.logoUrl}
+                  logoSize={formValues.logoSize}
+                  buttonBackgroundColor={formValues.buttonBackgroundColor}
+                  buttonBorderColor={formValues.buttonBorderColor}
+                  buttonTextColor={formValues.buttonTextColor}
+                  titleFont={formValues.titleFont}
+                  descriptionFont={formValues.descriptionFont}
+                  titleFontSize={formValues.titleFontSize}
+                  descriptionFontSize={formValues.descriptionFontSize}
+                />
+
+                {!isTemplate && (
+                  <Analytics
+                    pageId={id}
+                    isTemplate={isTemplate}
+                    activeTab={activeTab}
+                  />
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            {!isTemplate && (
+              <Analytics
+                pageId={id}
+                isTemplate={isTemplate}
+                activeTab={activeTab}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="customSlug"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Custom URL</FormLabel>
+                                  <FormDescription>
+                                    Customize the URL for your share page. Only letters, numbers, and hyphens are allowed.
+                                  </FormDescription>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                      {window.location.origin}/p/
+                                    </span>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        placeholder="my-custom-url"
+                                        className="flex-1"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {!isTemplate && (
+                              <>
+                                <FormField
+                                  control={form.control}
+                                  name="password"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Password Protection</FormLabel>
+                                      <FormDescription>
+                                        Optional: Add a password to restrict access to your share page
+                                      </FormDescription>
+                                      <FormControl>
+                                        <Input
+                                          type="password"
+                                          {...field}
+                                          placeholder="Enter a password"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="expiresAt"
+                                  render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                      <FormLabel>Expiration Date</FormLabel>
+                                      <FormDescription>
+                                        Optional: Set a date when this share page will expire
+                                      </FormDescription>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <FormControl>
+                                            <Button
+                                              variant="outline"
+                                              className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                              )}
+                                            >
+                                              {field.value ? (
+                                                format(field.value, "PPP")
+                                              ) : (
+                                                <span>Pick a date</span>
+                                              )}
+                                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                          </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                              date < new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Files Section */}
+                      <AccordionItem value="files" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4">
+                            <div className="space-y-4">
+                              <FileList
+                                files={formValues.files}
+                                onUpdateFile={handleFileUpdate}
+                                onAddFiles={(newFiles) => {
+                                  const filesWithTypes = newFiles.map(file => ({
+                                    ...file,
+                                    storageType: file.storageType || "dropbox"
+                                  }));
+                                  form.setValue('files', [...formValues.files, ...filesWithTypes], { shouldDirty: true });
+                                }}
+                                form={form}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Rest of your accordion items (Header, Typography, Colors, etc.) */}
+                    </Accordion>
+                  </form>
+                </Form>
+              </div>
+
+              {/* Preview Section */}
+              <div className="w-full">
+                <FilePreview
+                  title={formValues.title}
+                  description={formValues.description}
+                  backgroundColor={formValues.backgroundColor}
+                  textColor={formValues.textColor}
+                  files={formValues.files}
+                  showFooter={formValues.showFooter}
+                  footerText={formValues.footerText}
+                  footerBackgroundColor={formValues.footerBackgroundColor}
+                  footerTextColor={formValues.footerTextColor}
+                  footerLogoUrl={formValues.footerLogoUrl}
+                  footerLogoSize={formValues.footerLogoSize}
+                  footerLogoLink={formValues.footerLogoLink}
+                  logoUrl={formValues.logoUrl}
+                  logoSize={formValues.logoSize}
+                  buttonBackgroundColor={formValues.buttonBackgroundColor}
+                  buttonBorderColor={formValues.buttonBorderColor}
+                  buttonTextColor={formValues.buttonTextColor}
+                  titleFont={formValues.titleFont}
+                  descriptionFont={formValues.descriptionFont}
+                  titleFontSize={formValues.titleFontSize}
+                  descriptionFontSize={formValues.descriptionFontSize}
+                />
+
+                {!isTemplate && (
+                  <Analytics
+                    pageId={id}
+                    isTemplate={isTemplate}
+                    activeTab={activeTab}
+                  />
+                )}
+              </div>
+            </div>
+          </TabsContent>
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="customSlug"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Custom URL</FormLabel>
+                                  <FormDescription>
+                                    Customize the URL for your share page. Only letters, numbers, and hyphens are allowed.
+                                  </FormDescription>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                      {window.location.origin}/p/
+                                    </span>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        placeholder="my-custom-url"
+                                        className="flex-1"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {!isTemplate && (
+                              <>
+                                <FormField
+                                  control={form.control}
+                                  name="password"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Password Protection</FormLabel>
+                                      <FormDescription>
+                                        Optional: Add a password to restrict access to your share page
+                                      </FormDescription>
+                                      <FormControl>
+                                        <Input
+                                          type="password"
+                                          {...field}
+                                          placeholder="Enter a password"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="expiresAt"
+                                  render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                      <FormLabel>Expiration Date</FormLabel>
+                                      <FormDescription>
+                                        Optional: Set a date when this share page will expire
+                                      </FormDescription>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <FormControl>
+                                            <Button
+                                              variant="outline"
+                                              className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                              )}
+                                            >
+                                              {field.value ? (
+                                                format(field.value, "PPP")
+                                              ) : (
+                                                <span>Pick a date</span>
+                                              )}
+                                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                          </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                              date < new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Files */}
+                      <AccordionItem value="files" className="border rounded-lg">
+                        <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-6 pb-4">
+                            <div className="space-y-4">
+                              <FileList
+                                files={formValues.files}
+                                onUpdateFile={handleFileUpdate}
+                                onAddFiles={(newFiles) => {
+                                  const filesWithTypes = newFiles.map(file => ({
+                                    ...file,
+                                    storageType: file.storageType || "dropbox"
+                                  }));
+                                  form.setValue('files', [...formValues.files, ...filesWithTypes], { shouldDirty: true });
+                                }}
+                                form={form}
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Rest of the accordion items */}
+                    </Accordion>
+                  </form>
+                </Form>
+              </div>
+              <div className="w-full">
+                {/* Preview section will go here */}
+              </div>
+            </div>
+          </TabsContent>
+                          <div className="px-6 pb-4 space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="customSlug"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className={cn(
+                                    form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                  )}>Custom URL</FormLabel>
+                                  <FormDescription>
+                                    Customize the URL for your share page. Only letters, numbers, and hyphens are allowed.
+                                  </FormDescription>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                      {window.location.origin}/p/
+                                    </span>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        placeholder="my-custom-url"
+                                        className="flex-1"
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {!isTemplate && (
+                            <>
+                              <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Password Protection</FormLabel>
+                                    <FormDescription>
+                                      Optional: Add a password to restrict access to your share page
+                                    </FormDescription>
+                                    <FormControl>
+                                      <Input
+                                        type="password"
+                                        {...field}
+                                        placeholder="Enter a password"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="expiresAt"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col">
+                                    <FormLabel>Expiration Date</FormLabel>
+                                    <FormDescription>
+                                      Optional: Set a date when this share page will expire
+                                    </FormDescription>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full pl-3 text-left font-normal",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value ? (
+                                              format(field.value, "PPP")
+                                            ) : (
+                                              <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                          mode="single"
+                                          selected={field.value}
+                                          onSelect={field.onChange}
+                                          disabled={(date) =>
+                                            date < new Date() || date < new Date("1900-01-01")
+                                          }
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Files */}
+                    <AccordionItem value="files" className="border rounded-lg">
+                      <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="px-6 pb-4">
+                          <div className="space-y-4">
+                            <FileList
+                              files={formValues.files}
+                              onUpdateFile={handleFileUpdate}
+                              onAddFiles={(newFiles) => {
+                                form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+                              }}
+                              form={form}
+                            />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Header Settings */}
+                    <AccordionItem value="header" className="border rounded-lg">
+                      <AccordionTrigger className="px-6">Header Settings</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="px-6 pb-4 space-y-8">
+                          <div className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="logoUrl"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Logo</FormLabel>
+                                  <FormDescription>Upload a logo to display above the title</FormDescription>
+                                  <DropboxChooser
+                                    onFilesSelected={(files) => {
+                                      form.setValue('logoUrl', files[0]?.url || '', { shouldDirty: true });
+                                    }}
+                                    className="w-full"
+                                  >
+                                    <Button type="button" variant="outline" className="w-full gap-2">
+                                      <Upload className="h-4 w-4" />
+                                      Choose Logo
+                                    </Button>
+                                  </DropboxChooser>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {formValues.logoUrl && (
+                              <>
+                                <FormField
+                                  control={form.control}
+                                  name="logoSize"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Logo Size</FormLabel>
+                                      <FormDescription>Adjust the size of your logo</FormDescription>
+                                      <Slider
+                                        min={50}
+                                        max={400}
+                                        step={10}
+                                        value={[field.value]}
+                                        onValueChange={(values) => field.onChange(values[0])}
+                                        className="w-full"
+                                      />
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <div className="mt-4">
+                                  <h4 className="text-sm font-medium mb-2">Logo Preview</h4>
+                                  <LogoPreview url={formValues.logoUrl} size={formValues.logoSize} />
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          <Separator />
+
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium">Title & Description</h4>
+                            <FormField
+                              control={form.control}
+                              name="title"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="description"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description</FormLabel>
+                                  <FormDescription>Add a description to appear below the title</FormDescription>
+                                  <FormControl>
+                                    <TipTapEditor
+                                      value={field.value || ''}
+                                      onChange={field.onChange}
+                                      placeholder="Enter a description..."
+                                      className="min-h-[200px] prose-sm"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Typography Settings */}
+                    <AccordionItem value="typography" className="border rounded-lg">
+                      <AccordionTrigger className="px-6">Typography Settings</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="px-6 pb-4 space-y-8">
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium">Title</h4>
+                            <FormField
+                              control={form.control}
+                              name="titleFont"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Font Family</FormLabel>
+                                  <FormControl>
+                                    <FontSelect {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="titleFontSize"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Font Size</FormLabel>
+                                  <Slider
+                                    min={16}
+                                    max={72}
+                                    step={1}
+                                    value={[field.value]}
+                                    onValueChange={(values) => field.onChange(values[0])}
+                                    className="w-full"
+                                  />
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <Separator />
+
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium">Description</h4>
+                            <FormField
+                              control={form.control}
+                              name="descriptionFont"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Font Family</FormLabel>
+                                  <FormControl>
+                                    <FontSelect {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="descriptionFontSize"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Font Size</FormLabel>
+                                  <Slider
+                                    min={12}
+                                    max={24}
+                                    step={1}
+                                    value={[field.value]}
+                                    onValueChange={(values) => field.onChange(values[0])}
+                                    className="w-full"
+                                  />
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                    {/* Typography Settings */}
+                    <AccordionItem value="typography" className="border rounded-lg">
+                      <AccordionTrigger className="px-6">Publish Settings</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="px-6 pb-4 space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="customSlug"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className={cn(
+                                  form.formState.dirtyFields[field.name] && "after:content-['*'] after:ml-0.5 after:text-primary"
+                                )}>Custom URL</FormLabel>
+                                <FormDescription>
+                                  Customize the URL for your share page. Only letters, numbers, and hyphens are allowed.
+                                </FormDescription>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-muted-foreground">
+                                    {window.location.origin}/p/
+                                  </span>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="my-custom-url"
+                                      className="flex-1"
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {!isTemplate && (
+                            <>
+                              <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Password Protection</FormLabel>
+                                    <FormDescription>
+                                      Optional: Add a password to restrict access to your share page
+                                    </FormDescription>
+                                    <FormControl>
+                                      <Input
+                                        type="password"
+                                        {...field}
+                                        placeholder="Enter a password"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="expiresAt"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col">
+                                    <FormLabel>Expiration Date</FormLabel>
+                                    <FormDescription>
+                                      Optional: Set a date when this share page will expire
+                                    </FormDescription>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant="outline"
+                                            className={cn(
+                                              "w-full pl-3 text-left font-normal",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value ? (
+                                              format(field.value, "PPP")
+                                            ) : (
+                                              <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                          mode="single"
+                                          selected={field.value}
+                                          onSelect={field.onChange}
+                                          disabled={(date) =>
+                                            date < new Date() || date < new Date("1900-01-01")
+                                          }
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="files" className="border rounded-lg">
+                      <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="px-6 pb-4">
+                          <div className="space-y-4">
+                            <FileList
+                              files={formValues.files}
+                              onUpdateFile={handleFileUpdate}
+                              onAddFiles={(newFiles) => {
+                                form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+                              }}
+                              form={form}
+                            />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6 pb-10">
+                  <div className="space-y-4">
+                    <AccordionItem value="files" className="border rounded-lg">
+                      <AccordionTrigger className="px-6">Files</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="px-6 pb-4">
+                          <div className="space-y-4">
+                            <FileList
+                              files={formValues.files}
+                              onUpdateFile={handleFileUpdate}
+                              onAddFiles={(newFiles) => {
+                                form.setValue('files', [...formValues.files, ...newFiles], { shouldDirty: true });
+                              }}
+                              form={form}
+                            />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="header" className="border rounded-lg">
+                      <AccordionTrigger className="px-6">Header Settings</AccordionTrigger>
+                      <AccordionContent>
                                 <div className="px-6 pb-4 space-y-8">
                                   <div className="space-y-4">
                                     <h4 className="text-sm font-medium">Logo Settings</h4>
@@ -1253,6 +2737,22 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                                                 />
                                               </PopoverContent>
                                             </Popover>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </>
+                                  )}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        </form>
+                      </Form>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
                                             <FormMessage />
                                           </FormItem>
                                         )}
@@ -1906,20 +3406,38 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
                             </footer>
                           )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                    <div className="flex-1">
+                      <FilePreview
+                        title={formValues.title}
+                        description={formValues.description}
+                        backgroundColor={formValues.backgroundColor}
+                        textColor={formValues.textColor}
+                        files={formValues.files}
+                        showFooter={formValues.showFooter}
+                        footerText={formValues.footerText}
+                        footerBackgroundColor={formValues.footerBackgroundColor}
+                        footerTextColor={formValues.footerTextColor}
+                        footerLogoUrl={formValues.footerLogoUrl}
+                        footerLogoSize={formValues.footerLogoSize}
+                        footerLogoLink={formValues.footerLogoLink}
+                        titleFont={formValues.titleFont}
+                        titleFontSize={formValues.titleFontSize}
+                        descriptionFont={formValues.descriptionFont}
+                        descriptionFontSize={formValues.descriptionFontSize}
+                        logoUrl={formValues.logoUrl}
+                        logoSize={formValues.logoSize}
+                        buttonBackgroundColor={formValues.buttonBackgroundColor}
+                        buttonBorderColor={formValues.buttonBorderColor}
+                        buttonTextColor={formValues.buttonTextColor}
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="analytics">
+                    {!isTemplate && <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />}
+                  </TabsContent>
+                </Tabs>
               </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="analytics">
-            {!isTemplate && (
-              <Analytics pageId={id} isTemplate={isTemplate} activeTab={activeTab} />
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
     </div>
   );
 }
