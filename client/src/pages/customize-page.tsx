@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle, FileText, Film, Plus, ChevronRight } from "lucide-react";
+import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle, FileText, Film, Plus, Maximize2, Minimize2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -982,9 +982,9 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
               onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
             >
               {isEditorCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
+                <Maximize2 className="h-4 w-4" />
               ) : (
-                <ChevronLeft className="h-4 w-4" />
+                <Minimize2 className="h-4 w-4" />
               )}
               <span className="sr-only">
                 {isEditorCollapsed ? 'Expand Editor' : 'Collapse Editor'}
