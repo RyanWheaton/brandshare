@@ -73,14 +73,30 @@ function Comment({ annotation, onDelete, currentUserId }: CommentProps) {
 
 type FilePreviewProps = {
   file: FileObject;
+  title?: string;
+  description?: string;
+  backgroundColor: string;
   textColor: string;
+  files: FileObject[];
+  showFooter: boolean;
+  footerText: string;
+  footerBackgroundColor: string;
+  footerTextColor: string;
+  footerLogoUrl: string;
+  footerLogoSize: number;
+  footerLogoLink: string;
+  logoUrl: string;
+  logoSize: number;
+  buttonBackgroundColor: string;
+  buttonBorderColor: string;
+  buttonTextColor: string;
   containerClassName?: string;
-  pageId?: number;
+  titleFont: string;
+  descriptionFont: string;
+  titleFontSize: number;
+  descriptionFontSize: number;
+  pageId?: number; 
   fileIndex?: number;
-  sharePage: SharePage;
-  buttonBackgroundColor?: string;
-  buttonBorderColor?: string;
-  buttonTextColor?: string;
 };
 
 function CommentsSkeleton() {
