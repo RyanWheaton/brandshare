@@ -28,52 +28,26 @@ const validatePDFUrl = (url: string): string => {
 };
 
 // Fetch PDF data with improved error handling
-const fetchPDFData = async (pdfUrl: string): Promise<ArrayBuffer> => {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
+const fetchPDFData = async (validatedUrl: string) => {
+  console.log("Fetching PDF from URL:", validatedUrl);
   try {
-    const validatedUrl = validatePDFUrl(pdfUrl);
-    console.log('Fetching PDF from URL:', validatedUrl);
-
     const response = await fetch(validatedUrl, {
       method: 'GET',
-      signal: controller.signal,
+      mode: 'cors',
       headers: {
         'Accept': 'application/pdf'
       }
     });
 
-    clearTimeout(timeout);
-
     if (!response.ok) {
-      console.error('Failed to fetch PDF:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
+      console.error("Failed to fetch PDF:", response.status, response.statusText);
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const contentType = response.headers.get('content-type');
-    console.log('Response content type:', contentType);
-
-    const arrayBuffer = await response.arrayBuffer();
-    if (arrayBuffer.byteLength === 0) {
-      throw new Error('Received empty PDF data');
-    }
-
-    return arrayBuffer;
-  } catch (error: unknown) {
-    clearTimeout(timeout);
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('PDF fetch request timed out');
-      }
-      console.error('PDF fetch error:', error);
-      throw error;
-    }
-    throw new Error('An unknown error occurred while fetching the PDF');
+    return await response.arrayBuffer();
+  } catch (error) {
+    console.error("Error fetching PDF:", error);
+    throw error;
   }
 };
 

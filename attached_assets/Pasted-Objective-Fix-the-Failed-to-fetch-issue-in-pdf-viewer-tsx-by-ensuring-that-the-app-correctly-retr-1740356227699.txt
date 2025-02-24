@@ -1,0 +1,76 @@
+Objective:
+Fix the "Failed to fetch" issue in pdf-viewer.tsx by ensuring that the app correctly retrieves and displays PDFs from AWS S3.
+
+Tasks to Fix the Issue
+Ensure S3 CORS Policy Allows Fetch Requests
+Modify the AWS S3 bucket CORS configuration:
+
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET"],
+    "AllowedOrigins": ["*"],
+    "ExposeHeaders": ["ETag"]
+  }
+]
+
+
+If needed, restrict AllowedOrigins to the app’s domain instead of "*".
+
+Fix Fetch Request in fetchPDFData
+Ensure the fetch request does not alter the signed URL.
+Remove AbortController if it is interfering with requests.
+Updated fetch request:
+
+const fetchPDFData = async (validatedUrl: string) => {
+  console.log("Fetching PDF from URL:", validatedUrl);
+  try {
+    const response = await fetch(validatedUrl, {
+      method: 'GET',
+      mode: 'cors', // Ensure cross-origin requests work
+      headers: {
+        'Accept': 'application/pdf'
+      }
+    });
+
+    if (!response.ok) {
+      console.error("Failed to fetch PDF:", response.status, response.statusText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.blob();
+  } catch (error) {
+    console.error("Error fetching PDF:", error);
+    throw error;
+  }
+};
+
+
+
+Fix AbortController Misuse
+The fetch request may be getting aborted too soon.
+Solution: Only abort on component unmount and ensure the request has time to complete.
+Fix AbortController in useEffect:
+
+useEffect(() => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  fetchPDFData(validatedUrl, signal)
+    .then(blob => setPdfBlob(blob))
+    .catch(error => {
+      if (error.name !== "AbortError") {
+        console.error("PDF Fetch Error:", error);
+      }
+    });
+
+  return () => controller.abort(); // Cleanup on unmount
+}, [validatedUrl]);
+
+
+
+Expected Outcome
+The app correctly fetches PDFs from AWS S3 without "Failed to fetch" errors.
+The PDF viewer properly displays files.
+No unexpected request abortions due to AbortController.
+
