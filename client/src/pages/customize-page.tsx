@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SharePage, SharePageTemplate, insertSharePageSchema, insertTemplateSchema, InsertSharePage, InsertTemplate } from "@shared/schema";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+// UI Components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,66 +21,281 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, X, ExternalLink, Copy, Check, ChevronLeft, Upload, Image, Eye, Clock, Users, MessageCircle, FileText, Film, Plus, Maximize2, Minimize2, LayoutTemplate, Type, Palette, Lock, PanelBottom } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useLocation } from "wouter";
-import { FilePreview } from "@/pages/share-page";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle } from "lucide-react";
 import { TipTapEditor } from "@/components/ui/tiptap-editor";
-import { convertDropboxUrl } from "@/lib/utils";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { DropboxChooser } from "@/components/ui/dropbox-chooser";
-import { SortableFiles } from "@/components/ui/sortable-files";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { FontSelect } from "@/components/ui/font-select";
 import { Slider } from "@/components/ui/slider";
+import { SortableFiles } from "@/components/ui/sortable-files";
+import { FontSelect } from "@/components/ui/font-select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { DndContext, DragOverlay } from "@dnd-kit/core";
+
+// Icons
+import {
+  Loader2, Save, ChevronLeft, Upload, ExternalLink, Copy, Check, Image, 
+  FileText, Film, PanelBottom, Plus, Eye, Clock, Users, MessageCircle,
+  Lock, Type, Palette, LayoutTemplate, X, CalendarIcon
+} from "lucide-react";
+
+// Utilities & Hooks 
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
+import { convertDropboxUrl } from "@/lib/utils";
+import { FilePreview } from "@/pages/share-page";
+
+// Types
+import type { SharePage } from "@shared/schema";
 
 
-// Extended FileObject type to match schema
-interface FileObject {
+// Required file type
+interface BaseFileObject {
   name: string;
   preview_url: string;
   url: string;
   isFullWidth: boolean;
   title?: string;
   description?: string;
-  storageType?: 'dropbox' | 's3';
 }
 
-// Extended form values type to include all fields and new button colors
-interface FormValues extends InsertSharePage {
-  footerText?: string;
-  footerBackgroundColor?: string;
-  footerTextColor?: string;
-  showFooter?: boolean;
-  footerLogoUrl?: string;
-  footerLogoSize?: number;
-  footerLogoLink?: string;
-  logoUrl?: string;
-  logoSize?: number;
-  buttonBackgroundColor?: string;
-  buttonBorderColor?: string;
-  buttonTextColor?: string;
-  titleFont?: string;
-  descriptionFont?: string;
-  titleFontSize?: number;
-  descriptionFontSize?: number;
+interface FileObject extends BaseFileObject {
+  storageType: 'dropbox' | 's3';
+}
+
+// Base interface with common properties
+// Type definitions
+interface ShareFileObject extends BaseFileObject {
+  storageType: 'dropbox' | 's3';
+}
+
+import type { FC } from 'react';
+
+interface SharePageBase {
+  title: string;
+  description: string;
+  backgroundColor: string;
+  backgroundColorSecondary: string | null;
+  textColor: string;
+  files: ShareFileObject[];
+  footerText: string | null;
+  footerBackgroundColor: string | null;
+  footerTextColor: string | null;
+  showFooter: boolean;
+  footerLogoUrl: string | null;
+  footerLogoSize: number;
+  footerLogoLink: string | null;
+  logoUrl: string | null;
+  logoSize: number;
+  buttonBackgroundColor: string;
+  buttonBorderColor: string;
+  buttonTextColor: string;
+  titleFont: string;
+  descriptionFont: string;
+  titleFontSize: number;
+  descriptionFontSize: number;
+}
+
+export interface SharePage extends SharePageBase {
+  id: number;
+  userId: number;
+  slug: string;
+  password: string | null;
+  expiresAt: string | null;
+  lastViewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type FormValues = Omit<SharePage, 'createdAt' | 'updatedAt'> & {
+  expiresAt?: string | null;
+  lastViewedAt?: string | null;
+};
+
+type FormValues = {
+  id: number;
+  userId: number;
+  title: string;
+  description: string;
+  slug: string;
+  backgroundColor: string;
+  backgroundColorSecondary: string | null;
+  textColor: string;
+  files: ShareFileObject[];
+  footerText: string | null;
+  footerBackgroundColor: string | null;
+  footerTextColor: string | null;
+  showFooter: boolean;
+  footerLogoUrl: string | null;
+  footerLogoSize: number;
+  footerLogoLink: string | null;
+  logoUrl: string | null;
+  logoSize: number;
+  buttonBackgroundColor: string;
+  buttonBorderColor: string;
+  buttonTextColor: string;
+  titleFont: string;
+  descriptionFont: string;
+  titleFontSize: number;
+  descriptionFontSize: number;
+  expiresAt?: string | null;
+  lastViewedAt?: string | null;
+  password: string | null;
+};
+
+interface CustomizePageProps {
+  params: { id: string };
+  isTemplate?: boolean;
+}
+
+interface PreviewProps {
+  data: FormValues;
+}
+
+const SharePagePreview: React.FC<PreviewProps> = ({ data }) => {
+  return (
+    <div className="relative">
+      <Card className="w-full">
+        <CardContent className="p-0">
+          <div className="h-[calc(100vh-3.5rem)] overflow-y-auto">
+            <div
+              className="relative"
+              style={{
+                backgroundColor: data.backgroundColor || "#ffffff",
+                background: data.backgroundColorSecondary
+                  ? `linear-gradient(to bottom, ${data.backgroundColor || "#ffffff"}, ${data.backgroundColorSecondary})`
+                  : data.backgroundColor || "#ffffff",
+              }}
+            >
+              <div className="p-8 min-h-full">
+                {data.logoUrl && (
+                  <div className="mb-8 flex justify-center">
+                    <img
+                      src={convertDropboxUrl(data.logoUrl)}
+                      alt="Logo"
+                      className="mx-auto object-contain"
+                      style={{
+                        maxWidth: data.logoSize || 200,
+                        maxHeight: data.logoSize || 200
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="text-center mb-8">
+                  <h1
+                    className="mb-4 font-bold"
+                    style={{
+                      fontFamily: data.titleFont || "Inter",
+                      fontSize: `${data.titleFontSize || 24}px`,
+                      color: data.textColor
+                    }}
+                  >
+                    {data.title || "Untitled Share Page"}
+                  </h1>
+                  {data.description && (
+                    <p
+                      className="opacity-90"
+                      style={{
+                        fontFamily: data.descriptionFont || "Inter",
+                        fontSize: `${data.descriptionFontSize || 16}px`,
+                        color: data.textColor
+                      }}
+                      dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                  )}
+                </div>
+                <div className="space-y-4">
+                  {data.files?.map((file, index) => (
+                    <div key={index}>
+                      <FilePreview
+                        file={file}
+                        textColor={data.textColor}
+                        pageId={data.id}
+                        fileIndex={index}
+                        containerClassName="w-full"
+                        sharePage={data as SharePage}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {data.showFooter && (data.footerText || data.footerBackgroundColor || data.footerLogoUrl) && (
+                <footer className="w-full mt-8">
+                  <div
+                    className="w-full py-6 px-4"
+                    style={{
+                      backgroundColor: data.footerBackgroundColor || "#f3f4f6",
+                      color: data.footerTextColor || "#000000",
+                    }}
+                  >
+                    <div className="max-w-4xl mx-auto">
+                      {data.footerLogoUrl && (
+                        <div className="mb-4 flex justify-center">
+                          {data.footerLogoLink ? (
+                            <a
+                              href={data.footerLogoLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <img
+                                src={convertDropboxUrl(data.footerLogoUrl)}
+                                alt="Footer Logo"
+                                className="mx-auto object-contain"
+                                style={{
+                                  maxWidth: data.footerLogoSize || 150,
+                                  maxHeight: data.footerLogoSize || 150
+                                }}
+                              />
+                            </a>
+                          ) : (
+                            <img
+                              src={convertDropboxUrl(data.footerLogoUrl)}
+                              alt="Footer Logo"
+                              className="mx-auto object-contain"
+                              style={{
+                                maxWidth: data.footerLogoSize || 150,
+                                maxHeight: data.footerLogoSize || 150
+                              }}
+                            />
+                          )}
+                        </div>
+                      )}
+                      {data.footerText && (
+                        <div
+                          className="prose prose-sm max-w-none"
+                          style={{ color: data.footerTextColor || "#000000" }}
+                          dangerouslySetInnerHTML={{ __html: data.footerText }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </footer>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+interface FilePreviewProps {
+  file: ShareFileObject;
+  textColor: string;
+  pageId: number;
+  fileIndex: number;
+  containerClassName?: string;
+  sharePage: SharePage;
 }
 
 function loadGoogleFont(fontFamily: string) {
@@ -361,6 +580,192 @@ function LogoPreview({ url, size }: { url: string; size: number }) {
   );
 }
 
+export default function CustomizePage({ params, isTemplate = false }: CustomizePageProps) {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [isCopied, setIsCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("customize"); 
+  const { user } = useAuth();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
+  const [activeAccordionItems, setActiveAccordionItems] = useState<string[]>([]);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => setLocation(isTemplate ? "/templates" : "/dashboard")}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+
+          <div className="flex-1" />
+
+          {!isTemplate && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={openSharePage}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={copyToClipboard}
+              >
+                {isCopied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                Copy Link
+              </Button>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges || updateMutation.isPending}
+            className="gap-2"
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Changes
+          </Button>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <div className="flex-1 container flex gap-8 py-6">
+        {/* Left panel - Editor */}
+        <div className="w-[400px] flex-shrink-0">
+          <div className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full">
+                <TabsTrigger className="flex-1" value="customize">
+                  Customize
+                </TabsTrigger>
+                {!isTemplate && (
+                  <TabsTrigger className="flex-1" value="analytics">
+                    Analytics
+                  </TabsTrigger>
+                )}
+              </TabsList>
+              <TabsContent value="customize">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} 
+                    className="space-y-6">
+                    <div className="space-y-4">
+                      <Accordion
+                        type="multiple"
+                        value={activeAccordionItems}
+                        onValueChange={setActiveAccordionItems}
+                      >
+                        {['files', 'header', 'typography', 'colors', 'footer', 'security'].map((section) => (
+                          <AccordionItem
+                            key={section}
+                            value={section}
+                            className="border rounded-lg"
+                          >
+                            <AccordionTrigger className="px-4">
+                              <div className="flex items-center gap-2">
+                                {getAccordionIcon(section)}
+                                <span>{section.charAt(0).toUpperCase() + section.slice(1)}</span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 px-4 pb-4">
+                              {/* Section content */}
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+              {!isTemplate && (
+                <TabsContent value="analytics">
+                  <Analytics
+                    pageId={id}
+                    isTemplate={isTemplate}
+                    activeTab={activeTab}
+                  />
+                </TabsContent>
+              )}
+            </Tabs>
+          </div>
+        </div>
+
+        {/* Right panel - Preview */}
+        <div className="flex-1">
+          <SharePagePreview data={form.getValues()} />
+        </div>
+      </div>
+    </div>
+  );
+              >
+                {data.logoUrl && (
+                  <img
+                    src={convertDropboxUrl(data.logoUrl)}
+                    alt="Logo"
+                    className="mx-auto object-contain"
+                    style={{
+                      maxWidth: data.logoSize || 200,
+                      maxHeight: data.logoSize || 200
+                    }}
+                  />
+                )}
+                <div className="text-center">
+                  <h1
+                    className="mb-4 font-bold"
+                    style={{
+                      fontFamily: data.titleFont || "Inter",
+                      fontSize: data.titleFontSize || 24,
+                      color: data.textColor || "#000000"
+                    }}
+                  >
+                    {data.title}
+                  </h1>
+                  <p
+                    style={{
+                      fontFamily: data.descriptionFont || "Inter",
+                      fontSize: data.descriptionFontSize || 16,
+                      color: data.textColor || "#000000"
+                    }}
+                  >
+                    {data.description}
+                  </p>
+                </div>
+                {data.files && data.files.length > 0 && (
+                  <div className="w-full space-y-8">
+                    {data.files.map((file, index) => (
+                      <FilePreview key={index} {...getPreview(file)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
 type CustomizePageProps = {
   params: { id: string };
   isTemplate?: boolean;
@@ -633,15 +1038,50 @@ const Analytics = ({ pageId, isTemplate, activeTab }: { pageId: number; isTempla
   );
 };
 
+type SharePageResponse = {
+  id: number;
+  userId: number;
+  title: string;
+  description: string | null;
+  backgroundColor: string | null;
+  backgroundColorSecondary: string | null;
+  textColor: string | null;
+  files: FileObject[];
+  password: string | null;
+  footerText: string | null;
+  footerBackgroundColor: string | null;
+  footerTextColor: string | null;
+  showFooter: boolean;
+  footerLogoUrl: string | null;
+  footerLogoSize: number | null;
+  footerLogoLink: string | null;
+  logoUrl: string | null;
+  logoSize: number | null;
+  buttonBackgroundColor: string | null;
+  buttonBorderColor: string | null;
+  buttonTextColor: string | null;
+  titleFont: string;
+  descriptionFont: string;
+  titleFontSize: number;
+  descriptionFontSize: number;
+  slug: string;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastViewedAt: string | null;
+};
+
 export default function CustomizePage({ params, isTemplate = false }: CustomizePageProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isCopied, setIsCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("customize");
+  const [activeTab, setActiveTab] = useState<string>("customize"); 
   const { user } = useAuth();
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
   const [activeAccordionItems, setActiveAccordionItems] = useState<string[]>([]);
+
+  // Parse and validate id at the start
 
   // Parse and validate id at the start
   const id = params?.id ? parseInt(params.id) : null;
@@ -865,16 +1305,16 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
   }, [form, updateMutation, toast]);
 
 
+  // Helper functions for share page actions
   const copyToClipboard = async () => {
     if (!item) return;
-
     try {
       const shareUrl = `${window.location.origin}/p/${(item as SharePage).slug}`;
       await navigator.clipboard.writeText(shareUrl);
       setIsCopied(true);
       toast({
-        title: "URL copied",
-        description: "Share page URL has been copied to your clipboard.",
+        title: "Link copied",
+        description: "Share page link has been copied to clipboard.",
       });
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
@@ -892,6 +1332,7 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     window.open(shareUrl, '_blank');
   };
 
+  // Loading and error states
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -913,143 +1354,117 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
     );
   }
 
-  //Corrected SharePagePreview component
-  const SharePagePreview = ({data}: {data: FormValues & { expiresAt?: Date }}) => {
-    return (
-      <div className="relative">
-        <div className="sticky top-0">
-          <Card className="w-full">
-            <CardContent className="p-0">
-              <div className="h-[calc(100vh-5.5rem)] overflow-y-auto">
-                <div
-                  className="relative"
-                  style={{
-                    backgroundColor: data.backgroundColor || "#ffffff",
-                    background: data.backgroundColorSecondary
-                      ? `linear-gradient(to bottom, ${data.backgroundColor || "#ffffff"}, ${data.backgroundColorSecondary})`
-                      : data.backgroundColor || "#ffffff",
-                  }}
-                >
-                  <div className="p-8 min-h-full">
-                    {data.logoUrl && (
-                      <div className="mb-8 flex justify-center">
-                        <img
-                          src={convertDropboxUrl(data.logoUrl)}
-                          alt="Logo"
-                          className="mx-auto object-contain"
-                          style={{
-                            maxWidth: data.logoSize || 200,
-                            maxHeight: data.logoSize || 200
-                          }}
-                        />
-                      </div>
-                    )}
-                    <div className="text-center mb-8">
-                      <h1
-                        className="mb-4 font-bold"
-                        style={{
-                          fontFamily: data.titleFont || "Inter",
-                          fontSize: `${data.titleFontSize || 24}px`,
-                          color: data.textColor
-                        }}
-                      >
-                        {data.title || "Untitled Share Page"}
-                      </h1>
-                      {data.description && (
-                        <p
-                          className="opacity-90"
-                          style={{
-                            fontFamily:data.descriptionFont || "Inter",
-                            fontSize: `${data.descriptionFontSize || 16}px`,
-                            color: data.textColor
-                          }}
-                          dangerouslySetInnerHTML={{ __html: data.description }}
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-4">
-                      {data.files.map((file, index) => (
-                        <div key={index}>
-                          <FilePreview
-                            file={file}
-                            textColor={data.textColor || "#000000"}
-                            pageId={id}
-                            fileIndex={index}
-                            containerClassName="w-full"
-                            sharePage={{
-                              ...data,
-                              id: id || 0,
-                              userId: user?.id || 0,
-                              slug: (item as SharePage)?.slug || '',
-                              createdAt: new Date(),
-                              updatedAt: new Date(),
-                              lastViewedAt: new Date()
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {data.showFooter && (data.footerText || data.footerBackgroundColor || data.footerLogoUrl) && (
-                    <footer className="w-full mt-8">
-                      <div
-                        className="w-full py-6 px-4"
-                        style={{
-                          backgroundColor: data.footerBackgroundColor || "#f3f4f6",
-                          color: data.footerTextColor || "#000000",
-                        }}
-                      >
-                        <div className="max-w-4xl mx-auto">
-                          {data.footerLogoUrl && (
-                            <div className="mb-4 flex justify-center">
-                              {data.footerLogoLink ? (
-                                <a
-                                  href={data.footerLogoLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <img
-                                    src={convertDropboxUrl(data.footerLogoUrl)}
-                                    alt="Footer Logo"
-                                    className="mx-auto object-contain"
-                                    style={{
-                                      maxWidth: data.footerLogoSize || 150,
-                                      maxHeight: data.footerLogoSize || 150
-                                    }}
-                                  />
-                                </a>
-                              ) : (
-                                <img
-                                  src={convertDropboxUrl(data.footerLogoUrl)}
-                                  alt="Footer Logo"
-                                  className="mx-auto object-contain"
-                                  style={{
-                                    maxWidth: data.footerLogoSize || 150,
-                                    maxHeight: data.footerLogoSize || 150
-                                  }}
-                                />
-                              )}
-                            </div>
-                          )}
-                          {data.footerText && (
-                            <div
-                              className="prose prose-sm max-w-none"
-                              style={{ color: data.footerTextColor || "#000000" }}
-                              dangerouslySetInnerHTML={{ __html: data.footerText }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </footer>
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => setLocation(isTemplate ? "/templates" : "/dashboard")}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+
+          <div className="flex-1" />
+
+          {!isTemplate && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={openSharePage}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={copyToClipboard}
+              >
+                {isCopied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                Copy Link
+              </Button>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            onClick={() => {
+              const formData = form.getValues();
+              updateMutation.mutate(formData);
+            }}
+            disabled={!hasUnsavedChanges || updateMutation.isPending}
+            className="gap-2"
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Changes
+          </Button>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <div className="flex-1 container flex gap-8">
+        {/* Left panel - Editor */}
+        <div className="w-[400px] flex-shrink-0">
+          <div className="h-[calc(100vh-3.5rem)] overflow-y-auto">
+            <div className="py-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="w-full">
+                  <TabsTrigger className="flex-1" value="customize">
+                    Customize
+                  </TabsTrigger>
+                  {!isTemplate && (
+                    <TabsTrigger className="flex-1" value="analytics">
+                      Analytics
+                    </TabsTrigger>
                   )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </TabsList>
+                <TabsContent value="customize">
+                  <div className="space-y-8">
+                    {/* Form fields here */}
+                  </div>
+                </TabsContent>
+                {!isTemplate && (
+                  <TabsContent value="analytics">
+                    <Analytics
+                      pageId={id}
+                      isTemplate={isTemplate}
+                      activeTab={activeTab}
+                    />
+                  </TabsContent>
+                )}
+              </Tabs>
+            </div>
+          </div>
+        </div>
+
+        {/* Right panel - Preview */}
+        <div className="flex-1">
+          <div className="sticky top-[3.5rem] h-[calc(100vh-3.5rem)] overflow-y-auto">
+            <div className="py-6">
+              <SharePagePreview data={formValues} />
+            </div>
+          </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+
 
   const getAccordionIcon = (value: string) => {
     switch (value) {
@@ -1084,139 +1499,133 @@ export default function CustomizePage({ params, isTemplate = false }: CustomizeP
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b bg-card">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation('/')}
-              className="shrink-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="sr-only">Back</span>
-            </Button>
-            <div className="flex items-center gap-4">
-              <h1 className="text-lg font-semibold">
-                {isTemplate ? 'Edit Template' : 'Customize Share Page'}
-              </h1>
-              {!isTemplate && (
-                <Badge variant="outline" className="font-mono">
-                  {(item as SharePage)?.slug}
-                </Badge>
-              )}
-            </div>
-          </div>
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => setLocation(isTemplate ? "/templates" : "/dashboard")}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
-            >
-              {isEditorCollapsed ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-              <span className="sr-only">
-                {isEditorCollapsed ? 'Expand Editor' : 'Collapse Editor'}
-              </span>
-            </Button>
-            {!isTemplate && (
+          <div className="flex-1" />
+
+          {!isTemplate && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={openSharePage}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={copyToClipboard}
+              >
+                {isCopied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                Copy Link
+              </Button>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            onClick={() => {
+              const formData = form.getValues();
+              if (hasUnsavedChanges) {
+                updateMutation.mutate(formData);
+              } else {
+                toast({
+                  title: "No changes to save",
+                  description: "Make some changes first before saving.",
+                });
+              }
+            }}
+            disabled={updateMutation.isPending}
+            className={cn(
+              "gap-2",
+              hasUnsavedChanges
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            )}
+          >
+            {updateMutation.isPending ? (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={copyToClipboard}
-                >
-                  {isCopied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copy URL
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={openSharePage}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open
-                </Button>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Changes
               </>
             )}
-            <Button
-              type="button"
-              onClick={() => {
-                const formData = form.getValues();
-                if (hasUnsavedChanges) {
-                  updateMutation.mutate(formData);
-                } else {
-                  toast({
-                    title: "No changes to save",
-                    description: "Make some changes first before saving.",
-                  });
-                }
-              }}
-              disabled={updateMutation.isPending}
-              className={cn(
-                "gap-2",
-                hasUnsavedChanges
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              )}
-            >
-              {updateMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </div>
+          </Button>
         </div>
       </header>
 
-      <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => {
-          setActiveTab(value);
-          const newUrl = `${window.location.pathname}?tab=${value}`;
-          window.history.pushState({}, '', newUrl);
-        }}>
-          <TabsContent value="customize">
-            <div className={`
-              grid gap-8 
-              transition-all duration-300 ease-in-out
-              ${isEditorCollapsed ? 'lg:grid-cols-[60px_1fr]' : 'lg:grid-cols-[30%_70%]'}
-              min-h-[calc(100vh-8rem)]
-            `}>
-              <div className={`
-                transition-all duration-300 ease-in-out
-                ${isEditorCollapsed ? 'w-[60px]' : 'w-full'}
-              `}>
-                <Form {...form}>
-                  <form 
-                    onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} 
-                    className={`
-                      space-y-6
-                      transition-all duration-300 ease-in-out
-                      ${isEditorCollapsed ? 'px-2' : 'px-4'}
-                    `}
+      {/* Main content */}
+      <div className="flex-1 container flex gap-8">
+        {/* Left panel - Editor */}
+        <div className="w-[400px] flex-shrink-0">
+          <div className="h-[calc(100vh-3.5rem)] overflow-y-auto">
+            <div className="py-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="w-full">
+                  <TabsTrigger className="flex-1" value="customize">
+                    Customize
+                  </TabsTrigger>
+                  {!isTemplate && (
+                    <TabsTrigger className="flex-1" value="analytics">
+                      Analytics
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+                <TabsContent value="customize">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} 
+                      className="space-y-6">
+                      {/* Form fields here */}
+                    </form>
+                  </Form>
+                </TabsContent>
+                {!isTemplate && (
+                  <TabsContent value="analytics">
+                    <Analytics
+                      pageId={id}
+                      isTemplate={isTemplate}
+                      activeTab={activeTab}
+                    />
+                  </TabsContent>
+                )}
+              </Tabs>
+            </div>
+          </div>
+        </div>
+
+        {/* Right panel - Preview */}
+        <div className="flex-1">
+          <div className="sticky top-[3.5rem] h-[calc(100vh-3.5rem)] overflow-y-auto">
+            <div className="py-6">
+              <SharePagePreview data={formValues} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
                   >
                     <div className="space-y-4 bg-card rounded-lg border">
                       <Accordion
